@@ -191,33 +191,19 @@
     <form id="laptopForm">
       <input type="hidden" id="editId" />
       <div class="form-grid">
-        <div><label>Номер ноутбука</label><input id="number" required placeholder="NB-001" /></div>
-        <div><label>Ціна eBay, ₴</label><input id="ebay_price" type="number" min="0" step="0.01" /></div>
-        <div><label>Статус</label>
-          <select id="status">
-            <option value="in_transit">В дорозі</option>
-            <option value="received">Отримано</option>
-            <option value="listed">На OLX</option>
-            <option value="sold">Продано</option>
-          </select>
+        <div>
+          <label>Номер ноутбука</label>
+          <input id="number" required placeholder="NB-001" />
         </div>
-        <div class="span-2"><label>Посилання eBay</label><input id="ebay_link" placeholder="https://www.ebay.com/..." /></div>
-        <div><label>Серійний номер</label><input id="serial_number" /></div>
-        <div class="span-3">
-          <details class="details-toggle">
-            <summary>Додаткові поля</summary>
-            <div class="form-grid" style="margin-top:12px">
-              <div><label>Доставка, ₴</label><input id="delivery_cost" type="number" min="0" step="0.01" /></div>
-              <div><label>Зарядний, ₴</label><input id="charger_cost" type="number" min="0" step="0.01" /></div>
-              <div><label>Мито, ₴</label><input id="duty_cost" type="number" min="0" step="0.01" /></div>
-              <div><label>Реклама OLX, ₴</label><input id="olx_ad_cost" type="number" min="0" step="0.01" /></div>
-              <div><label>Гравіювання, ₴</label><input id="engraving_cost" type="number" min="0" step="0.01" /></div>
-              <div><label>Ціна продажу, ₴</label><input id="sold_price" type="number" min="0" step="0.01" /></div>
-              <div class="span-2"><label>Посилання OLX</label><input id="olx_link" placeholder="https://www.olx.ua/..." /></div>
-              <div><label>Дата продажу</label><input id="sold_at" type="datetime-local" /></div>
-            </div>
-          </details>
+        <div>
+          <label>Ціна eBay, ₴</label>
+          <input id="ebay_price" type="number" min="0" step="0.01" />
         </div>
+        <div class="span-2">
+          <label>Посилання eBay</label>
+          <input id="ebay_link" placeholder="https://www.ebay.com/..." />
+        </div>
+        
       </div>
       <div class="row-actions">
         <button class="primary" type="submit">Зберегти</button>
