@@ -1009,6 +1009,32 @@
   function closeAddModal(){ document.getElementById('addModal').classList.remove('show'); }
   function resetForm(){ document.getElementById('laptopForm').reset(); const extra=document.getElementById('editOnlyFields'); if(extra) extra.remove(); document.getElementById('editId').value = ''; currentEditId = null; }
 
+
+  function ensureSoldPriceField(){
+    const grid = document.getElementById('editOnlyFields')?.querySelector('.form-grid');
+    if(!grid) return null;
+    let wrap = document.getElementById('soldPriceWrap');
+    if(!wrap){
+      wrap = document.createElement('div');
+      wrap.id = 'soldPriceWrap';
+      wrap.innerHTML = '<label>Ціна продажу, ₴</label><input id="sold_price" type="number" min="0" step="0.01" />';
+      grid.appendChild(wrap);
+    }
+    return wrap;
+  }
+
+  function toggleSoldPriceField(){
+    const statusEl = document.getElementById('status');
+    const wrap = document.getElementById('soldPriceWrap');
+    if(!statusEl || !wrap) return;
+    wrap.style.display = statusEl.value === 'sold' ? 'block' : 'none';
+    if(statusEl.value !== 'sold'){
+      const input = document.getElementById('sold_price');
+      if(input) input.value = '';
+    }
+  }
+
+
   function openEditModal(id){
     const item = laptops.find(x => x.id === id);
     if(!item) return;
@@ -1032,7 +1058,6 @@
             <select id="status">
               <option value="in_transit">В дорозі</option>
               <option value="received">Отримав</option>
-              
               <option value="sold">Продано</option>
             </select>
           </div>
@@ -1044,10 +1069,9 @@
           <div><label>Гравіювання, ₴</label><input id="engraving_cost" type="number" min="0" step="0.01" /></div>
           <div><label>SSD, ₴</label><input id="ssd" type="number" min="0" step="0.01" /></div>
           <div><label>RAM, ₴</label><input id="ram" type="number" min="0" step="0.01" /></div>
-          <div><label>Ціна продажу, ₴</label><input id="sold_price" type="number" min="0" step="0.01" /></div>
+          <div><label>Собівартість, ₴</label><input id="cost_display" disabled /></div>
           <div class="span-2"><label>Посилання OLX</label><input id="olx_link" placeholder="https://www.olx.ua/..." /></div>
           <div class="span-2"><label>Посилання Telegram</label><input id="telegram_link" placeholder="https://t.me/..." /></div>
-          
         </div>`;
       actions.parentNode.insertBefore(extra, actions);
     }
@@ -1061,13 +1085,25 @@
     document.getElementById('engraving_cost').value = item.engraving_cost || '';
     document.getElementById('ssd').value = item.ssd || '';
     document.getElementById('ram').value = item.ram || '';
-    document.getElementById('sold_price').value = item.sold_price || '';
     document.getElementById('olx_link').value = item.olx_link || '';
-    if(document.getElementById('telegram_link')) document.getElementById('telegram_link').value = item.telegram_link || '';
-    
+    document.getElementById('telegram_link').value = item.telegram_link || '';
+    document.getElementById('cost_display').value = calcCost(item);
+
+    const wrap = ensureSoldPriceField();
+    if(wrap){
+      const soldInput = document.getElementById('sold_price');
+      if(soldInput) soldInput.value = item.sold_price || '';
+    }
+    toggleSoldPriceField();
+
+    const statusEl = document.getElementById('status');
+    if(statusEl && !statusEl.dataset.boundSoldPrice){
+      statusEl.addEventListener('change', toggleSoldPriceField);
+      statusEl.dataset.boundSoldPrice = '1';
+    }
+
     document.getElementById('addModal').classList.add('show');
   }
-
 
   function applyStatusOptions(currentStatus){
     const select = document.getElementById('status');
@@ -1105,7 +1141,7 @@
       engraving_cost: document.getElementById('engraving_cost') ? toNum(document.getElementById('engraving_cost').value) : 0,
       ssd: document.getElementById('ssd') ? toNum(document.getElementById('ssd').value) : 0,
       ram: document.getElementById('ram') ? toNum(document.getElementById('ram').value) : 0,
-      sold_price: document.getElementById('sold_price') ? toNum(document.getElementById('sold_price').value) : 0,
+      sold_price: (document.getElementById('status') && document.getElementById('status').value === 'sold' && document.getElementById('sold_price')) ? toNum(document.getElementById('sold_price').value) : 0,
       olx_link: document.getElementById('olx_link') ? document.getElementById('olx_link').value.trim() : '',
       telegram_link: document.getElementById('telegram_link') ? document.getElementById('telegram_link').value.trim() : '',
       sold_at: null
@@ -1122,6 +1158,14 @@
         alert('Недозволена зміна статусу');
         return;
       }
+      if(payload.status === 'sold' && (!payload.sold_price || Number(payload.sold_price) <= 0)){
+        alert('Введи ціну продажу перед статусом Продано');
+        return;
+      }
+      if(payload.serial_number && payload.serial_number.trim() !== '' && payload.status !== 'sold'){
+        payload.status = 'received';
+      }
+
       if(currentItem && payload.status === 'sold' && currentItem.status !== 'sold'){
         payload.sold_at = new Date().toISOString();
       } else if(payload.status === 'received' || payload.status === 'in_transit'){
