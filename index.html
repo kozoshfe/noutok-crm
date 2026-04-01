@@ -37,7 +37,7 @@
     .logo .base{position:absolute;left:0;bottom:3px;width:66px;height:7px;border-radius:8px;background:#dce2ef}
     .title{font-size:30px;font-weight:900;letter-spacing:-.03em}
     .sub{font-size:13px;color:var(--muted);max-width:760px;margin-top:4px}
-    .chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
     .chip{display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border-radius:999px;background:#091224;border:1px solid var(--line);font-weight:800}
     .dot{width:11px;height:11px;border-radius:50%}.dot.green{background:var(--green)}.dot.red{background:var(--red)}
     .nav{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
@@ -60,10 +60,18 @@
     .item-sub{margin-top:6px;font-size:13px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
     .item-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
     .price{font-size:14px;font-weight:900;color:#fff}
+
+    .edit-mini{
+      width:42px;height:42px;border-radius:12px;padding:0;
+      display:inline-flex;align-items:center;justify-content:center;
+      background:#0b1427;border:1px solid rgba(255,255,255,.08);
+      font-size:18px;line-height:1;
+    }
+
     .profit-pos{color:#8ff2af}
     .profit-neg{color:#ffb1b1}
     .badge{padding:9px 12px;border-radius:999px;font-size:13px;font-weight:900}
-    .st-in_transit{background:rgba(63,124,255,.18);color:#7eb4ff}.st-received{background:rgba(60,217,102,.14);color:#8ff2af}.st-listed{background:rgba(241,216,106,.14);color:#ffe88e}.st-sold{background:rgba(155,124,255,.14);color:#d0beff}
+    .st-in_transit{background:rgba(63,124,255,.18);color:#7eb4ff}.st-received{background:rgba(60,217,102,.14);color:#8ff2af}.st-sold{background:rgba(241,216,106,.14);color:#ffe88e}.st-sold{background:rgba(155,124,255,.14);color:#d0beff}
     .item-body{padding:0 16px 16px}
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .field{background:#0b1427;border:1px solid rgba(255,255,255,.05);border-radius:16px;padding:12px}
@@ -86,33 +94,59 @@
     .toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
     .pill{display:inline-flex;gap:8px;align-items:center;background:#0a1427;padding:10px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.06)}
     .floating-add{position:fixed;right:18px;bottom:18px;z-index:60;width:64px;height:64px;border-radius:50%;background:linear-gradient(180deg,var(--blue),var(--blue2));font-size:34px;font-weight:900;box-shadow:0 16px 28px rgba(0,0,0,.35)}
+    
+    .auth-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#061126,#08152f);z-index:9999;padding:20px}
+    .auth-card{width:min(420px,100%);background:rgba(9,21,48,.96);border:1px solid rgba(255,255,255,.08);border-radius:26px;padding:22px;box-shadow:var(--shadow)}
+    .auth-card h2{margin:0 0 8px 0}
+    .auth-note{font-size:13px;color:var(--muted);margin-bottom:14px}
+
     @media (max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.form-grid{grid-template-columns:1fr 1fr}.span-2,.span-3{grid-column:span 2}}
     @media (max-width:760px){.app{padding:12px}.top{margin:-12px -12px 14px;padding:14px 12px 12px}.title{font-size:24px}.stats,.grid,.row-actions,.status-actions,.form-grid{grid-template-columns:1fr}.span-2,.span-3{grid-column:span 1}.item summary{flex-direction:column;align-items:flex-start}.item-right{justify-content:flex-start}.floating-add{right:14px;bottom:14px}}
   </style>
 </head>
 <body>
-<div class="app">
+
+<div id="authScreen" class="auth-screen">
+  <div class="auth-card">
+    <h2>Вхід у Ноуток CRM</h2>
+    <div class="auth-note">Простий локальний вхід для тебе.</div>
+    <div style="display:grid;gap:12px">
+      <div>
+        <label>Логін</label>
+        <input id="simpleLogin" placeholder="Введи логін" />
+      </div>
+      <div>
+        <label>Пароль</label>
+        <input id="simplePassword" type="password" placeholder="Введи пароль" />
+      </div>
+      <button class="primary" id="simpleLoginBtn">Увійти</button>
+      <div id="simpleLoginMsg" class="auth-note"></div>
+    </div>
+  </div>
+</div>
+
+<div id="appShell" class="app" style="display:none">
   <div class="top">
     <div class="top-row">
       <div class="brand">
         <div class="logo"><div class="screen"></div><div class="badge">NB</div><div class="base"></div></div>
         <div>
           <div class="title">Ноуток СРМ</div>
-          <div class="sub">Supabase версія. Працює з телефону і з комп’ютера через одну базу.</div>
+          
           <div class="chips">
             <div class="chip"><span id="netDot" class="dot red"></span><span id="netText">Офлайн</span></div>
-            <div class="chip"><span id="dbDot" class="dot red"></span><span id="dbText">База не підключена</span></div>
+            
           </div>
         </div>
       </div>
     </div>
-    <div id="banner" class="banner">Підключення…</div>
+    
     <div class="nav">
       <button class="nav-btn active" data-view="dashboard">Головна</button>
       <button class="nav-btn" data-view="active">Активні</button>
       <button class="nav-btn" data-view="sold">Продані</button>
       <button class="nav-btn" data-view="months">Місяці</button>
-      <button class="nav-btn" data-view="base">База</button>
+      <button class="nav-btn" data-view="base" style="display:none">База</button>
     </div>
   </div>
 
@@ -142,6 +176,19 @@
         <div class="section-count">Всього: <b id="activeCount">0</b></div>
         <button class="primary" onclick="openAddModal()">Додати ноутбук</button>
       </div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+  <select id="filterStatus" style="max-width:180px">
+    <option value="">Всі статуси</option>
+    <option value="in_transit">В дорозі</option>
+    <option value="received">Отримано</option>
+  </select>
+  <select id="filterMarket" style="max-width:220px">
+    <option value="">Всі</option>
+    <option value="olx">Є OLX</option>
+    <option value="telegram">Є Telegram</option>
+  </select>
+</div>
+
     </div>
     <div id="activeCards" class="cards"></div>
   </section>
@@ -205,10 +252,9 @@
         </div>
         
       </div>
+        
       <div class="row-actions">
         <button class="primary" type="submit">Зберегти</button>
-        <button class="ghost" type="button" onclick="resetForm()">Очистити</button>
-        <button class="danger" id="deleteBtn" type="button" style="display:none" onclick="deleteCurrent()">Видалити</button>
       </div>
     </form>
   </div>
@@ -216,6 +262,66 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+
+  const SIMPLE_LOGIN = '1111';
+  const SIMPLE_PASSWORD = '1111';
+  const SIMPLE_AUTH_KEY = 'noutok_crm_simple_auth';
+
+  function showAppShell(){
+    const auth = document.getElementById('authScreen');
+    const app = document.getElementById('appShell');
+    if(auth) auth.style.display = 'none';
+    if(app) app.style.display = 'block';
+  }
+
+  function showAuthScreen(){
+    const auth = document.getElementById('authScreen');
+    const app = document.getElementById('appShell');
+    if(auth) auth.style.display = 'flex';
+    if(app) app.style.display = 'none';
+  }
+
+  function simpleLogin(){
+    const login = document.getElementById('simpleLogin').value.trim();
+    const password = document.getElementById('simplePassword').value;
+    const msg = document.getElementById('simpleLoginMsg');
+
+    if(login === SIMPLE_LOGIN && password === SIMPLE_PASSWORD){
+      localStorage.setItem(SIMPLE_AUTH_KEY, 'ok');
+      msg.textContent = '';
+      showAppShell();
+      return;
+    }
+    msg.textContent = 'Невірний логін або пароль';
+  }
+
+  function simpleLogout(){
+    localStorage.removeItem(SIMPLE_AUTH_KEY);
+    showAuthScreen();
+  }
+
+  function initSimpleAuth(){
+    const btn = document.getElementById('simpleLoginBtn');
+    if(btn) btn.addEventListener('click', simpleLogin);
+
+    const loginInput = document.getElementById('simpleLogin');
+    const passInput = document.getElementById('simplePassword');
+    [loginInput, passInput].forEach(el => {
+      if(el){
+        el.addEventListener('keydown', (e) => {
+          if(e.key === 'Enter') simpleLogin();
+        });
+      }
+    });
+
+    if(localStorage.getItem(SIMPLE_AUTH_KEY) === 'ok'){
+      showAppShell();
+    } else {
+      showAuthScreen();
+    }
+  }
+
+
   const SUPABASE_URL = 'https://qzcapeempzzdhicsweqz.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_nXxnpG6C_RO9mVqcYEt1mg_Z9Z-dpDr';
   const TABLE = 'laptops';
@@ -227,8 +333,7 @@
 
   const statusLabels = {
     in_transit: 'В дорозі',
-    received: 'Отримано',
-    listed: 'На OLX',
+    received: 'Отримав',
     sold: 'Продано'
   };
 
@@ -243,6 +348,7 @@
 
   function setBanner(text, ok=true){
     const el = document.getElementById('banner');
+    if(!el) return;
     el.textContent = text;
     el.style.color = ok ? '#8cf2b1' : '#ffb5b5';
     el.style.background = ok ? 'rgba(29,124,76,.22)' : 'rgba(145,42,42,.22)';
@@ -291,65 +397,70 @@
 
   function cardTemplate(item, soldMode){
     const cost = calcCost(item);
-    const profit = item.sold_price ? calcProfit(item) : null;
-    return `
-      <details class="item">
-        <summary>
-          <div>
-            <div class="item-title">${safe(item.number || 'Без номера')}</div>
-            <div class="item-sub">
-              <span>eBay: ${money(item.ebay_price)}</span>
-              ${item.ebay_link ? '<span>є лінк</span>' : ''}
-              ${soldMode ? `<span>Продаж: ${money(item.sold_price)}</span>` : ''}
+    const sale = toNum(item.sold_price);
+    const profit = sale - cost;
+
+    if (soldMode) {
+      return `
+        <div class="item">
+          <div style="padding:16px;display:flex;justify-content:space-between;gap:16px;align-items:flex-start">
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <div class="item-title">${safe(item.number || 'Без номера')}</div>
+                ${item.ebay_link ? `<a href="${safe(item.ebay_link)}" target="_blank" style="padding:8px 12px;border-radius:12px;background:rgba(138,180,255,0.15);color:#8ab4ff;font-size:14px;text-decoration:none;display:inline-block;">🔗 eBay</a>` : ''}
+                <div style="background:rgba(255,255,255,0.05);padding:10px 14px;border-radius:12px;font-size:14px;">💰 <b>${money(cost)}</b></div>
+                <div style="background:rgba(255,255,255,0.05);padding:10px 14px;border-radius:12px;font-size:14px;">💵 <b>${sale ? money(sale) : '—'}</b></div>
+                <div style="background:${profit >= 0 ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'};padding:10px 14px;border-radius:12px;font-size:14px;">📈 <b style="color:${profit >= 0 ? '#22c55e' : '#ef4444'}">${sale ? money(profit) : '—'}</b></div>
+              </div>
             </div>
-          </div>
-          <div class="item-right">
-            ${item.sold_price ? `<div class="price">${money(item.sold_price)}</div>` : ''}
-            ${profit !== null ? `<div class="price ${profit >= 0 ? 'profit-pos' : 'profit-neg'}">${money(profit)}</div>` : ''}
-            <div class="badge st-${safe(item.status)}">${safe(statusLabels[item.status] || item.status)}</div>
-          </div>
-        </summary>
-        <div class="item-body">
-          <div class="grid">
-            <div class="field"><div class="k">Номер ноутбука</div><div class="v">${safe(item.number || '—')}</div></div>
-            <div class="field"><div class="k">Ціна eBay</div><div class="v">${money(item.ebay_price)}</div></div>
-            <div class="field"><div class="k">Посилання eBay</div><div class="v">${item.ebay_link ? `<a href="${safe(item.ebay_link)}" target="_blank">Відкрити</a>` : '—'}</div></div>
-            <div class="field"><div class="k">Статус</div><div class="v">${safe(statusLabels[item.status] || item.status)}</div></div>
-          </div>
-          <details class="details-toggle">
-            <summary>Фінанси і деталі</summary>
-            <div class="grid" style="margin-top:12px">
-              <div class="field"><div class="k">Собівартість</div><div class="v">${money(cost)}</div></div>
-              <div class="field"><div class="k">Ціна продажу</div><div class="v">${item.sold_price ? money(item.sold_price) : '—'}</div></div>
-              <div class="field"><div class="k">Прибуток</div><div class="v ${profit !== null ? (profit >= 0 ? 'profit-pos' : 'profit-neg') : ''}">${profit === null ? '—' : money(profit)}</div></div>
-              <div class="field"><div class="k">Дата продажу</div><div class="v">${fmtDate(item.sold_at)}</div></div>
-              <div class="field"><div class="k">Серійний номер</div><div class="v">${safe(item.serial_number || '—')}</div></div>
-              <div class="field"><div class="k">Посилання OLX</div><div class="v">${item.olx_link ? `<a href="${safe(item.olx_link)}" target="_blank">Відкрити</a>` : '—'}</div></div>
-              <div class="field"><div class="k">Дата додавання</div><div class="v">${fmtDate(item.created_at)}</div></div>
-              <div class="field"><div class="k">Витрати</div><div class="v">Дост: ${money(item.delivery_cost)} · Зар: ${money(item.charger_cost)} · Мито: ${money(item.duty_cost)} · Реклама: ${money(item.olx_ad_cost)} · Гравіювання: ${money(item.engraving_cost)}</div></div>
+
+            <div class="item-right">
+              <button class="edit-mini" onclick="openEditModal('${item.id}')" title="Редагувати">✏️</button>
+              <div class="badge st-${safe(item.status)}">${safe(statusLabels[item.status] || item.status)}</div>
             </div>
-          </details>
-          <div class="status-actions">
-            ${!soldMode ? `
-              <button class="ghost" onclick="quickStatus('${item.id}','in_transit')">В дорозі</button>
-              <button class="ghost" onclick="quickStatus('${item.id}','received')">Отримано</button>
-              <button class="ghost" onclick="quickStatus('${item.id}','listed')">На OLX</button>
-              <button class="ghost" onclick="quickStatus('${item.id}','sold')">Продано</button>
-            ` : `<button class="ghost" onclick="quickStatus('${item.id}','listed')">Повернути в активні</button>`}
-          </div>
-          <div class="row-actions">
-            <button class="primary" onclick="openEditModal('${item.id}')">Редагувати</button>
-            <button class="warning" onclick="duplicateLaptop('${item.id}')">Дублювати</button>
-            <button class="danger" onclick="removeLaptop('${item.id}')">Видалити</button>
           </div>
         </div>
-      </details>
+      `;
+    }
+
+    return `
+      <div class="item">
+        <div style="padding:16px;display:flex;justify-content:space-between;gap:16px;align-items:center">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <div class="item-title">${safe(item.number || 'Без номера')}</div>
+            ${item.ebay_link ? `<a href="${safe(item.ebay_link)}" target="_blank" style="padding:8px 12px;border-radius:12px;background:rgba(138,180,255,0.15);color:#8ab4ff;font-size:14px;text-decoration:none;display:inline-block;">🔗 eBay</a>` : ''}
+            ${item.olx_link ? `<a href="${safe(item.olx_link)}" target="_blank" style="padding:8px 12px;border-radius:12px;background:rgba(34,197,94,0.15);color:#7df0a3;font-size:14px;display:inline-block;text-decoration:none;">✅ OLX</a>` : ''}
+            ${item.telegram_link ? `<a href="${safe(item.telegram_link)}" target="_blank" style="padding:8px 12px;border-radius:12px;background:rgba(139,92,246,0.15);color:#d8b4fe;font-size:14px;display:inline-block;text-decoration:none;">✈️ Telegram</a>` : ''}
+          </div>
+          <div class="item-right">
+            <button class="edit-mini" onclick="openEditModal('${item.id}')" title="Редагувати">✏️</button>
+            <div class="badge st-${safe(item.status)}">${safe(statusLabels[item.status] || item.status)}</div>
+          </div>
+        </div>
+      </div>
     `;
   }
 
   function renderActive(){
-    const data = laptops.filter(x => x.status !== 'sold');
-    document.getElementById('activeCards').innerHTML = data.length ? data.map(item => cardTemplate(item, false)).join('') : '<div class="empty">Немає активних ноутбуків</div>';
+    const statusF = document.getElementById('filterStatus')?.value;
+    const marketF = document.getElementById('filterMarket')?.value;
+
+    let data = laptops.filter(x => x.status !== 'sold');
+
+    if(statusF){
+      data = data.filter(x => x.status === statusF);
+    }
+
+    if(marketF === 'olx'){
+      data = data.filter(x => x.olx_link);
+    }
+    if(marketF === 'telegram'){
+      data = data.filter(x => x.telegram_link);
+    }
+
+    document.getElementById('activeCards').innerHTML = data.length
+      ? data.map(item => cardTemplate(item, false)).join('')
+      : '<div class="empty">Немає ноутбуків по фільтру</div>';
   }
   function renderSold(){
     const data = laptops.filter(x => x.status === 'sold');
@@ -373,25 +484,83 @@
   function openAddModal(){
     currentEditId = null;
     document.getElementById('modalTitle').textContent = 'Додати ноутбук';
-    document.getElementById('deleteBtn').style.display = 'none';
+    const delBtn = document.getElementById('deleteBtn'); if(delBtn) delBtn.style.display = 'none';
     document.getElementById('laptopForm').reset();
-    
+    const extra = document.getElementById('editOnlyFields');
+    if(extra) extra.remove();
     document.getElementById('addModal').classList.add('show');
   }
   function closeAddModal(){ document.getElementById('addModal').classList.remove('show'); }
-  function resetForm(){ document.getElementById('laptopForm').reset(); document.getElementById('editId').value = ''; currentEditId = null; }
+  function resetForm(){ document.getElementById('laptopForm').reset(); const extra=document.getElementById('editOnlyFields'); if(extra) extra.remove(); document.getElementById('editId').value = ''; currentEditId = null; }
 
   function openEditModal(id){
     const item = laptops.find(x => x.id === id);
     if(!item) return;
     currentEditId = id;
     document.getElementById('modalTitle').textContent = 'Редагувати ноутбук';
-    document.getElementById('deleteBtn').style.display = 'inline-block';
+    const delBtn = document.getElementById('deleteBtn'); if(delBtn) delBtn.style.display = 'none';
     document.getElementById('editId').value = id;
     document.getElementById('number').value = item.number || '';
     document.getElementById('ebay_price').value = item.ebay_price || '';
     document.getElementById('ebay_link').value = item.ebay_link || '';
+
+    let extra = document.getElementById('editOnlyFields');
+    if(!extra){
+      const actions = document.querySelector('#laptopForm .row-actions');
+      extra = document.createElement('div');
+      extra.id = 'editOnlyFields';
+      extra.className = 'span-3';
+      extra.innerHTML = `
+        <div class="form-grid" style="margin-top:12px">
+          <div><label>Статус</label>
+            <select id="status">
+              <option value="in_transit">В дорозі</option>
+              <option value="received">Отримав</option>
+              
+              <option value="sold">Продано</option>
+            </select>
+          </div>
+          <div><label>Серійний номер</label><input id="serial_number" /></div>
+          <div><label>Доставка, ₴</label><input id="delivery_cost" type="number" min="0" step="0.01" /></div>
+          <div><label>Зарядний, ₴</label><input id="charger_cost" type="number" min="0" step="0.01" /></div>
+          <div><label>Мито, ₴</label><input id="duty_cost" type="number" min="0" step="0.01" /></div>
+          <div><label>Реклама OLX, ₴</label><input id="olx_ad_cost" type="number" min="0" step="0.01" /></div>
+          <div><label>Гравіювання, ₴</label><input id="engraving_cost" type="number" min="0" step="0.01" /></div>
+          <div><label>Ціна продажу, ₴</label><input id="sold_price" type="number" min="0" step="0.01" /></div>
+          <div class="span-2"><label>Посилання OLX</label><input id="olx_link" placeholder="https://www.olx.ua/..." /></div>
+          <div class="span-2"><label>Посилання Telegram</label><input id="telegram_link" placeholder="https://t.me/..." /></div>
+          
+        </div>`;
+      actions.parentNode.insertBefore(extra, actions);
+    }
+
+    applyStatusOptions(item.status || 'in_transit');
+    document.getElementById('serial_number').value = item.serial_number || '';
+    document.getElementById('delivery_cost').value = item.delivery_cost || '';
+    document.getElementById('charger_cost').value = item.charger_cost || '';
+    document.getElementById('duty_cost').value = item.duty_cost || '';
+    document.getElementById('olx_ad_cost').value = item.olx_ad_cost || '';
+    document.getElementById('engraving_cost').value = item.engraving_cost || '';
+    document.getElementById('sold_price').value = item.sold_price || '';
+    document.getElementById('olx_link').value = item.olx_link || '';
+    if(document.getElementById('telegram_link')) document.getElementById('telegram_link').value = item.telegram_link || '';
+    
     document.getElementById('addModal').classList.add('show');
+  }
+
+
+  function applyStatusOptions(currentStatus){
+    const select = document.getElementById('status');
+    if(!select) return;
+    const allowedNext = {
+      in_transit: ['in_transit','received'],
+      received: ['received','sold'],
+      sold: ['sold']
+    };
+    [...select.options].forEach(opt => {
+      opt.disabled = !allowedNext[currentStatus]?.includes(opt.value);
+    });
+    select.value = currentStatus || 'in_transit';
   }
 
   async function loadLaptops(){
@@ -407,16 +576,69 @@
       number: document.getElementById('number').value.trim(),
       ebay_price: toNum(document.getElementById('ebay_price').value),
       ebay_link: document.getElementById('ebay_link').value.trim(),
-      status: 'in_transit'
+      status: document.getElementById('status') ? document.getElementById('status').value : 'in_transit',
+      serial_number: document.getElementById('serial_number') ? document.getElementById('serial_number').value.trim() : '',
+      delivery_cost: document.getElementById('delivery_cost') ? toNum(document.getElementById('delivery_cost').value) : 0,
+      charger_cost: document.getElementById('charger_cost') ? toNum(document.getElementById('charger_cost').value) : 0,
+      duty_cost: document.getElementById('duty_cost') ? toNum(document.getElementById('duty_cost').value) : 0,
+      olx_ad_cost: document.getElementById('olx_ad_cost') ? toNum(document.getElementById('olx_ad_cost').value) : 0,
+      engraving_cost: document.getElementById('engraving_cost') ? toNum(document.getElementById('engraving_cost').value) : 0,
+      sold_price: document.getElementById('sold_price') ? toNum(document.getElementById('sold_price').value) : 0,
+      olx_link: document.getElementById('olx_link') ? document.getElementById('olx_link').value.trim() : '',
+      telegram_link: document.getElementById('telegram_link') ? document.getElementById('telegram_link').value.trim() : '',
+      sold_at: null
     };
     if(!payload.number){ alert('Введи номер ноутбука'); return; }
+    if(currentEditId){
+      const currentItem = laptops.find(x => x.id === currentEditId);
+      const allowed = {
+        in_transit: ['in_transit','received'],
+        received: ['received','sold'],
+        sold: ['sold']
+      };
+      if(currentItem && !allowed[currentItem.status]?.includes(payload.status)){
+        alert('Недозволена зміна статусу');
+        return;
+      }
+      if(currentItem && payload.status === 'sold' && currentItem.status !== 'sold'){
+        payload.sold_at = new Date().toISOString();
+      } else if(payload.status !== 'sold'){
+        payload.sold_at = null;
+      } else {
+        payload.sold_at = currentItem?.sold_at || new Date().toISOString();
+      }
+    } else {
+      payload.status = 'in_transit';
+      payload.sold_at = null;
+    }
     const response = currentEditId ? await supabaseClient.from(TABLE).update(payload).eq('id', currentEditId) : await supabaseClient.from(TABLE).insert([payload]);
     if(response.error){ console.error(response.error); alert('Помилка збереження в базу'); return; }
     closeAddModal(); resetForm(); await loadLaptops();
   }
 
   async function quickStatus(id, status){
-    const payload = { status, sold_at: status === 'sold' ? new Date().toISOString() : null };
+    const item = laptops.find(x => x.id === id);
+    if(!item) return;
+
+    const allowed = {
+      in_transit: ['received'],
+      received: ['sold'],
+      sold: ['sold'],
+      sold: []
+    };
+
+    if(!allowed[item.status]?.includes(status)){
+      alert('Недозволена зміна статусу');
+      return;
+    }
+
+    const payload = { status };
+    if(status === 'sold'){
+      payload.sold_at = new Date().toISOString();
+    } else {
+      payload.sold_at = null;
+    }
+
     const { error } = await supabaseClient.from(TABLE).update(payload).eq('id', id);
     if(error){ console.error(error); alert('Не вдалося змінити статус'); return; }
     await loadLaptops();
@@ -428,12 +650,12 @@
     if(error){ console.error(error); alert('Не вдалося видалити'); return; }
     closeAddModal(); await loadLaptops();
   }
-  async function deleteCurrent(){ if(currentEditId) await removeLaptop(currentEditId); }
+  async function deleteCurrent(){}
 
   async function duplicateLaptop(id){
     const item = laptops.find(x => x.id === id);
     if(!item) return;
-    const copy = { number:(item.number || 'copy') + '-copy', ebay_price:item.ebay_price, ebay_link:item.ebay_link, delivery_cost:item.delivery_cost, charger_cost:item.charger_cost, duty_cost:item.duty_cost, olx_ad_cost:item.olx_ad_cost, engraving_cost:item.engraving_cost, serial_number:item.serial_number, olx_link:item.olx_link, sold_price:item.sold_price, status:'in_transit', sold_at:null };
+    const copy = { number:(item.number || 'copy') + '-copy', ebay_price:item.ebay_price, ebay_link:item.ebay_link, delivery_cost:item.delivery_cost, charger_cost:item.charger_cost, duty_cost:item.duty_cost, olx_ad_cost:item.olx_ad_cost, engraving_cost:item.engraving_cost, serial_number:item.serial_number, olx_link:item.olx_link, telegram_link:item.telegram_link, sold_price:item.sold_price, status:'in_transit', sold_at:null };
     const { error } = await supabaseClient.from(TABLE).insert([copy]);
     if(error){ console.error(error); alert('Не вдалося дублювати'); return; }
     await loadLaptops();
@@ -455,16 +677,14 @@
     }
     try{
       supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      document.getElementById('dbDot').className = 'dot green';
-      document.getElementById('dbText').textContent = 'База підключена';
+      const dbDot=document.getElementById('dbDot'); const dbText=document.getElementById('dbText'); if(dbDot) dbDot.className='dot green'; if(dbText) dbText.textContent='База підключена';
       document.getElementById('baseStatus').textContent = 'Підключено';
       setBanner('Швидка синхронізація з Supabase активна.', true);
       await loadLaptops();
       subscribeRealtime();
     } catch (e){
       console.error(e);
-      document.getElementById('dbDot').className = 'dot red';
-      document.getElementById('dbText').textContent = 'Помилка бази';
+      const dbDot=document.getElementById('dbDot'); const dbText=document.getElementById('dbText'); if(dbDot) dbDot.className='dot red'; if(dbText) dbText.textContent='Помилка бази';
       document.getElementById('baseStatus').textContent = 'Помилка';
       setBanner('Не вдалося підключитися до Supabase', false);
     }
@@ -475,7 +695,13 @@
   window.addEventListener('offline', updateNetwork);
   window.addEventListener('click', (e) => { if(e.target.id === 'addModal') closeAddModal(); });
 
+  initSimpleAuth();
   init();
+document.addEventListener('change', (e)=>{
+  if(e.target.id === 'filterStatus' || e.target.id === 'filterMarket'){
+    renderActive();
+  }
+});
 </script>
 </body>
 </html>
