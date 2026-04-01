@@ -375,11 +375,11 @@
     document.getElementById('modalTitle').textContent = 'Додати ноутбук';
     document.getElementById('deleteBtn').style.display = 'none';
     document.getElementById('laptopForm').reset();
-    document.getElementById('status').value = 'in_transit';
+    
     document.getElementById('addModal').classList.add('show');
   }
   function closeAddModal(){ document.getElementById('addModal').classList.remove('show'); }
-  function resetForm(){ document.getElementById('laptopForm').reset(); document.getElementById('status').value = 'in_transit'; document.getElementById('editId').value = ''; currentEditId = null; }
+  function resetForm(){ document.getElementById('laptopForm').reset(); document.getElementById('editId').value = ''; currentEditId = null; }
 
   function openEditModal(id){
     const item = laptops.find(x => x.id === id);
@@ -391,16 +391,6 @@
     document.getElementById('number').value = item.number || '';
     document.getElementById('ebay_price').value = item.ebay_price || '';
     document.getElementById('ebay_link').value = item.ebay_link || '';
-    document.getElementById('status').value = item.status || 'in_transit';
-    document.getElementById('delivery_cost').value = item.delivery_cost || '';
-    document.getElementById('charger_cost').value = item.charger_cost || '';
-    document.getElementById('duty_cost').value = item.duty_cost || '';
-    document.getElementById('olx_ad_cost').value = item.olx_ad_cost || '';
-    document.getElementById('engraving_cost').value = item.engraving_cost || '';
-    document.getElementById('serial_number').value = item.serial_number || '';
-    document.getElementById('olx_link').value = item.olx_link || '';
-    document.getElementById('sold_price').value = item.sold_price || '';
-    document.getElementById('sold_at').value = item.sold_at ? new Date(item.sold_at).toISOString().slice(0,16) : '';
     document.getElementById('addModal').classList.add('show');
   }
 
@@ -417,16 +407,7 @@
       number: document.getElementById('number').value.trim(),
       ebay_price: toNum(document.getElementById('ebay_price').value),
       ebay_link: document.getElementById('ebay_link').value.trim(),
-      delivery_cost: toNum(document.getElementById('delivery_cost').value),
-      charger_cost: toNum(document.getElementById('charger_cost').value),
-      duty_cost: toNum(document.getElementById('duty_cost').value),
-      olx_ad_cost: toNum(document.getElementById('olx_ad_cost').value),
-      engraving_cost: toNum(document.getElementById('engraving_cost').value),
-      serial_number: document.getElementById('serial_number').value.trim(),
-      olx_link: document.getElementById('olx_link').value.trim(),
-      sold_price: toNum(document.getElementById('sold_price').value),
-      status: document.getElementById('status').value,
-      sold_at: document.getElementById('sold_at').value ? new Date(document.getElementById('sold_at').value).toISOString() : null
+      status: 'in_transit'
     };
     if(!payload.number){ alert('Введи номер ноутбука'); return; }
     const response = currentEditId ? await supabaseClient.from(TABLE).update(payload).eq('id', currentEditId) : await supabaseClient.from(TABLE).insert([payload]);
