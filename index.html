@@ -94,38 +94,259 @@
     .toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
     .pill{display:inline-flex;gap:8px;align-items:center;background:#0a1427;padding:10px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.06)}
     .floating-add{position:fixed;right:18px;bottom:18px;z-index:60;width:64px;height:64px;border-radius:50%;background:linear-gradient(180deg,var(--blue),var(--blue2));font-size:34px;font-weight:900;box-shadow:0 16px 28px rgba(0,0,0,.35)}
-    
-    .auth-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#061126,#08152f);z-index:9999;padding:20px}
-    .auth-card{width:min(420px,100%);background:rgba(9,21,48,.96);border:1px solid rgba(255,255,255,.08);border-radius:26px;padding:22px;box-shadow:var(--shadow)}
-    .auth-card h2{margin:0 0 8px 0}
-    .auth-note{font-size:13px;color:var(--muted);margin-bottom:14px}
-
     @media (max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.form-grid{grid-template-columns:1fr 1fr}.span-2,.span-3{grid-column:span 2}}
     @media (max-width:760px){.app{padding:12px}.top{margin:-12px -12px 14px;padding:14px 12px 12px}.title{font-size:24px}.stats,.grid,.row-actions,.status-actions,.form-grid{grid-template-columns:1fr}.span-2,.span-3{grid-column:span 1}.item summary{flex-direction:column;align-items:flex-start}.item-right{justify-content:flex-start}.floating-add{right:14px;bottom:14px}}
-  </style>
+  
+  /* Mobile optimized layer */
+  @media (max-width: 768px){
+    body{
+      padding-bottom: 92px;
+    }
+
+    .app{
+      max-width: 100%;
+      padding: 12px;
+    }
+
+    .top{
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      margin: -12px -12px 12px;
+      padding: 14px 12px 10px;
+      border-bottom-left-radius: 18px;
+      border-bottom-right-radius: 18px;
+    }
+
+    .top-row{
+      gap: 10px;
+    }
+
+    .brand{
+      gap: 10px;
+      width: 100%;
+      align-items: center;
+    }
+
+    .logo{
+      transform: scale(.9);
+      transform-origin: left top;
+      width: 78px;
+      height: 52px;
+    }
+
+    .title{
+      font-size: 22px !important;
+      line-height: 1.1;
+    }
+
+    .sub{
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .chips{
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .chip, .pill{
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+
+    .stats{
+      grid-template-columns: 1fr 1fr !important;
+      gap: 10px;
+    }
+
+    .stat{
+      border-radius: 18px;
+      padding: 14px;
+    }
+
+    .stat .k{
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .stat .v{
+      font-size: 22px;
+      margin-top: 8px;
+    }
+
+    .panel{
+      border-radius: 20px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .section-head{
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .section-head h2{
+      font-size: 20px;
+    }
+
+    .section-count b{
+      font-size: 28px;
+    }
+
+    .cards{
+      gap: 10px;
+    }
+
+    .item{
+      border-radius: 16px;
+    }
+
+    .item summary,
+    .item > div{
+      padding: 14px !important;
+    }
+
+    .item-title{
+      font-size: 17px;
+      line-height: 1.2;
+    }
+
+    .item-sub{
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .item-right{
+      gap: 8px;
+      width: 100%;
+      justify-content: flex-start !important;
+    }
+
+    .edit-mini{
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+      font-size: 18px;
+      flex: 0 0 auto;
+    }
+
+    .badge, .badge-status{
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+
+    .field{
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .grid{
+      grid-template-columns: 1fr !important;
+      gap: 8px;
+    }
+
+    .form-grid{
+      grid-template-columns: 1fr !important;
+      gap: 10px;
+    }
+
+    .span-2, .span-3{
+      grid-column: span 1 !important;
+    }
+
+    .row-actions,
+    .status-actions{
+      grid-template-columns: 1fr !important;
+      gap: 10px;
+    }
+
+    .row-actions button,
+    .status-actions button,
+    .nav button,
+    button.primary,
+    button.ghost,
+    select,
+    input{
+      min-height: 48px;
+    }
+
+    .modal-wrap{
+      padding: 10px;
+      align-items: flex-end;
+    }
+
+    .modal{
+      width: 100%;
+      max-height: 90vh;
+      overflow: auto;
+      border-radius: 22px 22px 0 0;
+      padding: 16px;
+    }
+
+    .toolbar{
+      position: sticky;
+      top: 0;
+      background: #08162f;
+      padding-bottom: 8px;
+      z-index: 2;
+    }
+
+    .floating-add{
+      width: 62px;
+      height: 62px;
+      right: 14px;
+      bottom: 84px;
+      font-size: 32px;
+    }
+
+    .month-card{
+      border-radius: 18px;
+      padding: 14px;
+    }
+
+    .month-title{
+      font-size: 17px;
+    }
+
+    .nav{
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 60;
+      margin: 0;
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+      background: rgba(5,15,35,.97);
+      backdrop-filter: blur(14px);
+      border-top: 1px solid rgba(255,255,255,.06);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .nav button{
+      border-radius: 14px;
+      padding: 10px 8px;
+      font-size: 12px;
+      line-height: 1.15;
+      min-width: 0;
+    }
+
+    .empty{
+      padding: 20px 14px;
+      font-size: 14px;
+    }
+  }
+
+</style>
 </head>
 <body>
-
-<div id="authScreen" class="auth-screen">
-  <div class="auth-card">
-    <h2>Вхід у Ноуток CRM</h2>
-    <div class="auth-note">Простий локальний вхід для тебе.</div>
-    <div style="display:grid;gap:12px">
-      <div>
-        <label>Логін</label>
-        <input id="simpleLogin" placeholder="Введи логін" />
-      </div>
-      <div>
-        <label>Пароль</label>
-        <input id="simplePassword" type="password" placeholder="Введи пароль" />
-      </div>
-      <button class="primary" id="simpleLoginBtn">Увійти</button>
-      <div id="simpleLoginMsg" class="auth-note"></div>
-    </div>
-  </div>
-</div>
-
-<div id="appShell" class="app" style="display:none">
+<div class="app">
   <div class="top">
     <div class="top-row">
       <div class="brand">
@@ -262,66 +483,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-
-  const SIMPLE_LOGIN = '1111';
-  const SIMPLE_PASSWORD = '1111';
-  const SIMPLE_AUTH_KEY = 'noutok_crm_simple_auth';
-
-  function showAppShell(){
-    const auth = document.getElementById('authScreen');
-    const app = document.getElementById('appShell');
-    if(auth) auth.style.display = 'none';
-    if(app) app.style.display = 'block';
-  }
-
-  function showAuthScreen(){
-    const auth = document.getElementById('authScreen');
-    const app = document.getElementById('appShell');
-    if(auth) auth.style.display = 'flex';
-    if(app) app.style.display = 'none';
-  }
-
-  function simpleLogin(){
-    const login = document.getElementById('simpleLogin').value.trim();
-    const password = document.getElementById('simplePassword').value;
-    const msg = document.getElementById('simpleLoginMsg');
-
-    if(login === SIMPLE_LOGIN && password === SIMPLE_PASSWORD){
-      localStorage.setItem(SIMPLE_AUTH_KEY, 'ok');
-      msg.textContent = '';
-      showAppShell();
-      return;
-    }
-    msg.textContent = 'Невірний логін або пароль';
-  }
-
-  function simpleLogout(){
-    localStorage.removeItem(SIMPLE_AUTH_KEY);
-    showAuthScreen();
-  }
-
-  function initSimpleAuth(){
-    const btn = document.getElementById('simpleLoginBtn');
-    if(btn) btn.addEventListener('click', simpleLogin);
-
-    const loginInput = document.getElementById('simpleLogin');
-    const passInput = document.getElementById('simplePassword');
-    [loginInput, passInput].forEach(el => {
-      if(el){
-        el.addEventListener('keydown', (e) => {
-          if(e.key === 'Enter') simpleLogin();
-        });
-      }
-    });
-
-    if(localStorage.getItem(SIMPLE_AUTH_KEY) === 'ok'){
-      showAppShell();
-    } else {
-      showAuthScreen();
-    }
-  }
-
-
   const SUPABASE_URL = 'https://qzcapeempzzdhicsweqz.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_nXxnpG6C_RO9mVqcYEt1mg_Z9Z-dpDr';
   const TABLE = 'laptops';
@@ -695,7 +856,6 @@
   window.addEventListener('offline', updateNetwork);
   window.addEventListener('click', (e) => { if(e.target.id === 'addModal') closeAddModal(); });
 
-  initSimpleAuth();
   init();
 document.addEventListener('change', (e)=>{
   if(e.target.id === 'filterStatus' || e.target.id === 'filterMarket'){
