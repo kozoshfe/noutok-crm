@@ -4,106 +4,88 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Ноуток СРМ</title>
-  <meta name="theme-color" content="#0f172a" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💻</text></svg>">
+  <meta name="theme-color" content="#061126" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2212%22 y=%2218%22 width=%2276%22 height=%2248%22 rx=%228%22 fill=%22%234b67ff%22/><rect x=%2218%22 y=%2224%22 width=%2264%22 height=%2236%22 rx=%226%22 fill=%22%2349d17c%22/><rect x=%2218%22 y=%2270%22 width=%2264%22 height=%228%22 rx=%224%22 fill=%22%23dbe3f0%22/><text x=%2250%22 y=%2250%22 text-anchor=%22middle%22 font-size=%2230%22 font-family=%22Arial%22 font-weight=%22700%22 fill=%22white%22>NB</text></svg>">
   <style>
     :root{
-      --bg:#07101f; --bg2:#0b1328; --panel:#0f1830; --card:#182133; --card2:#1a2337; --line:#26324b;
-      --text:#f2f4f8; --muted:#a5aec0; --green:#37c95b; --greenSoft:rgba(55,201,91,.12); --blue:#356eff;
-      --blueSoft:rgba(53,110,255,.14); --amber:#f0d86a; --amberSoft:rgba(240,216,106,.12); --red:#ef4444;
-      --violet:#8b5cf6; --violetSoft:rgba(139,92,246,.12); --radius:22px; --shadow:0 22px 44px rgba(0,0,0,.32);
+      --bg:#061126; --bg2:#08152f; --panel:#0b1630; --text:#f3f5fb; --muted:#9fb0ca;
+      --line:rgba(148,163,184,.14); --blue:#3f7cff; --blue2:#114c97; --green:#3cd966;
+      --yellow:#f1d86a; --purple:#9b7cff; --red:#ff5d5d; --radius:22px; --shadow:0 20px 40px rgba(0,0,0,.28);
     }
     *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-    html,body{margin:0;font-family:Inter,Arial,sans-serif;background:radial-gradient(circle at 50% 0%, rgba(53,110,255,.08), transparent 30%), linear-gradient(180deg,var(--bg),var(--bg2));color:var(--text)}
-    body{padding-bottom:110px}
-    a{color:#7dd3fc;text-decoration:none}
-    .app{max-width:1520px;margin:0 auto;padding:16px}
-    .top{position:sticky;top:0;z-index:80;margin:-16px -16px 18px;padding:calc(env(safe-area-inset-top) + 14px) 16px 12px;background:rgba(11,18,32,.9);backdrop-filter:blur(16px);border-bottom:1px solid rgba(148,163,184,.12)}
-    .top-row{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+    html,body{margin:0;padding:0;font-family:Inter,Arial,sans-serif;color:var(--text);background:
+      radial-gradient(circle at 50% 0%, rgba(67,109,255,.08), transparent 24%),
+      linear-gradient(180deg,var(--bg),var(--bg2));}
+    body{min-height:100vh}
+    a{color:#7ec0ff;text-decoration:none}
+    button,input,select,textarea{font:inherit}
+    input,select,textarea{width:100%;padding:14px;border-radius:16px;border:1px solid var(--line);background:#081222;color:var(--text);outline:none}
+    textarea{min-height:100px;resize:vertical}
+    button{border:none;border-radius:16px;padding:12px 16px;font-weight:800;cursor:pointer;color:#fff;background:#1a2742}
+    button.primary{background:linear-gradient(180deg,var(--blue),var(--blue2))}
+    button.success{background:#2bbb55;color:#05260f}
+    button.warning{background:#f1d86a;color:#302500}
+    button.danger{background:#ff5d5d}
+    button.ghost{background:#0b1427;border:1px solid var(--line)}
+    .app{max-width:1500px;margin:0 auto;padding:16px}
+    .top{position:sticky;top:0;z-index:40;margin:-16px -16px 18px;padding:18px 16px 14px;background:rgba(5,15,35,.92);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.05)}
+    .top-row{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;flex-wrap:wrap}
     .brand{display:flex;gap:14px;align-items:flex-start}
-    .logo{
-      width:120px;height:60px;border-radius:18px;position:relative;
-      display:flex;align-items:center;justify-content:center;
-    }
-    .logo:before{
-      content:"";position:absolute;left:4px;top:6px;width:54px;height:38px;border-radius:8px;
-      background:linear-gradient(135deg,#2a3c7c,#4f5cff);
-      box-shadow:0 0 0 2px rgba(255,255,255,.18) inset;
-    }
-    .logo:after{
-      content:"";position:absolute;left:0;bottom:4px;width:62px;height:6px;border-radius:10px;
-      background:#d8dde8;
-    }
-    .logo span{
-      position:absolute;left:12px;top:13px;width:50px;height:24px;border-radius:6px;
-      display:flex;align-items:center;justify-content:center;
-      background:linear-gradient(135deg,#31d7ff,#63db43);color:white;font-weight:900;font-size:17px;letter-spacing:.04em;
-      z-index:2;
-    }
-    .title{font-size:31px;font-weight:900;letter-spacing:-.03em}
-    .sub{font-size:13px;color:var(--muted);margin-top:4px;max-width:760px}
-    .actions{display:flex;gap:8px;flex-wrap:wrap}
-    button,.btn{border:none;border-radius:14px;padding:11px 14px;font-weight:800;cursor:pointer;background:#182235;color:var(--text);font-size:14px}
-    .primary{background:var(--green);color:#052e16}.secondary{background:var(--blue);color:#082f49}.warning{background:var(--amber);color:#451a03}.danger{background:var(--red);color:#fff}.ghost{background:#0b1220;border:1px solid rgba(148,163,184,.16)}.muted-btn{background:#334155}
-    .tabbar{display:flex;gap:12px;overflow:auto;margin-top:12px;padding-bottom:2px}
-    .tab{white-space:nowrap;border:none;border-radius:12px;padding:10px 14px;background:transparent;color:#e7eaf1;font-weight:700;font-size:16px}
-    .tab.active{background:rgba(255,255,255,.06);color:#fff}
+    .logo{width:102px;height:62px;position:relative;flex:0 0 auto}
+    .logo .screen{position:absolute;left:5px;top:5px;width:58px;height:38px;border-radius:10px;background:linear-gradient(135deg,#4053b7,#5e6cff);box-shadow:0 0 0 2px rgba(255,255,255,.18) inset}
+    .logo .badge{position:absolute;left:12px;top:12px;width:54px;height:24px;border-radius:7px;background:linear-gradient(135deg,#52d3ff,#63d94d);display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff}
+    .logo .base{position:absolute;left:0;bottom:3px;width:66px;height:7px;border-radius:8px;background:#dce2ef}
+    .title{font-size:30px;font-weight:900;letter-spacing:-.03em}
+    .sub{font-size:13px;color:var(--muted);max-width:760px;margin-top:4px}
+    .chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .chip{display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border-radius:999px;background:#091224;border:1px solid var(--line);font-weight:800}
+    .dot{width:11px;height:11px;border-radius:50%}.dot.green{background:var(--green)}.dot.red{background:var(--red)}
+    .nav{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+    .nav button{background:transparent;padding:12px 14px;border-radius:16px;color:#eef2fb;font-size:16px;font-weight:800}
+    .nav button.active{background:rgba(255,255,255,.07)}
+    .banner{margin-top:12px;padding:13px 16px;border-radius:18px;background:rgba(29,124,76,.22);color:#8cf2b1;font-weight:800}
     .view{display:none}.view.active{display:block}
-    .panel{background:rgba(13,22,40,.92);border:1px solid rgba(148,163,184,.08);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:16px}
-    .section-title{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-    h1,h2,h3{margin:0}.small,.hint{color:var(--muted);font-size:13px;line-height:1.55}
-    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-    .stat{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid rgba(148,163,184,.10);border-radius:18px;padding:14px}
-    .stat .k{font-size:12px;color:var(--muted)} .stat .v{font-size:28px;font-weight:900;margin-top:8px}
-    .chip-row{display:flex;gap:8px;flex-wrap:wrap}
-    .chip{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:#0b1220;border:1px solid rgba(148,163,184,.12);font-size:12px;font-weight:800}
-    .dot{width:10px;height:10px;border-radius:50%}.ok{background:var(--green)}.warn{background:var(--amber)}.err{background:var(--red)}
-    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
-    input,select,textarea{width:100%;padding:14px 13px;font-size:16px;border-radius:14px;border:1px solid var(--line);background:#0b1220;color:var(--text);outline:none}
-    textarea{min-height:110px;resize:vertical}
-    .quick-form,.toolbar,.form-grid{display:grid;gap:12px}
-    .quick-form{grid-template-columns:1.1fr 1fr 1fr auto;align-items:end}
-    .toolbar{grid-template-columns:1.6fr 1fr 1fr auto;align-items:end}
-    .form-grid{grid-template-columns:repeat(4,1fr)}
-    .span-2{grid-column:span 2}.span-4{grid-column:span 4}
+    .panel{background:rgba(9,21,48,.88);border:1px solid rgba(255,255,255,.06);border-radius:26px;padding:16px;box-shadow:var(--shadow);margin-bottom:16px}
+    .section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+    .section-head h2{margin:0;font-size:24px}
+    .section-count{font-size:15px;color:var(--muted)} .section-count b{font-size:34px;line-height:1;color:#fff}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+    .stat{background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:16px}
+    .stat .k{font-size:13px;color:var(--muted)} .stat .v{font-size:28px;font-weight:900;margin-top:10px}
     .cards{display:grid;grid-template-columns:1fr;gap:10px}
-    .laptop{background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(148,163,184,.06);border-radius:16px;padding:14px}
-    .laptop-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
-    .laptop-title{font-size:19px;font-weight:900}.laptop-meta{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
-    .badge{display:inline-block;padding:7px 10px;border-radius:999px;font-size:12px;font-weight:900}
-    .st-in_transit{background:var(--blueSoft);color:#7dd3fc}.st-received{background:var(--greenSoft);color:#86efac}.st-listed{background:var(--amberSoft);color:#fcd34d}.st-sold{background:var(--violetSoft);color:#d8b4fe}
-    .progress{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
-    .step{background:#0b1220;border:1px solid rgba(148,163,184,.08);border-radius:12px;padding:8px;text-align:center;font-size:11px;font-weight:900;color:var(--muted)}
-    .step.active{color:#e5e7eb;border-color:rgba(56,189,248,.22);background:rgba(56,189,248,.08)} .step.done{color:#86efac;border-color:rgba(34,197,94,.22);background:rgba(34,197,94,.08)}
-    .kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
-    .mini{background:#0f172a;border:1px solid rgba(148,163,184,.08);border-radius:12px;padding:10px}
-    .mini .k{font-size:11px;color:var(--muted)} .mini .val{font-size:14px;font-weight:800;margin-top:4px;word-break:break-word}
-    .profits-pos{color:#86efac;font-weight:900}.profits-neg{color:#fca5a5;font-weight:900}
-    .cost-breakdown{margin-top:10px}.cost-breakdown summary{cursor:pointer;list-style:none;font-weight:800;font-size:13px;color:#cbd5e1;padding:10px 12px;background:#0f172a;border-radius:12px;border:1px solid rgba(148,163,184,.08)}
-    .note-box{margin-top:8px;background:#0f172a;border:1px solid rgba(148,163,184,.08);border-radius:12px;padding:10px}
-    .quick-status{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:12px}
-    .small-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
-    .months{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
-    .month-card{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid rgba(148,163,184,.10);border-radius:18px;padding:14px}
-    .empty{padding:30px 16px;text-align:center;color:var(--muted);border:1px dashed rgba(148,163,184,.18);border-radius:18px;background:#0b1220}
-    .laptop.compact{padding:0;overflow:hidden}
-    .laptop.compact summary{list-style:none;cursor:pointer;padding:14px}
-    .laptop.compact summary::-webkit-details-marker{display:none}
-    .compact-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
-    .compact-top{display:flex;gap:12px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin-top:0}
-    .compact-price{font-size:12px;font-weight:800;padding:0;border-radius:0;background:transparent;border:none;color:#f6f7fb}
-    .compact-profit{font-size:12px;font-weight:900}
-    .compact-body{padding:0 14px 14px}
-    .compact-sub{font-size:12px;color:var(--muted);margin-top:6px}
-    .fab{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:90;min-width:320px;height:72px;border-radius:999px;border:none;background:linear-gradient(180deg,#4b67ff,#0f4d99);color:white;font-size:28px;font-weight:900;box-shadow:0 12px 24px rgba(0,0,0,.35)}
-    .bottom-bar{display:none}
-    .banner{display:none;margin-top:10px;padding:12px 14px;border-radius:14px;font-size:13px;font-weight:700}
-    .banner.show{display:block}.banner.ok{background:var(--greenSoft);color:#86efac}.banner.warn{background:var(--amberSoft);color:#fcd34d}.banner.err{background:var(--redSoft);color:#fca5a5}
-    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:120;padding:16px}
-    .modal-backdrop.show{display:flex}.modal{width:min(100%,480px);background:#111827;border:1px solid rgba(148,163,184,.12);border-radius:22px;box-shadow:var(--shadow);padding:18px}
-    .desktop-only{display:inline-flex}.sync-pending{color:#fcd34d}.sync-ok{color:#86efac}
-    @media (max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.form-grid{grid-template-columns:repeat(2,1fr)}.toolbar,.quick-form{grid-template-columns:1fr 1fr}.span-4{grid-column:span 2}}
-    @media (max-width:760px){.app{padding:14px}.top{margin:-14px -14px 14px;padding:calc(env(safe-area-inset-top) + 12px) 14px 12px}.title{font-size:24px}.stats,.form-grid,.toolbar,.quick-form,.kv,.small-actions{grid-template-columns:1fr}.span-2,.span-4{grid-column:span 1}.bottom-bar{display:block;position:fixed;left:0;right:0;bottom:0;z-index:85;padding:10px 14px calc(env(safe-area-inset-bottom) + 10px);background:rgba(11,18,32,.96);backdrop-filter:blur(14px);border-top:1px solid rgba(148,163,184,.12)}.bottom-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.desktop-only{display:none}.fab{bottom:86px}.quick-status{grid-template-columns:1fr}}
+    .item{background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.06);border-radius:18px;overflow:hidden}
+    .item summary{list-style:none;cursor:pointer;padding:16px;display:flex;justify-content:space-between;gap:16px;align-items:center}
+    .item summary::-webkit-details-marker{display:none}
+    .item-title{font-size:19px;font-weight:900}
+    .item-sub{margin-top:6px;font-size:13px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+    .item-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+    .price{font-size:14px;font-weight:900;color:#fff}
+    .badge{padding:9px 12px;border-radius:999px;font-size:13px;font-weight:900}
+    .st-in_transit{background:rgba(63,124,255,.18);color:#7eb4ff}.st-received{background:rgba(60,217,102,.14);color:#8ff2af}.st-listed{background:rgba(241,216,106,.14);color:#ffe88e}.st-sold{background:rgba(155,124,255,.14);color:#d0beff}
+    .item-body{padding:0 16px 16px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .field{background:#0b1427;border:1px solid rgba(255,255,255,.05);border-radius:16px;padding:12px}
+    .field .k{font-size:12px;color:var(--muted)} .field .v{margin-top:6px;font-weight:800;word-break:break-word}
+    .row-actions,.status-actions{display:grid;gap:10px;margin-top:12px}
+    .row-actions{grid-template-columns:1fr 1fr 1fr}.status-actions{grid-template-columns:repeat(4,1fr)}
+    .details-toggle{margin-top:10px}
+    .details-toggle summary{list-style:none;cursor:pointer;padding:10px 12px;background:#0b1427;border-radius:14px;border:1px solid rgba(255,255,255,.05);font-weight:800}
+    .details-toggle summary::-webkit-details-marker{display:none}
+    .form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .span-2{grid-column:span 2}.span-3{grid-column:span 3}
+    .muted{color:var(--muted)}
+    .empty{padding:24px;border-radius:18px;border:1px dashed rgba(255,255,255,.1);text-align:center;color:var(--muted)}
+    .month-card{background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.06);border-radius:22px;padding:16px}
+    .month-title{font-size:18px;font-weight:900;margin-top:8px}
+    .modal-wrap{position:fixed;inset:0;background:rgba(0,0,0,.56);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
+    .modal-wrap.show{display:flex}
+    .modal{width:min(920px,100%);background:#08162f;border:1px solid rgba(255,255,255,.08);border-radius:28px;padding:18px;box-shadow:var(--shadow)}
+    .modal h3{margin:0 0 8px 0;font-size:24px}
+    .toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+    .pill{display:inline-flex;gap:8px;align-items:center;background:#0a1427;padding:10px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.06)}
+    .floating-add{position:fixed;right:18px;bottom:18px;z-index:60;width:64px;height:64px;border-radius:50%;background:linear-gradient(180deg,var(--blue),var(--blue2));font-size:34px;font-weight:900;box-shadow:0 16px 28px rgba(0,0,0,.35)}
+    @media (max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.form-grid{grid-template-columns:1fr 1fr}.span-2,.span-3{grid-column:span 2}}
+    @media (max-width:760px){.app{padding:12px}.top{margin:-12px -12px 14px;padding:14px 12px 12px}.title{font-size:24px}.stats,.grid,.row-actions,.status-actions,.form-grid{grid-template-columns:1fr}.span-2,.span-3{grid-column:span 1}.item summary{flex-direction:column;align-items:flex-start}.item-right{justify-content:flex-start}.floating-add{right:14px;bottom:14px}}
   </style>
 </head>
 <body>
@@ -111,487 +93,407 @@
   <div class="top">
     <div class="top-row">
       <div class="brand">
-        <div class="logo"><span>NB</span></div>
+        <div class="logo"><div class="screen"></div><div class="badge">NB</div><div class="base"></div></div>
         <div>
           <div class="title">Ноуток СРМ</div>
-          <div class="sub">Fast realtime версія: при наявності інтернету запис іде прямо в Firebase без очікування черги. Це має прибрати затримку в 30 секунд.</div>
+          <div class="sub">Supabase версія. Працює з телефону і з комп’ютера через одну базу.</div>
+          <div class="chips">
+            <div class="chip"><span id="netDot" class="dot red"></span><span id="netText">Офлайн</span></div>
+            <div class="chip"><span id="dbDot" class="dot red"></span><span id="dbText">База не підключена</span></div>
+          </div>
         </div>
       </div>
-      <div class="actions desktop-only">
-        <span class="chip"><span id="netDot" class="dot warn"></span><span id="netText">Перевірка мережі…</span></span>
-        <span class="chip"><span id="cloudDot" class="dot warn"></span><span id="cloudText">Автопідключення…</span></span>
-        <button class="secondary" onclick="saveToChosenFile()">Зберегти JSON</button>
-        <button onclick="exportJson()">Експорт</button>
-        <label class="btn" for="importFile">Імпорт</label>
-      </div>
     </div>
-    <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importJson(event)" />
-    <div id="syncBanner" class="banner"></div>
-    <div class="tabbar">
-      <button class="tab active" onclick="showView('dashboard', this)">Головна</button>
-      <button class="tab" onclick="showView('active', this)">Активні</button>
-      <button class="tab" onclick="showView('sold', this)">Продані</button>
-      <button class="tab" onclick="showView('months', this)">Місяці</button>
-      <button class="tab" onclick="showView('cloud', this)">База</button>
+    <div id="banner" class="banner">Підключення…</div>
+    <div class="nav">
+      <button class="nav-btn active" data-view="dashboard">Головна</button>
+      <button class="nav-btn" data-view="active">Активні</button>
+      <button class="nav-btn" data-view="sold">Продані</button>
+      <button class="nav-btn" data-view="months">Місяці</button>
+      <button class="nav-btn" data-view="base">База</button>
     </div>
   </div>
 
   <section id="view-dashboard" class="view active">
     <div class="panel">
-      <div class="section-title">
+      <div class="section-head">
         <h2>Швидка статистика</h2>
-        <div class="chip-row">
-          <span class="chip">Черга: <b id="queueCount" class="sync-pending">0</b></span>
-          <span class="chip">Остання синхронізація: <b id="lastSync">—</b></span>
-          <span class="chip">Документів у хмарі: <b id="cloudDocCount">—</b></span>
+        <div class="chips">
+          <div class="pill">Активні: <b id="statActive">0</b></div>
+          <div class="pill">Продано за місяць: <b id="statSoldMonth">0</b></div>
+          <div class="pill">Чистий прибуток за місяць: <b id="statProfitMonth">0 ₴</b></div>
+          <div class="pill">Загальний прибуток: <b id="statProfitTotal">0 ₴</b></div>
         </div>
       </div>
       <div class="stats">
-        <div class="stat"><div class="k"></div><div class="v" id="statActive">0</div></div>
-        <div class="stat"><div class="k">Продано за поточний місяць</div><div class="v" id="statSoldMonth">0</div></div>
-        <div class="stat"><div class="k">Чистий прибуток за поточний місяць</div><div class="v" id="statProfitMonth">0 ₴</div></div>
-        <div class="stat"><div class="k">Загальний чистий прибуток</div><div class="v" id="statProfitTotal">0 ₴</div></div>
+        <div class="stat"><div class="k">Активні ноутбуки</div><div id="statActiveBig" class="v">0</div></div>
+        <div class="stat"><div class="k">Продано за поточний місяць</div><div id="statSoldMonthBig" class="v">0</div></div>
+        <div class="stat"><div class="k">Чистий прибуток за поточний місяць</div><div id="statProfitMonthBig" class="v">0 ₴</div></div>
+        <div class="stat"><div class="k">Загальний чистий прибуток</div><div id="statProfitTotalBig" class="v">0 ₴</div></div>
       </div>
     </div>
   </section>
 
   <section id="view-active" class="view">
-    <div class="panel" style="padding:10px 16px;margin-bottom:10px">
-      <div class="small">Всього: <b id="activeCountLabel" style="font-size:28px;line-height:1;font-weight:900;color:#fff">0</b></div>
+    <div class="panel">
+      <div class="section-head">
+        <div class="section-count">Всього: <b id="activeCount">0</b></div>
+        <button class="primary" onclick="openAddModal()">Додати ноутбук</button>
+      </div>
     </div>
     <div id="activeCards" class="cards"></div>
   </section>
 
   <section id="view-sold" class="view">
-    <div class="panel"><div class="section-title"><h2>Продані</h2><div class="small">Всього: <b id="soldCountLabel" style="font-size:28px;line-height:1;font-weight:900;color:#fff">0</b></div></div></div>
+    <div class="panel">
+      <div class="section-head">
+        <div class="section-count">Всього: <b id="soldCount">0</b></div>
+      </div>
+    </div>
     <div id="soldCards" class="cards"></div>
   </section>
 
   <section id="view-months" class="view">
-    <div class="panel"><div class="section-title"><h2>Місяці</h2></div><div id="monthlyStats" class="months"></div></div>
+    <div id="monthsWrap" class="cards"></div>
   </section>
 
-  <section id="view-cloud" class="view">
+  <section id="view-base" class="view">
     <div class="panel">
-      <div class="section-title"><h2>База Firebase</h2></div>
-      <div class="hint">При онлайн-збереженні ця версія пише одразу в Firestore. Черга використовується тільки якщо немає інтернету або запис впав.</div>
-      <div class="actions" style="margin-top:14px">
-        <button class="primary" onclick="reconnectFirebase()">Перепідключити базу</button>
-        <button class="secondary" onclick="downloadFromCloudManual()">Підтягнути з хмари</button>
-        <button onclick="forceFlushQueue()">Досинхронізувати</button>
-        <button class="danger" onclick="disconnectFirebase()">Відключити</button>
+      <div class="section-head"><h2>База Supabase</h2></div>
+      <div class="grid">
+        <div class="field"><div class="k">Підключення</div><div id="baseStatus" class="v">—</div></div>
+        <div class="field"><div class="k">Realtime</div><div class="v">Увімкнено через Postgres Changes</div></div>
+      </div>
+      <div style="margin-top:14px" class="muted">
+        Якщо не бачиш дані, перевір:
+        <br>1. чи правильні URL і anon key,
+        <br>2. чи вимкнений RLS для таблиці laptops,
+        <br>3. чи таблиця називається саме <b>laptops</b>.
       </div>
     </div>
   </section>
 </div>
 
-<div class="bottom-bar">
-  <div class="bottom-actions">
-    <button class="primary" onclick="showViewByName('add')">+ Додати</button>
-    <button class="secondary" onclick="showViewByName('active')">Активні</button>
+<button class="floating-add" onclick="openAddModal()">+</button>
+
+<div id="addModal" class="modal-wrap">
+  <div class="modal">
+    <div class="toolbar">
+      <h3 id="modalTitle">Додати ноутбук</h3>
+      <button class="ghost" onclick="closeAddModal()">Закрити</button>
+    </div>
+    <form id="laptopForm">
+      <input type="hidden" id="editId" />
+      <div class="form-grid">
+        <div><label>Номер ноутбука</label><input id="number" required placeholder="NB-001" /></div>
+        <div><label>Ціна eBay, ₴</label><input id="ebay_price" type="number" min="0" step="0.01" /></div>
+        <div><label>Статус</label>
+          <select id="status">
+            <option value="in_transit">В дорозі</option>
+            <option value="received">Отримано</option>
+            <option value="listed">На OLX</option>
+            <option value="sold">Продано</option>
+          </select>
+        </div>
+        <div class="span-2"><label>Посилання eBay</label><input id="ebay_link" placeholder="https://www.ebay.com/..." /></div>
+        <div><label>Серійний номер</label><input id="serial_number" /></div>
+        <div class="span-3">
+          <details class="details-toggle">
+            <summary>Додаткові поля</summary>
+            <div class="form-grid" style="margin-top:12px">
+              <div><label>Доставка, ₴</label><input id="delivery_cost" type="number" min="0" step="0.01" /></div>
+              <div><label>Зарядний, ₴</label><input id="charger_cost" type="number" min="0" step="0.01" /></div>
+              <div><label>Мито, ₴</label><input id="duty_cost" type="number" min="0" step="0.01" /></div>
+              <div><label>Реклама OLX, ₴</label><input id="olx_ad_cost" type="number" min="0" step="0.01" /></div>
+              <div><label>Гравіювання, ₴</label><input id="engraving_cost" type="number" min="0" step="0.01" /></div>
+              <div><label>Ціна продажу, ₴</label><input id="sold_price" type="number" min="0" step="0.01" /></div>
+              <div class="span-2"><label>Посилання OLX</label><input id="olx_link" placeholder="https://www.olx.ua/..." /></div>
+              <div><label>Дата продажу</label><input id="sold_at" type="datetime-local" /></div>
+            </div>
+          </details>
+        </div>
+      </div>
+      <div class="row-actions">
+        <button class="primary" type="submit">Зберегти</button>
+        <button class="ghost" type="button" onclick="resetForm()">Очистити</button>
+        <button class="danger" id="deleteBtn" type="button" style="display:none" onclick="deleteCurrent()">Видалити</button>
+      </div>
+    </form>
   </div>
 </div>
 
-<div id="sellModalBackdrop" class="modal-backdrop" onclick="closeSellModal(event)">
-  <div class="modal" onclick="event.stopPropagation()">
-    <h3>Продати ноутбук</h3>
-    <div class="small" id="sellModalLaptop">—</div>
-    <div style="margin-top:14px">
-      <label>Ціна продажу, ₴</label>
-      <input id="sellPriceInput" type="number" min="0" step="0.01" placeholder="Введи ціну продажу" />
-    </div>
-    <div class="actions" style="margin-top:14px">
-      <button class="primary" onclick="confirmSell()">Підтвердити продаж</button>
-      <button onclick="hideSellModal()">Скасувати</button>
-    </div>
-  </div>
-</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://qzcapeempzzdhicsweqz.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_nXxnpG6C_RO9mVqcYEt1mg_Z9Z-dpDr';
+  const TABLE = 'laptops';
 
-<script type="module">
-import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js';
-import {
-  initializeFirestore,
-  persistentLocalCache,
-  persistentMultipleTabManager,
-  collection,
-  doc,
-  setDoc,
-  deleteDoc,
-  getDocs,
-  query,
-  orderBy,
-  onSnapshot
-} from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js';
+  let supabaseClient = null;
+  let laptops = [];
+  let currentEditId = null;
+  let realtimeChannel = null;
 
-const STORAGE_KEY = 'laptop_crm_fast_realtime_v1';
-const SYNC_QUEUE_KEY = 'laptop_crm_fast_realtime_queue_v1';
-
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyC6BZNNIGDzzMtZzTj2siKepYjcIcEXGOM",
-  authDomain: "laptop-crm.firebaseapp.com",
-  projectId: "laptop-crm",
-  storageBucket: "laptop-crm.firebasestorage.app",
-  messagingSenderId: "245429083757",
-  appId: "1:245429083757:web:0a31799010bfd4b8eb2964"
-};
-
-const DEFAULT_COLLECTION = 'laptops';
-
-let dbData = loadDb();
-let syncQueue = loadQueue();
-let fileHandle = null;
-let firebaseApp = null;
-let firestoreDb = null;
-let cloudReady = false;
-let collectionName = DEFAULT_COLLECTION;
-let isFlushing = false;
-let autoConnectTried = false;
-let unsubscribeSnapshot = null;
-let lastSync = null;
-let sellTargetId = null;
-
-window.showView = showView;
-window.showViewByName = showViewByName;
-window.saveLaptop = saveLaptop;
-window.resetForm = resetForm;
-window.editLaptop = editLaptop;
-window.setStatus = setStatus;
-window.markSold = markSold;
-window.restoreFromSold = restoreFromSold;
-window.removeLaptop = removeLaptop;
-window.clearSearch = clearSearch;
-window.exportJson = exportJson;
-window.importJson = importJson;
-window.saveToChosenFile = saveToChosenFile;
-window.forceFlushQueue = forceFlushQueue;
-window.downloadFromCloudManual = downloadFromCloudManual;
-window.disconnectFirebase = disconnectFirebase;
-window.reconnectFirebase = reconnectFirebase;
-window.quickAdd = quickAdd;
-window.closeSellModal = closeSellModal;
-window.confirmSell = confirmSell;
-
-function defaultDb(){ return { laptops: [] }; }
-function loadDb(){ try{ const raw = localStorage.getItem(STORAGE_KEY); if(!raw) return defaultDb(); const parsed = JSON.parse(raw); return parsed && Array.isArray(parsed.laptops) ? parsed : defaultDb(); }catch(e){ return defaultDb(); } }
-function persist(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(dbData, null, 2)); }
-function loadQueue(){ try{ const raw = localStorage.getItem(SYNC_QUEUE_KEY); const parsed = raw ? JSON.parse(raw) : []; return Array.isArray(parsed) ? parsed : []; }catch(e){ return []; } }
-function persistQueue(){ localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(syncQueue)); updateQueueUi(); updateBanner(); }
-function removeQueuedUpsert(id){ syncQueue = syncQueue.filter(x => !(x.type === 'upsert' && x.item?.id === id)); persistQueue(); }
-function removeQueuedDelete(id){ syncQueue = syncQueue.filter(x => !(x.type === 'delete' && x.id === id)); persistQueue(); }
-function queueUpsert(item){ const idx = syncQueue.findIndex(x => x.type === 'upsert' && x.item && x.item.id === item.id); if(idx !== -1) syncQueue[idx] = { type:'upsert', item }; else syncQueue.push({ type:'upsert', item }); persistQueue(); }
-function queueDelete(id){ syncQueue = syncQueue.filter(x => !(x.type === 'upsert' && x.item && x.item.id === id)); const idx = syncQueue.findIndex(x => x.type === 'delete' && x.id === id); if(idx === -1) syncQueue.push({ type:'delete', id }); persistQueue(); }
-function toNum(v){ const n = Number(v); return isNaN(n) ? 0 : n; }
-function money(v){ return new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 2 }).format(Number(v || 0)) + ' ₴'; }
-function nowIso(){ return new Date().toISOString(); }
-function formatDate(iso){ return iso ? new Date(iso).toLocaleString('uk-UA') : '—'; }
-function monthKeyFromIso(iso){ const d = new Date(iso); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
-function monthName(key){ const [y,m] = key.split('-').map(Number); return new Date(y,m-1,1).toLocaleDateString('uk-UA',{month:'long',year:'numeric'}); }
-function capitalize(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
-function calcCost(item){ return toNum(item.ebayPrice)+toNum(item.deliveryCost)+toNum(item.chargerCost)+toNum(item.dutyCost)+toNum(item.olxAdCost)+toNum(item.engravingCost); }
-function calcProfit(item){ return toNum(item.soldPrice)-calcCost(item); }
-function escapeHtml(str){ return String(str ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#39;"); }
-function getStatusLabel(status){ return ({in_transit:'В дорозі',received:'Отримано',listed:'Виставлено на OLX',sold:'Продано'})[status] || status; }
-function statusStage(status){ if(status === 'in_transit') return 1; if(status === 'received') return 2; if(status === 'listed' || status === 'sold') return 3; return 1; }
-function setCloudUi(ok, text){ document.getElementById('cloudDot').className = 'dot ' + (ok ? 'ok' : 'err'); document.getElementById('cloudText').textContent = text; }
-function updateQueueUi(){ const el = document.getElementById('queueCount'); const count = syncQueue.length; el.textContent = String(count); el.className = count ? 'sync-pending' : 'sync-ok'; }
-function updateNetworkUi(){ const online = navigator.onLine; document.getElementById('netDot').className = 'dot ' + (online ? 'ok' : 'err'); document.getElementById('netText').textContent = online ? 'Онлайн' : 'Офлайн'; }
-function updateLastSyncUi(){ document.getElementById('lastSync').textContent = lastSync ? new Date(lastSync).toLocaleTimeString('uk-UA') : '—'; }
-function updateCloudDocCount(){ document.getElementById('cloudDocCount').textContent = String(dbData.laptops.length); }
-function showBanner(type, text){ const b = document.getElementById('syncBanner'); b.className = 'banner show ' + type; b.textContent = text; }
-function updateBanner(){ if(!navigator.onLine){ showBanner('warn','Немає інтернету. Зміни підуть у хмару пізніше.'); return; } if(syncQueue.length){ showBanner('warn','Є несинхронізовані зміни: ' + syncQueue.length); return; } if(cloudReady){ showBanner('ok','Швидка синхронізація з Firebase активна.'); return; } showBanner('err','Firebase ще не підключений.'); }
-function showView(name, el){ document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); document.getElementById('view-' + name).classList.add('active'); document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); if(el) el.classList.add('active'); window.scrollTo({ top:0, behavior:'smooth' }); }
-function showViewByName(name){ const tabs = [...document.querySelectorAll('.tab')]; const map = { dashboard:0, active:1, sold:2, months:3, cloud:4 }; showView(name, tabs[map[name]]); }
-
-async async function connectFirebaseInternal(showAlerts=false){
-  try{
-    if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot = null; }
-    if(firebaseApp){ try { await deleteApp(firebaseApp); } catch(e) {} firebaseApp = null; firestoreDb = null; cloudReady = false; }
-    firebaseApp = initializeApp(FIREBASE_CONFIG, 'crm-fast-' + Date.now());
-    firestoreDb = initializeFirestore(firebaseApp, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
-    cloudReady = true;
-    setCloudUi(true, 'База підключена');
-    if(navigator.onLine){ await flushQueue(); await downloadFromCloud(); }
-    subscribeRealtime();
-    renderAll();
-    if(showAlerts) alert('Firebase підключено.');
-    return true;
-  } catch(e){
-    console.error(e);
-    cloudReady = false;
-    setCloudUi(false, 'Помилка підключення');
-    renderAll();
-    if(showAlerts) alert('Не вдалося підключити Firebase.');
-    return false;
-  }
-}
-
-function subscribeRealtime(){
-  if(!cloudReady || !firestoreDb) return;
-  const q = query(collection(firestoreDb, collectionName), orderBy('createdAt', 'desc'));
-  unsubscribeSnapshot = onSnapshot(q, (snap) => {
-    const items = [];
-    snap.forEach(d => items.push(d.data()));
-    dbData = { laptops: items };
-    persist();
-    lastSync = Date.now();
-    renderAll();
-  }, (err) => { console.error('snapshot error', err); });
-}
-
-async function reconnectFirebase(){ await connectFirebaseInternal(true); }
-async function disconnectFirebase(){ try{ if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot = null; } if(firebaseApp){ try { await deleteApp(firebaseApp); } catch(e) {} } } finally { firebaseApp = null; firestoreDb = null; cloudReady = false; setCloudUi(false, 'Локальний режим'); renderAll(); } }
-async function downloadFromCloudManual(){ if(!cloudReady || !firestoreDb){ alert('База ще не підключена.'); return; } try{ await downloadFromCloud(); renderAll(); alert('Дані підтягнуті з хмари.'); } catch(e){ console.error(e); alert('Не вдалося підтягнути дані.'); } }
-async function forceFlushQueue(){ if(!cloudReady || !firestoreDb){ alert('База ще не підключена.'); return; } if(!navigator.onLine){ alert('Зараз немає інтернету. Черга лишається локально.'); return; } await flushQueue(); await downloadFromCloud(); renderAll(); alert('Черга синхронізована.'); }
-
-async function directWrite(item){
-  await setDoc(doc(firestoreDb, collectionName, item.id), item);
-  removeQueuedUpsert(item.id);
-}
-async function directDelete(id){
-  await deleteDoc(doc(firestoreDb, collectionName, id));
-  removeQueuedDelete(id);
-}
-
-async function writeOrQueue(item){
-  if(cloudReady && navigator.onLine){
-    try{
-      await directWrite(item);
-      return true;
-    }catch(e){
-      console.error('direct write failed', e);
-      queueUpsert(item);
-      return false;
-    }
-  }else{
-    queueUpsert(item);
-    return false;
-  }
-}
-
-async function deleteOrQueue(id){
-  if(cloudReady && navigator.onLine){
-    try{
-      await directDelete(id);
-      return true;
-    }catch(e){
-      console.error('direct delete failed', e);
-      queueDelete(id);
-      return false;
-    }
-  }else{
-    queueDelete(id);
-    return false;
-  }
-}
-
-async function flushQueue(){
-  if(isFlushing || !cloudReady || !firestoreDb || !navigator.onLine) return;
-  isFlushing = true;
-  try{
-    while(syncQueue.length){
-      const op = syncQueue[0];
-      if(op.type === 'upsert') await setDoc(doc(firestoreDb, collectionName, op.item.id), op.item);
-      else if(op.type === 'delete') await deleteDoc(doc(firestoreDb, collectionName, op.id));
-      syncQueue.shift();
-      persistQueue();
-    }
-  } finally { isFlushing = false; renderAll(); }
-}
-
-async function downloadFromCloud(){
-  const q = query(collection(firestoreDb, collectionName), orderBy('createdAt', 'desc'));
-  const snap = await getDocs(q);
-  const items = []; snap.forEach(d => items.push(d.data()));
-  dbData = { laptops: items }; persist(); lastSync = Date.now();
-}
-
-async function quickAdd(){
-  const number = document.getElementById('quickNumber').value.trim();
-  const ebayLink = document.getElementById('quickEbay').value.trim();
-  const ebayPrice = toNum(document.getElementById('quickPrice').value);
-  if(!number){ alert('Введи номер ноутбука.'); return; }
-  const item = { id: crypto.randomUUID(), number, ebayLink, ebayPrice, deliveryCost:0, serialNumber:'', chargerCost:0, dutyCost:0, olxAdCost:0, engravingCost:0, status:'in_transit', olxLink:'', soldPrice:0, notes:'', createdAt: nowIso(), soldAt: undefined };
-  dbData.laptops.push(item);
-  persist();
-  const synced = await writeOrQueue(item);
-  document.getElementById('quickNumber').value=''; document.getElementById('quickEbay').value=''; document.getElementById('quickPrice').value='';
-  renderAll();
-  if(!synced) showBanner('warn', 'Запис збережено локально. У хмару піде після відновлення зв’язку.');
-  showViewByName('active');
-}
-
-async function saveLaptop(e){
-  e.preventDefault();
-  const editId = document.getElementById('editId').value.trim();
-  const payload = {
-    id: editId || crypto.randomUUID(),
-    number: document.getElementById('number').value.trim(),
-    ebayLink: document.getElementById('ebayLink').value.trim(),
-    ebayPrice: toNum(document.getElementById('ebayPrice').value),
-    deliveryCost: toNum(document.getElementById('deliveryCost').value),
-    serialNumber: document.getElementById('serialNumber').value.trim(),
-    chargerCost: toNum(document.getElementById('chargerCost').value),
-    dutyCost: toNum(document.getElementById('dutyCost').value),
-    olxAdCost: toNum(document.getElementById('olxAdCost').value),
-    engravingCost: toNum(document.getElementById('engravingCost').value),
-    status: document.getElementById('status').value,
-    olxLink: document.getElementById('olxLink').value.trim(),
-    soldPrice: toNum(document.getElementById('soldPrice').value),
-    notes: document.getElementById('notes').value.trim(),
-    createdAt: editId ? undefined : nowIso(),
-    soldAt: undefined
+  const statusLabels = {
+    in_transit: 'В дорозі',
+    received: 'Отримано',
+    listed: 'На OLX',
+    sold: 'Продано'
   };
 
-  let itemToSave;
-  if(editId){
-    const idx = dbData.laptops.findIndex(x => x.id === editId);
-    if(idx !== -1){
-      const current = dbData.laptops[idx];
-      dbData.laptops[idx] = { ...current, ...payload, createdAt: current.createdAt, soldAt: current.status === 'sold' ? current.soldAt : undefined };
-      itemToSave = dbData.laptops[idx];
-    }
-  } else {
-    dbData.laptops.push(payload);
-    itemToSave = payload;
+  function money(v){ return new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 2 }).format(Number(v || 0)) + ' ₴'; }
+  function toNum(v){ const n = Number(v); return isNaN(n) ? 0 : n; }
+  function safe(val){ return String(val ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'", '&#39;'); }
+  function fmtDate(v){ return v ? new Date(v).toLocaleString('uk-UA') : '—'; }
+  function monthKey(dateStr){ const d = new Date(dateStr); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+  function monthName(key){ const [y,m] = key.split('-').map(Number); return new Date(y, m-1, 1).toLocaleDateString('uk-UA', { month:'long', year:'numeric' }); }
+  function calcCost(item){ return toNum(item.ebay_price)+toNum(item.delivery_cost)+toNum(item.charger_cost)+toNum(item.duty_cost)+toNum(item.olx_ad_cost)+toNum(item.engraving_cost); }
+  function calcProfit(item){ return toNum(item.sold_price)-calcCost(item); }
+
+  function setBanner(text, ok=true){
+    const el = document.getElementById('banner');
+    el.textContent = text;
+    el.style.color = ok ? '#8cf2b1' : '#ffb5b5';
+    el.style.background = ok ? 'rgba(29,124,76,.22)' : 'rgba(145,42,42,.22)';
   }
 
-  persist();
-  const synced = await writeOrQueue(itemToSave);
-  renderAll();
-  resetForm();
-  if(!synced) showBanner('warn', 'Зміни збережено локально. У хмару підуть після відновлення зв’язку.');
-  showViewByName('active');
-}
-
-function resetForm(){ document.getElementById('laptopForm').reset(); document.getElementById('editId').value=''; document.getElementById('formTitle').textContent='Додати / редагувати ноутбук'; const s=document.getElementById('status'); if(s) s.value='in_transit'; }
-function editLaptop(id){ const item = dbData.laptops.find(x => x.id === id); if(!item) return; document.getElementById('editId').value=item.id; document.getElementById('number').value=item.number||''; document.getElementById('ebayLink').value=item.ebayLink||''; document.getElementById('ebayPrice').value=item.ebayPrice||''; document.getElementById('deliveryCost').value=item.deliveryCost||''; document.getElementById('serialNumber').value=item.serialNumber||''; document.getElementById('chargerCost').value=item.chargerCost||''; document.getElementById('dutyCost').value=item.dutyCost||''; document.getElementById('olxAdCost').value=item.olxAdCost||''; document.getElementById('engravingCost').value=item.engravingCost||''; document.getElementById('status').value=item.status === 'sold' ? 'listed' : item.status; document.getElementById('olxLink').value=item.olxLink||''; document.getElementById('soldPrice').value=item.soldPrice||''; document.getElementById('notes').value=item.notes||''; document.getElementById('formTitle').textContent='Редагувати ноутбук'; showViewByName('add'); }
-async function setStatus(id,status){ const item = dbData.laptops.find(x => x.id === id); if(!item) return; item.status=status; if(status !== 'sold') item.soldAt=undefined; persist(); await writeOrQueue(item); renderAll(); }
-function markSold(id){ const item = dbData.laptops.find(x => x.id === id); if(!item) return; sellTargetId=id; document.getElementById('sellModalLaptop').textContent=item.number||'Без номера'; document.getElementById('sellPriceInput').value=item.soldPrice||''; document.getElementById('sellModalBackdrop').classList.add('show'); setTimeout(() => document.getElementById('sellPriceInput').focus(), 50); }
-async function confirmSell(){ if(!sellTargetId) return; const item = dbData.laptops.find(x => x.id === sellTargetId); if(!item) return; item.soldPrice=toNum(document.getElementById('sellPriceInput').value); item.status='sold'; item.soldAt=nowIso(); persist(); await writeOrQueue(item); hideSellModal(); renderAll(); showViewByName('sold'); }
-function hideSellModal(){ sellTargetId=null; document.getElementById('sellModalBackdrop').classList.remove('show'); }
-function closeSellModal(event){ if(event.target.id === 'sellModalBackdrop') hideSellModal(); }
-async function restoreFromSold(id){ const item = dbData.laptops.find(x => x.id === id); if(!item) return; item.status='listed'; item.soldAt=undefined; persist(); await writeOrQueue(item); renderAll(); }
-async function removeLaptop(id){ const item = dbData.laptops.find(x => x.id === id); if(!item) return; if(!confirm('Видалити ' + (item.number || 'ноутбук') + '?')) return; dbData.laptops = dbData.laptops.filter(x => x.id !== id); persist(); await deleteOrQueue(id); renderAll(); }
-function clearSearch(){ document.getElementById('searchInput').value=''; document.getElementById('statusFilter').value='all'; document.getElementById('sortBy').value='date_desc'; renderAll(); }
-
-function filteredActive(){
-  const q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
-  const sf = document.getElementById('statusFilter').value;
-  const sortBy = document.getElementById('sortBy').value;
-  let items = dbData.laptops.filter(x => x.status !== 'sold');
-  if(sf !== 'all') items = items.filter(x => x.status === sf);
-  if(q){
-    items = items.filter(x =>
-      (x.number || '').toLowerCase().includes(q) ||
-      (x.serialNumber || '').toLowerCase().includes(q) ||
-      (x.ebayLink || '').toLowerCase().includes(q) ||
-      (x.olxLink || '').toLowerCase().includes(q) ||
-      (x.notes || '').toLowerCase().includes(q)
-    );
+  function updateNetwork(){
+    const online = navigator.onLine;
+    document.getElementById('netDot').className = 'dot ' + (online ? 'green' : 'red');
+    document.getElementById('netText').textContent = online ? 'Онлайн' : 'Офлайн';
   }
-  items.sort((a,b) => {
-    switch(sortBy){
-      case 'date_asc': return new Date(a.createdAt) - new Date(b.createdAt);
-      case 'cost_desc': return calcCost(b) - calcCost(a);
-      case 'cost_asc': return calcCost(a) - calcCost(b);
-      case 'number_asc': return String(a.number).localeCompare(String(b.number), 'uk');
-      default: return new Date(b.createdAt) - new Date(a.createdAt);
-    }
-  });
-  return items;
-}
 
-function laptopCard(item, soldMode=false){
-  const cost = calcCost(item);
-  const profit = item.soldPrice ? calcProfit(item) : null;
-  const stage = statusStage(item.status);
-  return `
-    <details class="laptop compact">
-      <summary>
-        <div class="compact-head">
+  function switchView(name){
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.nav-btn[data-view="${name}"]`).classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => switchView(btn.dataset.view)));
+
+  function renderStats(){
+    const active = laptops.filter(x => x.status !== 'sold');
+    const sold = laptops.filter(x => x.status === 'sold');
+    const currentMonth = monthKey(new Date().toISOString());
+    const soldMonth = sold.filter(x => x.sold_at && monthKey(x.sold_at) === currentMonth);
+    const profitMonth = soldMonth.reduce((s,x) => s + calcProfit(x), 0);
+    const profitTotal = sold.reduce((s,x) => s + calcProfit(x), 0);
+
+    document.getElementById('statActive').textContent = active.length;
+    document.getElementById('statSoldMonth').textContent = soldMonth.length;
+    document.getElementById('statProfitMonth').textContent = money(profitMonth);
+    document.getElementById('statProfitTotal').textContent = money(profitTotal);
+    document.getElementById('statActiveBig').textContent = active.length;
+    document.getElementById('statSoldMonthBig').textContent = soldMonth.length;
+    document.getElementById('statProfitMonthBig').textContent = money(profitMonth);
+    document.getElementById('statProfitTotalBig').textContent = money(profitTotal);
+    document.getElementById('activeCount').textContent = active.length;
+    document.getElementById('soldCount').textContent = sold.length;
+  }
+
+  function cardTemplate(item, soldMode){
+    const cost = calcCost(item);
+    const profit = item.sold_price ? calcProfit(item) : null;
+    return `
+      <details class="item">
+        <summary>
           <div>
-            <div class="laptop-title">${escapeHtml(item.number || 'Без номера')}</div>
-            <div class="compact-sub">eBay: ${money(item.ebayPrice)}${item.ebayLink ? ' • є лінк' : ''}</div>
-          </div>
-          <span class="badge st-${item.status}">${getStatusLabel(item.status)}</span>
-        </div>
-      </summary>
-
-      <div class="compact-body">
-        <div class="kv">
-          <div class="mini"><div class="k">Номер ноутбука</div><div class="val">${escapeHtml(item.number || '—')}</div></div>
-          <div class="mini"><div class="k">Ціна eBay</div><div class="val">${money(item.ebayPrice)}</div></div>
-          <div class="mini"><div class="k">Посилання eBay</div><div class="val">${item.ebayLink ? `<a href="${escapeHtml(item.ebayLink)}" target="_blank">Відкрити</a>` : '—'}</div></div>
-          <div class="mini"><div class="k">Статус</div><div class="val">${getStatusLabel(item.status)}</div></div>
-        </div>
-
-        <details class="cost-breakdown">
-          <summary>Ще деталі</summary>
-          <div class="note-box">
-            <div class="small">
-              Собівартість: <b>${money(cost)}</b><br>
-              Продаж: <b>${item.soldPrice ? money(item.soldPrice) : '—'}</b><br>
-              Прибуток: <b class="${profit === null ? '' : (profit >= 0 ? 'profits-pos' : 'profits-neg')}">${profit === null ? '—' : money(profit)}</b><br>
-              Серійний №: <b>${escapeHtml(item.serialNumber || '—')}</b><br>
-              OLX: ${item.olxLink ? `<a href="${escapeHtml(item.olxLink)}" target="_blank">Відкрити</a>` : '—'}<br>
-              Дата покупки: <b>${formatDate(item.createdAt)}</b>${item.soldAt ? `<br>Дата продажу: <b>${formatDate(item.soldAt)}</b>` : ''}
+            <div class="item-title">${safe(item.number || 'Без номера')}</div>
+            <div class="item-sub">
+              <span>eBay: ${money(item.ebay_price)}</span>
+              ${item.ebay_link ? '<span>є лінк</span>' : ''}
             </div>
           </div>
-        </details>
-
-        ${item.notes ? `<div class="note-box"><div class="small"><b>Нотатки:</b><br>${escapeHtml(item.notes)}</div></div>` : ''}
-
-        ${!soldMode ? `
-          <div class="quick-status">
-            <button onclick="setStatus('${item.id}','in_transit')">В дорозі</button>
-            <button onclick="setStatus('${item.id}','received')">Отримано</button>
-            <button onclick="setStatus('${item.id}','listed')">На OLX</button>
+          <div class="item-right">
+            ${item.sold_price ? `<div class="price">${money(item.sold_price)}</div>` : ''}
+            <div class="badge st-${safe(item.status)}">${safe(statusLabels[item.status] || item.status)}</div>
           </div>
-          <div class="small-actions">
-            <button onclick="editLaptop('${item.id}')">Редагувати</button>
-            <button class="primary" onclick="markSold('${item.id}')">Продати</button>
+        </summary>
+        <div class="item-body">
+          <div class="grid">
+            <div class="field"><div class="k">Номер ноутбука</div><div class="v">${safe(item.number || '—')}</div></div>
+            <div class="field"><div class="k">Ціна eBay</div><div class="v">${money(item.ebay_price)}</div></div>
+            <div class="field"><div class="k">Посилання eBay</div><div class="v">${item.ebay_link ? `<a href="${safe(item.ebay_link)}" target="_blank">Відкрити</a>` : '—'}</div></div>
+            <div class="field"><div class="k">Статус</div><div class="v">${safe(statusLabels[item.status] || item.status)}</div></div>
+          </div>
+          <details class="details-toggle">
+            <summary>Ще деталі</summary>
+            <div class="grid" style="margin-top:12px">
+              <div class="field"><div class="k">Серійний номер</div><div class="v">${safe(item.serial_number || '—')}</div></div>
+              <div class="field"><div class="k">Посилання OLX</div><div class="v">${item.olx_link ? `<a href="${safe(item.olx_link)}" target="_blank">Відкрити</a>` : '—'}</div></div>
+              <div class="field"><div class="k">Собівартість</div><div class="v">${money(cost)}</div></div>
+              <div class="field"><div class="k">Прибуток</div><div class="v">${profit === null ? '—' : money(profit)}</div></div>
+              <div class="field"><div class="k">Дата додавання</div><div class="v">${fmtDate(item.created_at)}</div></div>
+              <div class="field"><div class="k">Дата продажу</div><div class="v">${fmtDate(item.sold_at)}</div></div>
+            </div>
+          </details>
+          <div class="status-actions">
+            ${!soldMode ? `
+              <button class="ghost" onclick="quickStatus('${item.id}','in_transit')">В дорозі</button>
+              <button class="ghost" onclick="quickStatus('${item.id}','received')">Отримано</button>
+              <button class="ghost" onclick="quickStatus('${item.id}','listed')">На OLX</button>
+              <button class="ghost" onclick="quickStatus('${item.id}','sold')">Продано</button>
+            ` : `<button class="ghost" onclick="quickStatus('${item.id}','listed')">Повернути в активні</button>`}
+          </div>
+          <div class="row-actions">
+            <button class="primary" onclick="openEditModal('${item.id}')">Редагувати</button>
+            <button class="warning" onclick="duplicateLaptop('${item.id}')">Дублювати</button>
             <button class="danger" onclick="removeLaptop('${item.id}')">Видалити</button>
           </div>
-        ` : `
-          <div class="small-actions">
-            <button onclick="editLaptop('${item.id}')">Редагувати</button>
-            <button onclick="restoreFromSold('${item.id}')">Повернути</button>
-            <button class="danger" onclick="removeLaptop('${item.id}')">Видалити</button>
-          </div>
-        `}
-      </div>
-    </details>
-  `;
-}
+        </div>
+      </details>
+    `;
+  }
 
-function soldItems(){ return dbData.laptops.filter(x => x.status === 'sold').sort((a,b) => new Date(b.soldAt || 0) - new Date(a.soldAt || 0)); }
-function renderActiveCards(){
-  const items = filteredActive();
-  const countEl = document.getElementById('activeCountLabel');
-  if (countEl) countEl.textContent = String(items.length);
-  document.getElementById('activeCards').innerHTML = items.length ? items.map(x => laptopCard(x,false)).join('') : `<div class="empty">Немає активних ноутбуків</div>`;
-}
-function renderSoldCards(){
-  const items = soldItems();
-  const countEl = document.getElementById('soldCountLabel');
-  if (countEl) countEl.textContent = String(items.length);
-  document.getElementById('soldCards').innerHTML = items.length ? items.map(x => laptopCard(x,true)).join('') : `<div class="empty">Ще немає проданих ноутбуків</div>`;
-}
-function renderStats(){ const active = dbData.laptops.filter(x => x.status !== 'sold'); const sold = dbData.laptops.filter(x => x.status === 'sold'); const currentKey = monthKeyFromIso(new Date().toISOString()); const soldThisMonth = sold.filter(x => x.soldAt && monthKeyFromIso(x.soldAt) === currentKey); const profitMonth = soldThisMonth.reduce((s,x)=>s+calcProfit(x),0); const profitTotal = sold.reduce((s,x)=>s+calcProfit(x),0); document.getElementById('statActive').textContent = active.length; document.getElementById('statSoldMonth').textContent = soldThisMonth.length; document.getElementById('statProfitMonth').textContent = money(profitMonth); document.getElementById('statProfitTotal').textContent = money(profitTotal); }
-function renderMonths(){ const wrap = document.getElementById('monthlyStats'); const sold = dbData.laptops.filter(x => x.status === 'sold' && x.soldAt); if(!sold.length){ wrap.innerHTML = '<div class="empty">Ще немає статистики по продажах</div>'; return; } const map = {}; for(const item of sold){ const key = monthKeyFromIso(item.soldAt); if(!map[key]) map[key] = { count:0, profit:0 }; map[key].count += 1; map[key].profit += calcProfit(item); } const keys = Object.keys(map).sort((a,b)=>b.localeCompare(a)); wrap.innerHTML = keys.map(key => `<div class="month-card"><div class="small">Місяць</div><div style="font-size:22px;font-weight:900;margin:4px 0 12px">${capitalize(monthName(key))}</div><div>Продано ноутбуків: <b>${map[key].count}</b></div><div style="margin-top:8px">Чистий заробіток: <span class="${map[key].profit >= 0 ? 'profits-pos' : 'profits-neg'}">${money(map[key].profit)}</span></div></div>`).join(''); }
-function renderAll(){ renderStats(); renderActiveCards(); renderSoldCards(); renderMonths(); updateQueueUi(); updateNetworkUi(); updateLastSyncUi(); updateCloudDocCount(); updateBanner(); }
+  function renderActive(){
+    const data = laptops.filter(x => x.status !== 'sold');
+    document.getElementById('activeCards').innerHTML = data.length ? data.map(item => cardTemplate(item, false)).join('') : '<div class="empty">Немає активних ноутбуків</div>';
+  }
+  function renderSold(){
+    const data = laptops.filter(x => x.status === 'sold');
+    document.getElementById('soldCards').innerHTML = data.length ? data.map(item => cardTemplate(item, true)).join('') : '<div class="empty">Ще немає проданих ноутбуків</div>';
+  }
+  function renderMonths(){
+    const sold = laptops.filter(x => x.status === 'sold' && x.sold_at);
+    const wrap = document.getElementById('monthsWrap');
+    if(!sold.length){ wrap.innerHTML = '<div class="empty">Ще немає статистики по місяцях</div>'; return; }
+    const grouped = {};
+    sold.forEach(item => {
+      const key = monthKey(item.sold_at);
+      if(!grouped[key]) grouped[key] = { count:0, profit:0 };
+      grouped[key].count += 1; grouped[key].profit += calcProfit(item);
+    });
+    const keys = Object.keys(grouped).sort((a,b) => b.localeCompare(a));
+    wrap.innerHTML = keys.map(key => `<div class="month-card"><div class="muted">Місяць</div><div class="month-title">${safe(monthName(key))}</div><div style="margin-top:10px">Продано ноутбуків: <b>${grouped[key].count}</b></div><div style="margin-top:8px">Чистий заробіток: <b>${money(grouped[key].profit)}</b></div></div>`).join('');
+  }
+  function renderAll(){ renderStats(); renderActive(); renderSold(); renderMonths(); }
 
-function exportJson(){ const blob = new Blob([JSON.stringify(dbData, null, 2)], { type:'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-'); a.href = url; a.download = `laptop-crm-fast-realtime-${stamp}.json`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
-async function saveToChosenFile(){ try{ if('showSaveFilePicker' in window){ if(!fileHandle){ fileHandle = await window.showSaveFilePicker({ suggestedName:'laptop-crm-data.json', types:[{ description:'JSON files', accept:{ 'application/json':['.json'] } }] }); } const writable = await fileHandle.createWritable(); await writable.write(JSON.stringify(dbData, null, 2)); await writable.close(); alert('JSON успішно збережено.'); } else { exportJson(); alert('У цьому браузері прямий запис у JSON файл не підтримується. Зроблено експорт.'); } }catch(e){ console.error(e); } }
-function importJson(event){ const file = event.target.files && event.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = async () => { try{ const parsed = JSON.parse(reader.result); if(!parsed || !Array.isArray(parsed.laptops)){ alert('Невірний формат JSON.'); return; } dbData = parsed; persist(); if(cloudReady && navigator.onLine){ for(const item of dbData.laptops) await directWrite(item); } else { for(const item of dbData.laptops) queueUpsert(item); } renderAll(); resetForm(); alert('JSON успішно імпортовано.'); }catch(e){ console.error(e); alert('Не вдалося прочитати JSON.'); }finally{ event.target.value = ''; } }; reader.readAsText(file, 'utf-8'); }
+  function openAddModal(){
+    currentEditId = null;
+    document.getElementById('modalTitle').textContent = 'Додати ноутбук';
+    document.getElementById('deleteBtn').style.display = 'none';
+    document.getElementById('laptopForm').reset();
+    document.getElementById('status').value = 'in_transit';
+    document.getElementById('addModal').classList.add('show');
+  }
+  function closeAddModal(){ document.getElementById('addModal').classList.remove('show'); }
+  function resetForm(){ document.getElementById('laptopForm').reset(); document.getElementById('status').value = 'in_transit'; document.getElementById('editId').value = ''; currentEditId = null; }
 
-window.addEventListener('online', async () => { updateNetworkUi(); if(cloudReady){ await flushQueue(); try { await downloadFromCloud(); } catch(e) { console.error(e); } renderAll(); } else if(!autoConnectTried){ await autoConnect(); } });
-window.addEventListener('offline', () => { updateNetworkUi(); renderAll(); });
+  function openEditModal(id){
+    const item = laptops.find(x => x.id === id);
+    if(!item) return;
+    currentEditId = id;
+    document.getElementById('modalTitle').textContent = 'Редагувати ноутбук';
+    document.getElementById('deleteBtn').style.display = 'inline-block';
+    document.getElementById('editId').value = id;
+    document.getElementById('number').value = item.number || '';
+    document.getElementById('ebay_price').value = item.ebay_price || '';
+    document.getElementById('ebay_link').value = item.ebay_link || '';
+    document.getElementById('status').value = item.status || 'in_transit';
+    document.getElementById('delivery_cost').value = item.delivery_cost || '';
+    document.getElementById('charger_cost').value = item.charger_cost || '';
+    document.getElementById('duty_cost').value = item.duty_cost || '';
+    document.getElementById('olx_ad_cost').value = item.olx_ad_cost || '';
+    document.getElementById('engraving_cost').value = item.engraving_cost || '';
+    document.getElementById('serial_number').value = item.serial_number || '';
+    document.getElementById('olx_link').value = item.olx_link || '';
+    document.getElementById('sold_price').value = item.sold_price || '';
+    document.getElementById('sold_at').value = item.sold_at ? new Date(item.sold_at).toISOString().slice(0,16) : '';
+    document.getElementById('addModal').classList.add('show');
+  }
 
-async function autoConnect(){ autoConnectTried = true; const ok = await connectFirebaseInternal(false); if(!ok) setCloudUi(false, 'Не підключено'); }
+  async function loadLaptops(){
+    const { data, error } = await supabaseClient.from(TABLE).select('*').order('created_at', { ascending: false });
+    if(error){ console.error(error); setBanner('Помилка читання з бази', false); return; }
+    laptops = data || [];
+    renderAll();
+  }
 
-renderAll();
-setTimeout(() => { autoConnect(); }, 300);
+  async function saveLaptop(event){
+    event.preventDefault();
+    const payload = {
+      number: document.getElementById('number').value.trim(),
+      ebay_price: toNum(document.getElementById('ebay_price').value),
+      ebay_link: document.getElementById('ebay_link').value.trim(),
+      delivery_cost: toNum(document.getElementById('delivery_cost').value),
+      charger_cost: toNum(document.getElementById('charger_cost').value),
+      duty_cost: toNum(document.getElementById('duty_cost').value),
+      olx_ad_cost: toNum(document.getElementById('olx_ad_cost').value),
+      engraving_cost: toNum(document.getElementById('engraving_cost').value),
+      serial_number: document.getElementById('serial_number').value.trim(),
+      olx_link: document.getElementById('olx_link').value.trim(),
+      sold_price: toNum(document.getElementById('sold_price').value),
+      status: document.getElementById('status').value,
+      sold_at: document.getElementById('sold_at').value ? new Date(document.getElementById('sold_at').value).toISOString() : null
+    };
+    if(!payload.number){ alert('Введи номер ноутбука'); return; }
+    const response = currentEditId ? await supabaseClient.from(TABLE).update(payload).eq('id', currentEditId) : await supabaseClient.from(TABLE).insert([payload]);
+    if(response.error){ console.error(response.error); alert('Помилка збереження в базу'); return; }
+    closeAddModal(); resetForm(); await loadLaptops();
+  }
+
+  async function quickStatus(id, status){
+    const payload = { status, sold_at: status === 'sold' ? new Date().toISOString() : null };
+    const { error } = await supabaseClient.from(TABLE).update(payload).eq('id', id);
+    if(error){ console.error(error); alert('Не вдалося змінити статус'); return; }
+    await loadLaptops();
+  }
+
+  async function removeLaptop(id){
+    if(!confirm('Видалити ноутбук?')) return;
+    const { error } = await supabaseClient.from(TABLE).delete().eq('id', id);
+    if(error){ console.error(error); alert('Не вдалося видалити'); return; }
+    closeAddModal(); await loadLaptops();
+  }
+  async function deleteCurrent(){ if(currentEditId) await removeLaptop(currentEditId); }
+
+  async function duplicateLaptop(id){
+    const item = laptops.find(x => x.id === id);
+    if(!item) return;
+    const copy = { number:(item.number || 'copy') + '-copy', ebay_price:item.ebay_price, ebay_link:item.ebay_link, delivery_cost:item.delivery_cost, charger_cost:item.charger_cost, duty_cost:item.duty_cost, olx_ad_cost:item.olx_ad_cost, engraving_cost:item.engraving_cost, serial_number:item.serial_number, olx_link:item.olx_link, sold_price:item.sold_price, status:'in_transit', sold_at:null };
+    const { error } = await supabaseClient.from(TABLE).insert([copy]);
+    if(error){ console.error(error); alert('Не вдалося дублювати'); return; }
+    await loadLaptops();
+  }
+
+  function subscribeRealtime(){
+    if(realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
+    realtimeChannel = supabaseClient.channel('laptops-changes').on('postgres_changes', { event:'*', schema:'public', table:TABLE }, async () => { await loadLaptops(); }).subscribe();
+  }
+
+  async function init(){
+    updateNetwork();
+    if(!SUPABASE_URL || SUPABASE_URL.includes('PASTE_') || !SUPABASE_ANON_KEY || SUPABASE_ANON_KEY.includes('PASTE_')){
+      document.getElementById('dbDot').className = 'dot red';
+      document.getElementById('dbText').textContent = 'Встав URL і KEY';
+      document.getElementById('baseStatus').textContent = 'Встав свої SUPABASE_URL і SUPABASE_ANON_KEY в код';
+      setBanner('Спочатку встав свій Supabase URL і anon key у код', false);
+      return;
+    }
+    try{
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      document.getElementById('dbDot').className = 'dot green';
+      document.getElementById('dbText').textContent = 'База підключена';
+      document.getElementById('baseStatus').textContent = 'Підключено';
+      setBanner('Швидка синхронізація з Supabase активна.', true);
+      await loadLaptops();
+      subscribeRealtime();
+    } catch (e){
+      console.error(e);
+      document.getElementById('dbDot').className = 'dot red';
+      document.getElementById('dbText').textContent = 'Помилка бази';
+      document.getElementById('baseStatus').textContent = 'Помилка';
+      setBanner('Не вдалося підключитися до Supabase', false);
+    }
+  }
+
+  document.getElementById('laptopForm').addEventListener('submit', saveLaptop);
+  window.addEventListener('online', updateNetwork);
+  window.addEventListener('offline', updateNetwork);
+  window.addEventListener('click', (e) => { if(e.target.id === 'addModal') closeAddModal(); });
+
+  init();
 </script>
 </body>
 </html>
