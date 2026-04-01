@@ -60,6 +60,8 @@
     .item-sub{margin-top:6px;font-size:13px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
     .item-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
     .price{font-size:14px;font-weight:900;color:#fff}
+    .profit-pos{color:#8ff2af}
+    .profit-neg{color:#ffb1b1}
     .badge{padding:9px 12px;border-radius:999px;font-size:13px;font-weight:900}
     .st-in_transit{background:rgba(63,124,255,.18);color:#7eb4ff}.st-received{background:rgba(60,217,102,.14);color:#8ff2af}.st-listed{background:rgba(241,216,106,.14);color:#ffe88e}.st-sold{background:rgba(155,124,255,.14);color:#d0beff}
     .item-body{padding:0 16px 16px}
@@ -147,7 +149,11 @@
   <section id="view-sold" class="view">
     <div class="panel">
       <div class="section-head">
-        <div class="section-count">Всього: <b id="soldCount">0</b></div>
+        <div class="section-count">Продано: <b id="soldCount">0</b></div>
+        <div class="chips">
+          <div class="pill">Виручка: <b id="soldRevenue">0 ₴</b></div>
+          <div class="pill">Чистий прибуток: <b id="soldProfit">0 ₴</b></div>
+        </div>
       </div>
     </div>
     <div id="soldCards" class="cards"></div>
@@ -279,6 +285,7 @@
     const soldMonth = sold.filter(x => x.sold_at && monthKey(x.sold_at) === currentMonth);
     const profitMonth = soldMonth.reduce((s,x) => s + calcProfit(x), 0);
     const profitTotal = sold.reduce((s,x) => s + calcProfit(x), 0);
+    const soldRevenue = sold.reduce((s,x) => s + toNum(x.sold_price), 0);
 
     document.getElementById('statActive').textContent = active.length;
     document.getElementById('statSoldMonth').textContent = soldMonth.length;
@@ -290,6 +297,10 @@
     document.getElementById('statProfitTotalBig').textContent = money(profitTotal);
     document.getElementById('activeCount').textContent = active.length;
     document.getElementById('soldCount').textContent = sold.length;
+    const soldRevenueEl = document.getElementById('soldRevenue');
+    const soldProfitEl = document.getElementById('soldProfit');
+    if (soldRevenueEl) soldRevenueEl.textContent = money(soldRevenue);
+    if (soldProfitEl) soldProfitEl.textContent = money(profitTotal);
   }
 
   function cardTemplate(item, soldMode){
@@ -303,10 +314,12 @@
             <div class="item-sub">
               <span>eBay: ${money(item.ebay_price)}</span>
               ${item.ebay_link ? '<span>є лінк</span>' : ''}
+              ${soldMode ? `<span>Продаж: ${money(item.sold_price)}</span>` : ''}
             </div>
           </div>
           <div class="item-right">
             ${item.sold_price ? `<div class="price">${money(item.sold_price)}</div>` : ''}
+            ${profit !== null ? `<div class="price ${profit >= 0 ? 'profit-pos' : 'profit-neg'}">${money(profit)}</div>` : ''}
             <div class="badge st-${safe(item.status)}">${safe(statusLabels[item.status] || item.status)}</div>
           </div>
         </summary>
@@ -318,14 +331,16 @@
             <div class="field"><div class="k">Статус</div><div class="v">${safe(statusLabels[item.status] || item.status)}</div></div>
           </div>
           <details class="details-toggle">
-            <summary>Ще деталі</summary>
+            <summary>Фінанси і деталі</summary>
             <div class="grid" style="margin-top:12px">
+              <div class="field"><div class="k">Собівартість</div><div class="v">${money(cost)}</div></div>
+              <div class="field"><div class="k">Ціна продажу</div><div class="v">${item.sold_price ? money(item.sold_price) : '—'}</div></div>
+              <div class="field"><div class="k">Прибуток</div><div class="v ${profit !== null ? (profit >= 0 ? 'profit-pos' : 'profit-neg') : ''}">${profit === null ? '—' : money(profit)}</div></div>
+              <div class="field"><div class="k">Дата продажу</div><div class="v">${fmtDate(item.sold_at)}</div></div>
               <div class="field"><div class="k">Серійний номер</div><div class="v">${safe(item.serial_number || '—')}</div></div>
               <div class="field"><div class="k">Посилання OLX</div><div class="v">${item.olx_link ? `<a href="${safe(item.olx_link)}" target="_blank">Відкрити</a>` : '—'}</div></div>
-              <div class="field"><div class="k">Собівартість</div><div class="v">${money(cost)}</div></div>
-              <div class="field"><div class="k">Прибуток</div><div class="v">${profit === null ? '—' : money(profit)}</div></div>
               <div class="field"><div class="k">Дата додавання</div><div class="v">${fmtDate(item.created_at)}</div></div>
-              <div class="field"><div class="k">Дата продажу</div><div class="v">${fmtDate(item.sold_at)}</div></div>
+              <div class="field"><div class="k">Витрати</div><div class="v">Дост: ${money(item.delivery_cost)} · Зар: ${money(item.charger_cost)} · Мито: ${money(item.duty_cost)} · Реклама: ${money(item.olx_ad_cost)} · Гравіювання: ${money(item.engraving_cost)}</div></div>
             </div>
           </details>
           <div class="status-actions">
