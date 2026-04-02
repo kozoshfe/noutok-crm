@@ -49,7 +49,7 @@
     .section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
     .section-head h2{margin:0;font-size:24px}
     .section-count{font-size:15px;color:var(--muted)} .section-count b{font-size:34px;line-height:1;color:#fff}
-    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+    .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
     .stat{background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:16px}
     .stat .k{font-size:13px;color:var(--muted)} .stat .v{font-size:28px;font-weight:900;margin-top:10px}
     .cards{display:grid;grid-template-columns:1fr;gap:10px}
@@ -435,6 +435,189 @@
     .auth-card h2{margin:0 0 8px 0}
     .auth-note{font-size:13px;color:#9fb0ca;margin-bottom:14px}
     
+
+    [data-theme="light"]{
+      --bg:#eef3fb; --bg2:#dfe8f6; --panel:#ffffff; --text:#132033; --muted:#5f708a;
+      --line:rgba(15,23,42,.10); --blue:#2f6fff; --blue2:#2455c7; --green:#22c55e;
+      --yellow:#c39a09; --purple:#7c5cff; --red:#e14b4b; --shadow:0 20px 40px rgba(15,23,42,.08);
+    }
+    [data-theme="light"] html,
+    [data-theme="light"] body{
+      background:
+        radial-gradient(circle at 50% 0%, rgba(67,109,255,.10), transparent 24%),
+        linear-gradient(180deg,var(--bg),var(--bg2));
+      color:var(--text);
+    }
+    [data-theme="light"] .top{
+      background:rgba(255,255,255,.88);
+      border-bottom:1px solid rgba(15,23,42,.06);
+    }
+    [data-theme="light"] .chip,
+    [data-theme="light"] .pill,
+    [data-theme="light"] .field,
+    [data-theme="light"] .details-toggle summary,
+    [data-theme="light"] button.ghost,
+    [data-theme="light"] .edit-mini{
+      background:#f5f8fd;
+      color:var(--text);
+      border-color:rgba(15,23,42,.08);
+    }
+    [data-theme="light"] .panel,
+    [data-theme="light"] .stat,
+    [data-theme="light"] .item,
+    [data-theme="light"] .month-card,
+    [data-theme="light"] .modal{
+      background:rgba(255,255,255,.9);
+      color:var(--text);
+      border-color:rgba(15,23,42,.08);
+    }
+    [data-theme="light"] input,
+    [data-theme="light"] select,
+    [data-theme="light"] textarea{
+      background:#fff;
+      color:var(--text);
+      border-color:rgba(15,23,42,.10);
+    }
+    [data-theme="light"] .auth-screen{
+      background:linear-gradient(180deg,#eef3fb,#dfe8f6);
+    }
+    [data-theme="light"] .auth-card{
+      background:rgba(255,255,255,.96);
+      color:var(--text);
+      border-color:rgba(15,23,42,.08);
+    }
+    [data-theme="light"] .banner{
+      background:rgba(34,197,94,.14);
+      color:#157347;
+    }
+
+
+    [data-theme="light"]{
+      --bg:#f3f6fb; --bg2:#e8eef7; --panel:#ffffff; --text:#0f172a; --muted:#475569;
+      --line:rgba(15,23,42,.12); --blue:#2563eb; --blue2:#1d4ed8; --green:#16a34a;
+      --yellow:#b45309; --purple:#7c3aed; --red:#dc2626; --shadow:0 14px 28px rgba(15,23,42,.08);
+    }
+    [data-theme="light"] body{
+      background:
+        radial-gradient(circle at 50% 0%, rgba(37,99,235,.08), transparent 24%),
+        linear-gradient(180deg,var(--bg),var(--bg2));
+      color:var(--text);
+    }
+    [data-theme="light"] .top{
+      background:rgba(255,255,255,.94);
+      border-bottom:1px solid rgba(15,23,42,.08);
+    }
+    [data-theme="light"] .title,
+    [data-theme="light"] h1,
+    [data-theme="light"] h2,
+    [data-theme="light"] h3,
+    [data-theme="light"] .item-title,
+    [data-theme="light"] .month-title,
+    [data-theme="light"] .stat .v,
+    [data-theme="light"] .field .v,
+    [data-theme="light"] .section-count b{
+      color:#0f172a !important;
+    }
+    [data-theme="light"] .sub,
+    [data-theme="light"] .muted,
+    [data-theme="light"] .chip,
+    [data-theme="light"] .pill,
+    [data-theme="light"] .field .k,
+    [data-theme="light"] .stat .k,
+    [data-theme="light"] .item-sub,
+    [data-theme="light"] .section-count{
+      color:#475569 !important;
+    }
+    [data-theme="light"] .panel,
+    [data-theme="light"] .stat,
+    [data-theme="light"] .item,
+    [data-theme="light"] .month-card,
+    [data-theme="light"] .modal,
+    [data-theme="light"] .auth-card{
+      background:#ffffff !important;
+      color:#0f172a !important;
+      border-color:rgba(15,23,42,.10) !important;
+      box-shadow:var(--shadow);
+    }
+    [data-theme="light"] .chip,
+    [data-theme="light"] .pill,
+    [data-theme="light"] .field,
+    [data-theme="light"] .details-toggle summary,
+    [data-theme="light"] .edit-mini{
+      background:#f8fafc !important;
+      color:#0f172a !important;
+      border-color:rgba(15,23,42,.10) !important;
+    }
+    [data-theme="light"] input,
+    [data-theme="light"] select,
+    [data-theme="light"] textarea{
+      background:#ffffff !important;
+      color:#0f172a !important;
+      border-color:rgba(15,23,42,.14) !important;
+    }
+    [data-theme="light"] input::placeholder,
+    [data-theme="light"] textarea::placeholder{
+      color:#64748b !important;
+    }
+    [data-theme="light"] button{
+      color:#ffffff;
+    }
+    [data-theme="light"] button.ghost{
+      background:#f8fafc !important;
+      color:#0f172a !important;
+      border:1px solid rgba(15,23,42,.10) !important;
+    }
+    [data-theme="light"] .nav button{
+      color:#334155 !important;
+    }
+    [data-theme="light"] .nav button.active{
+      background:#eaf1ff !important;
+      color:#1d4ed8 !important;
+    }
+    [data-theme="light"] .badge,
+    [data-theme="light"] .badge-status,
+    [data-theme="light"] .cost-badge{
+      color:#0f172a !important;
+    }
+    [data-theme="light"] .st-in_transit{
+      background:rgba(37,99,235,.12) !important;
+      color:#1d4ed8 !important;
+    }
+    [data-theme="light"] .st-received{
+      background:rgba(22,163,74,.12) !important;
+      color:#15803d !important;
+    }
+    [data-theme="light"] .st-sold{
+      background:rgba(124,58,237,.12) !important;
+      color:#6d28d9 !important;
+    }
+    [data-theme="light"] .profit-pos{ color:#15803d !important; }
+    [data-theme="light"] .profit-neg{ color:#b91c1c !important; }
+    [data-theme="light"] .ebay-btn{
+      background:rgba(37,99,235,.10) !important;
+      color:#1d4ed8 !important;
+    }
+    [data-theme="light"] .olx-badge{
+      background:rgba(22,163,74,.10) !important;
+      color:#15803d !important;
+    }
+    [data-theme="light"] .auth-screen{
+      background:linear-gradient(180deg,#f3f6fb,#e8eef7) !important;
+    }
+    [data-theme="light"] .auth-note,
+    [data-theme="light"] #msg,
+    [data-theme="light"] #simpleLoginMsg{
+      color:#475569 !important;
+    }
+    [data-theme="light"] .banner{
+      background:rgba(22,163,74,.10) !important;
+      color:#166534 !important;
+    }
+    [data-theme="light"] .empty{
+      color:#475569 !important;
+      border-color:rgba(15,23,42,.12) !important;
+    }
+
 </style>
 
 <style id="mobile-compact-active-cards">
@@ -584,6 +767,7 @@
 
 <div id="authScreen" class="auth-screen" style="display:none">
   <div class="auth-card">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="ghost" type="button" id="themeToggleBtn">☀️ Світла тема</button></div>
     <h2>Вхід у Ноуток CRM</h2>
     <div class="auth-note">Увійди, щоб відкрити CRM. Сесія діє 30 хвилин.</div>
     <div style="display:grid;gap:12px">
@@ -636,6 +820,7 @@
           <div class="pill">Продано за місяць: <b id="statSoldMonth">0</b></div>
           <div class="pill">Чистий прибуток за місяць: <b id="statProfitMonth">0 ₴</b></div>
           <div class="pill">Загальний прибуток: <b id="statProfitTotal">0 ₴</b></div>
+          <div class="pill">Сума собівартостей: <b id="statCostTotal">0 ₴</b></div>
         </div>
       </div>
       <div class="stats">
@@ -643,6 +828,7 @@
         <div class="stat"><div class="k">Продано за поточний місяць</div><div id="statSoldMonthBig" class="v">0</div></div>
         <div class="stat"><div class="k">Чистий прибуток за поточний місяць</div><div id="statProfitMonthBig" class="v">0 ₴</div></div>
         <div class="stat"><div class="k">Загальний чистий прибуток</div><div id="statProfitTotalBig" class="v">0 ₴</div></div>
+        <div class="stat"><div class="k">Сума всіх собівартостей</div><div id="statCostTotalBig" class="v">0 ₴</div></div>
       </div>
     </div>
   </section>
@@ -661,9 +847,7 @@
   </select>
   <select id="filterMarket" style="max-width:220px">
     <option value="">Всі</option>
-    <option value="olx">Є OLX</option>
     <option value="no_olx">Немає OLX</option>
-    <option value="telegram">Є Telegram</option>
     <option value="no_telegram">Немає Telegram</option>
   </select>
 </div>
@@ -727,7 +911,7 @@
         </div>
         <div class="span-2">
           <label>Посилання eBay</label>
-          <input id="ebay_link" placeholder="https://www.ebay.com/..." />
+          <div style="display:flex;gap:8px;align-items:center"><input id="ebay_link" placeholder="https://www.ebay.com/..." /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('ebay_link')">Вставити</button></div>
         </div>
         
       </div>
@@ -741,6 +925,32 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+
+
+  const THEME_KEY = 'noutok_crm_theme';
+
+  function applyTheme(theme){
+    document.documentElement.setAttribute('data-theme', theme);
+    const btn = document.getElementById('themeToggleBtn');
+    if(btn){
+      btn.textContent = theme === 'light' ? '🌙 Темна тема' : '☀️ Світла тема';
+    }
+  }
+
+  function initTheme(){
+    const saved = localStorage.getItem(THEME_KEY) || 'dark';
+    applyTheme(saved);
+    const btn = document.getElementById('themeToggleBtn');
+    if(btn){
+      btn.addEventListener('click', () => {
+        const current = document.documentElement.getAttribute('data-theme') || 'dark';
+        const next = current === 'light' ? 'dark' : 'light';
+        localStorage.setItem(THEME_KEY, next);
+        applyTheme(next);
+      });
+    }
+  }
+
 
   const SIMPLE_LOGIN = '1111';
   const SIMPLE_PASSWORD = '1111';
@@ -887,6 +1097,7 @@
     const profitMonth = soldMonth.reduce((s,x) => s + calcProfit(x), 0);
     const profitTotal = sold.reduce((s,x) => s + calcProfit(x), 0);
     const soldRevenue = sold.reduce((s,x) => s + toNum(x.sold_price), 0);
+    const totalCost = laptops.reduce((s,x) => s + calcCost(x), 0);
 
     document.getElementById('statActive').textContent = active.length;
     document.getElementById('statSoldMonth').textContent = soldMonth.length;
@@ -896,6 +1107,10 @@
     document.getElementById('statSoldMonthBig').textContent = soldMonth.length;
     document.getElementById('statProfitMonthBig').textContent = money(profitMonth);
     document.getElementById('statProfitTotalBig').textContent = money(profitTotal);
+    const statCostTotal = document.getElementById('statCostTotal');
+    const statCostTotalBig = document.getElementById('statCostTotalBig');
+    if (statCostTotal) statCostTotal.textContent = money(totalCost);
+    if (statCostTotalBig) statCostTotalBig.textContent = money(totalCost);
     document.getElementById('activeCount').textContent = active.length;
     document.getElementById('soldCount').textContent = sold.length;
     const soldRevenueEl = document.getElementById('soldRevenue');
@@ -961,14 +1176,8 @@
       data = data.filter(x => x.status === statusF);
     }
 
-    if(marketF === 'olx'){
-      data = data.filter(x => x.olx_link);
-    }
     if(marketF === 'no_olx'){
       data = data.filter(x => !x.olx_link);
-    }
-    if(marketF === 'telegram'){
-      data = data.filter(x => x.telegram_link);
     }
     if(marketF === 'no_telegram'){
       data = data.filter(x => !x.telegram_link);
@@ -996,6 +1205,24 @@
     wrap.innerHTML = keys.map(key => `<div class="month-card"><div class="muted">Місяць</div><div class="month-title">${safe(monthName(key))}</div><div style="margin-top:10px">Продано ноутбуків: <b>${grouped[key].count}</b></div><div style="margin-top:8px">Чистий заробіток: <b>${money(grouped[key].profit)}</b></div></div>`).join('');
   }
   function renderAll(){ renderStats(); renderActive(); renderSold(); renderMonths(); }
+
+  async function pasteIntoField(fieldId){
+    const field = document.getElementById(fieldId);
+    if(!field) return;
+
+    try{
+      const text = await navigator.clipboard.readText();
+      if(text){
+        field.value = text;
+        return;
+      }
+    }catch(e){}
+
+    const manual = prompt('Встав сюди посилання:');
+    if(manual !== null){
+      field.value = manual;
+    }
+  }
 
   function openAddModal(){
     currentEditId = null;
@@ -1054,6 +1281,13 @@
       extra.className = 'span-3';
       extra.innerHTML = `
         <div class="form-grid" style="margin-top:12px">
+          <div><label>Доставка, ₴</label><input id="delivery_cost" type="number" min="0" step="0.01" /></div>
+          <div><label>Зарядний, ₴</label><input id="charger_cost" type="number" min="0" step="0.01" /></div>
+          <div><label>Мито, ₴</label><input id="duty_cost" type="number" min="0" step="0.01" /></div>
+          <div><label>Реклама OLX, ₴</label><input id="olx_ad_cost" type="number" min="0" step="0.01" value="300" readonly /></div>
+          <div><label>Гравіювання, ₴</label><input id="engraving_cost" type="number" min="0" step="0.01" value="200" readonly /></div>
+          <div><label>SSD, ₴</label><input id="ssd" type="number" min="0" step="0.01" /></div>
+          <div><label>RAM, ₴</label><input id="ram" type="number" min="0" step="0.01" /></div>
           <div><label>Статус</label>
             <select id="status">
               <option value="in_transit">В дорозі</option>
@@ -1062,16 +1296,9 @@
             </select>
           </div>
           <div><label>Серійний номер</label><input id="serial_number" /></div>
-          <div><label>Доставка, ₴</label><input id="delivery_cost" type="number" min="0" step="0.01" /></div>
-          <div><label>Зарядний, ₴</label><input id="charger_cost" type="number" min="0" step="0.01" /></div>
-          <div><label>Мито, ₴</label><input id="duty_cost" type="number" min="0" step="0.01" /></div>
-          <div><label>Реклама OLX, ₴</label><input id="olx_ad_cost" type="number" min="0" step="0.01" /></div>
-          <div><label>Гравіювання, ₴</label><input id="engraving_cost" type="number" min="0" step="0.01" /></div>
-          <div><label>SSD, ₴</label><input id="ssd" type="number" min="0" step="0.01" /></div>
-          <div><label>RAM, ₴</label><input id="ram" type="number" min="0" step="0.01" /></div>
           <div><label>Собівартість, ₴</label><input id="cost_display" disabled /></div>
-          <div class="span-2"><label>Посилання OLX</label><input id="olx_link" placeholder="https://www.olx.ua/..." /></div>
-          <div class="span-2"><label>Посилання Telegram</label><input id="telegram_link" placeholder="https://t.me/..." /></div>
+          <div class="span-2"><label>Посилання OLX</label><div style="display:flex;gap:8px;align-items:center"><input id="olx_link" placeholder="https://www.olx.ua/..." /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('olx_link')">Вставити</button></div></div>
+          <div class="span-2"><label>Посилання Telegram</label><div style="display:flex;gap:8px;align-items:center"><input id="telegram_link" placeholder="https://t.me/..." /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('telegram_link')">Вставити</button></div></div>
         </div>`;
       actions.parentNode.insertBefore(extra, actions);
     }
@@ -1081,8 +1308,8 @@
     document.getElementById('delivery_cost').value = item.delivery_cost || '';
     document.getElementById('charger_cost').value = item.charger_cost || '';
     document.getElementById('duty_cost').value = item.duty_cost || '';
-    document.getElementById('olx_ad_cost').value = item.olx_ad_cost || '';
-    document.getElementById('engraving_cost').value = item.engraving_cost || '';
+    document.getElementById('olx_ad_cost').value = 300;
+    document.getElementById('engraving_cost').value = 200;
     document.getElementById('ssd').value = item.ssd || '';
     document.getElementById('ram').value = item.ram || '';
     document.getElementById('olx_link').value = item.olx_link || '';
@@ -1137,8 +1364,8 @@
       delivery_cost: document.getElementById('delivery_cost') ? toNum(document.getElementById('delivery_cost').value) : 0,
       charger_cost: document.getElementById('charger_cost') ? toNum(document.getElementById('charger_cost').value) : 0,
       duty_cost: document.getElementById('duty_cost') ? toNum(document.getElementById('duty_cost').value) : 0,
-      olx_ad_cost: document.getElementById('olx_ad_cost') ? toNum(document.getElementById('olx_ad_cost').value) : 0,
-      engraving_cost: document.getElementById('engraving_cost') ? toNum(document.getElementById('engraving_cost').value) : 0,
+      olx_ad_cost: 300,
+      engraving_cost: 200,
       ssd: document.getElementById('ssd') ? toNum(document.getElementById('ssd').value) : 0,
       ram: document.getElementById('ram') ? toNum(document.getElementById('ram').value) : 0,
       sold_price: (document.getElementById('status') && document.getElementById('status').value === 'sold' && document.getElementById('sold_price')) ? toNum(document.getElementById('sold_price').value) : 0,
@@ -1260,6 +1487,7 @@
   window.addEventListener('offline', updateNetwork);
   window.addEventListener('click', (e) => { if(e.target.id === 'addModal') closeAddModal(); });
 
+  initTheme();
   initSimpleAuth();
   init();
 document.addEventListener('change', (e)=>{
