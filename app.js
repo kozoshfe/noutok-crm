@@ -507,10 +507,10 @@ function ensureLocationOnlyFields(){
       <div class="span-3">
         <label>Локація</label>
         <select id="location">
-          <option value="Кладовка 1">Кладовка 1</option>
-          <option value="Кладовка 2">Кладовка 2</option>
-          <option value="Спальня 1">Спальня 1</option>
-          <option value="Спальня 2">Спальня 2</option>
+          <option value="Кладовка верх">Кладовка верх</option>
+          <option value="Кладовка низ">Кладовка низ</option>
+          <option value="Спальня верх">Спальня верх</option>
+          <option value="Спальня низ">Спальня низ</option>
         </select>
       </div>
     </div>`;
@@ -546,7 +546,7 @@ function openEditModal(id, mode = 'full'){
     if(extraFields) extraFields.remove();
     ensureLocationOnlyFields();
     const locationInput = document.getElementById('location');
-    if(locationInput) locationInput.value = item.location || 'Кладовка 1';
+    if(locationInput) locationInput.value = item.location || 'Кладовка верх';
     document.getElementById('addModal').classList.add('show');
     return;
   }
@@ -676,7 +676,7 @@ async function saveLaptop(event){
 
   if(currentEditMode === 'location' && currentEditId){
     const payload = {
-      location: document.getElementById('location')?.value || 'Кладовка 1'
+      location: document.getElementById('location')?.value || 'Кладовка верх'
     };
     const response = await supabaseClient.from(TABLE).update(payload).eq('id', currentEditId);
     if(response.error){
