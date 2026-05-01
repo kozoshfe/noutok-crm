@@ -1,0 +1,40 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="74" y1="64" x2="440" y2="454" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7FAFF"/>
+      <stop offset="1" stop-color="#EAF1FB"/>
+    </linearGradient>
+    <linearGradient id="border" x1="92" y1="78" x2="410" y2="430" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2F5E9F"/>
+      <stop offset="1" stop-color="#173B71"/>
+    </linearGradient>
+    <filter id="shadow" x="44" y="44" width="424" height="424" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="14"/>
+      <feGaussianBlur stdDeviation="14"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.08 0 0 0 0 0.16 0 0 0 0 0.31 0 0 0 0.16 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape"/>
+    </filter>
+  </defs>
+
+  <rect x="54" y="54" width="404" height="404" rx="108" fill="url(#bg)"/>
+  <rect x="54" y="54" width="404" height="404" rx="108" stroke="url(#border)" stroke-width="16"/>
+
+  <g filter="url(#shadow)">
+    <rect x="146" y="116" width="220" height="154" rx="14" fill="white" stroke="#1F4B86" stroke-width="12"/>
+    <path d="M136 290H376L412 350C417.333 358 411.379 368 401.77 368H110.23C100.621 368 94.6671 358 100 350L136 290Z" fill="white" stroke="#1F4B86" stroke-width="12" stroke-linejoin="round"/>
+    <path d="M178 313H333" stroke="#1F4B86" stroke-width="10" stroke-linecap="round"/>
+    <path d="M217 341H294" stroke="#1F4B86" stroke-width="10" stroke-linecap="round"/>
+
+    <text x="256" y="222" text-anchor="middle" fill="#183A70" font-size="58" font-weight="800" font-family="Arial, Helvetica, sans-serif">Ноуток</text>
+
+    <g transform="translate(297 138)">
+      <rect x="0" y="0" width="54" height="38" rx="6" fill="white" stroke="#1F4B86" stroke-width="3"/>
+      <path d="M1.5 11.5H52.5M1.5 22.5H52.5M1.5 33.5H52.5" stroke="#D34B5A" stroke-width="7"/>
+      <rect x="1.5" y="1.5" width="22" height="20" rx="4" fill="#1F4B86"/>
+      <path d="M12.5 6.2L14.4 11.2H19.6L15.4 14.3L17 19.2L12.5 16.2L8 19.2L9.6 14.3L5.4 11.2H10.6L12.5 6.2Z" fill="white"/>
+    </g>
+  </g>
+</svg>
