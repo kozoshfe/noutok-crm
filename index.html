@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#11121b" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Мої цілі" />
+    <title>Мої цілі</title>
+    <link rel="manifest" href="manifest.json?v=41" />
+    <link rel="icon" href="icon-512.png" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <link rel="stylesheet" href="styles.css?v=41" />
+  </head>
+  <body>
+    <div id="authScreen" class="auth-screen" hidden>
+      <section class="auth-panel">
+        <div class="auth-header">
+          <p class="status-time">9:41</p>
+          <h1>Мої цілі</h1>
+          <p class="auth-copy">Увійди через Supabase, як у CRM, і після цього синхронізація запрацює автоматично.</p>
+        </div>
+        <form class="auth-form">
+          <label>
+            <span>Email</span>
+            <input id="simpleLogin" type="email" autocomplete="email" placeholder="you@example.com" />
+          </label>
+          <label>
+            <span>Пароль</span>
+            <input id="simplePassword" type="password" autocomplete="current-password" placeholder="Введи пароль" />
+          </label>
+          <button class="primary-action" id="simpleLoginBtn" type="submit">Увійти</button>
+          <div id="simpleLoginMsg" class="auth-note"></div>
+        </form>
+      </section>
+    </div>
+
+    <main id="appShell" class="app-shell" aria-label="Мої цілі" hidden>
+      <section class="screen">
+        <header class="topbar">
+          <div>
+            <p class="status-time">9:41</p>
+            <h1>Мої цілі</h1>
+          </div>
+          <div class="top-actions">
+            <button class="secondary-action header-logout" type="button" hidden>Вийти</button>
+            <button class="icon-button theme-toggle" type="button" aria-label="Змінити тему" title="Тема">
+              <span data-icon="moon"></span>
+            </button>
+            <button class="add-button" type="button" aria-label="Додати пункт" title="Додати">
+              <span data-icon="plus"></span>
+            </button>
+          </div>
+        </header>
+
+        <nav class="tabs tabs-list" aria-label="Тип списку">
+          <button class="tab active" type="button" data-tab="goals">Цілі</button>
+          <button class="tab" type="button" data-tab="rules">Правила</button>
+          <button class="tab" type="button" data-tab="strategy">Стратегія</button>
+        </nav>
+
+        <section class="board-view" hidden>
+          <div class="board-toolbar">
+            <button class="secondary-action board-manage" type="button">Редагувати</button>
+            <button class="primary-action board-add" type="button">Додати пункт</button>
+          </div>
+          <article class="board-card">
+            <div class="board-head"></div>
+            <div class="board-body"></div>
+          </article>
+          <nav class="board-shortcuts" aria-label="Швидкий перехід до статистики">
+            <button class="board-shortcut is-goals" type="button" data-board-shortcut="goals">
+              <span class="board-shortcut-icon" data-icon="target"></span>
+              <strong>Цілі</strong>
+            </button>
+            <button class="board-shortcut is-alcohol" type="button" data-board-shortcut="alcohol">
+              <span class="board-shortcut-icon" data-icon="ban"></span>
+              <strong>Алкоголь</strong>
+            </button>
+            <button class="board-shortcut is-nicotine" type="button" data-board-shortcut="nicotine">
+              <span class="board-shortcut-icon" data-icon="leaf"></span>
+              <strong>Нікотин</strong>
+            </button>
+            <button class="board-shortcut is-calories" type="button" data-board-shortcut="calories">
+              <span class="board-shortcut-icon" data-icon="bar"></span>
+              <strong>Калорії</strong>
+            </button>
+            <button class="board-shortcut is-crypto" type="button" data-board-shortcut="crypto">
+              <span class="board-shortcut-icon" data-icon="grid"></span>
+              <strong>Крипта</strong>
+            </button>
+          </nav>
+        </section>
+
+        <section class="list" aria-live="polite"></section>
+        <button class="primary-action read-button" type="button" hidden>Прочитано</button>
+
+        <section class="stats-view" hidden>
+          <nav class="tabs tabs-stats" aria-label="Тип списку">
+            <button class="tab active" type="button" data-stats-tab="goals">Цілі</button>
+            <button class="tab" type="button" data-stats-tab="alcohol">Алкоголь</button>
+            <button class="tab" type="button" data-stats-tab="nicotine">Нікотин</button>
+            <button class="tab" type="button" data-stats-tab="calories">Калорії</button>
+          </nav>
+          <article class="sleep-card">
+            <header>
+              <div>
+                <strong>Перед сном</strong>
+                <span>Відкриття з 21:00 до 03:00</span>
+              </div>
+              <small class="sleep-month"></small>
+            </header>
+            <div class="sleep-weekdays" aria-hidden="true">
+              <span>Пн</span>
+              <span>Вт</span>
+              <span>Ср</span>
+              <span>Чт</span>
+              <span>Пт</span>
+              <span>Сб</span>
+              <span>Нд</span>
+            </div>
+            <div class="sleep-calendar" aria-label="Календар відкриттів перед сном"></div>
+            <footer>
+              <span class="sleep-streak-number">0</span>
+              <span class="sleep-streak-text">днів підряд</span>
+            </footer>
+          </article>
+          <button class="primary-action stats-read-button" type="button" hidden>Прочитано</button>
+          <div class="stats-alcohol-actions" hidden>
+            <button class="crypto-button crypto-plus" type="button" data-alcohol-action="clean">Не пив</button>
+            <button class="crypto-button crypto-minus" type="button" data-alcohol-action="drank">Пив</button>
+          </div>
+        </section>
+
+        <section class="crypto-view" hidden>
+          <article class="sleep-card">
+            <header>
+              <div>
+                <strong class="stats-question-title">Торгівля була в ?</strong>
+                <span></span>
+              </div>
+              <small class="sleep-month"></small>
+            </header>
+            <div class="sleep-weekdays" aria-hidden="true">
+              <span>Пн</span>
+              <span>Вт</span>
+              <span>Ср</span>
+              <span>Чт</span>
+              <span>Пт</span>
+              <span>Сб</span>
+              <span>Нд</span>
+            </div>
+            <div class="sleep-calendar" aria-label="Календар торгівлі"></div>
+            <footer class="crypto-summary">
+              <div class="crypto-summary-item plus">
+                <span class="crypto-summary-number crypto-plus-count">0</span>
+                <span class="crypto-summary-text">Плюс 0 днів</span>
+              </div>
+              <div class="crypto-summary-item minus">
+                <span class="crypto-summary-number crypto-minus-count">0</span>
+                <span class="crypto-summary-text">Мінус 0 днів</span>
+              </div>
+            </footer>
+          </article>
+          <div class="crypto-actions">
+            <button class="crypto-button crypto-plus" type="button" data-crypto-action="plus">Плюс</button>
+            <button class="crypto-button crypto-minus" type="button" data-crypto-action="minus">Мінус</button>
+          </div>
+        </section>
+
+        <section class="settings-view" hidden>
+          <div class="setting-row">
+            <span>
+              <strong data-i18n="lightTheme">Світла тема</strong>
+              <small data-i18n="themeHint">Перемикай вигляд одним натисканням</small>
+            </span>
+            <button class="switch-control theme-switch" type="button" aria-label="Світла тема" aria-pressed="false">
+              <span class="switch-thumb"></span>
+            </button>
+          </div>
+
+          <div class="setting-row font-size-row">
+            <span>
+              <strong data-i18n="fontSizeGoals">Розмір шрифту: Цілі</strong>
+              <small data-i18n="fontSizeHint">Від меншого до більшого</small>
+            </span>
+            <div class="font-size-options" role="group" aria-label="Розмір шрифту для цілей">
+              <button class="font-size-chip" type="button" data-font-scope="goals" data-font-size="10">10</button>
+              <button class="font-size-chip active" type="button" data-font-scope="goals" data-font-size="12">12</button>
+              <button class="font-size-chip" type="button" data-font-scope="goals" data-font-size="14">14</button>
+            </div>
+          </div>
+
+          <div class="setting-row font-size-row">
+            <span>
+              <strong data-i18n="fontSizeRules">Розмір шрифту: Правила</strong>
+              <small data-i18n="fontSizeHint">Від меншого до більшого</small>
+            </span>
+            <div class="font-size-options" role="group" aria-label="Розмір шрифту для правил">
+              <button class="font-size-chip" type="button" data-font-scope="rules" data-font-size="10">10</button>
+              <button class="font-size-chip active" type="button" data-font-scope="rules" data-font-size="12">12</button>
+              <button class="font-size-chip" type="button" data-font-scope="rules" data-font-size="14">14</button>
+            </div>
+          </div>
+
+          <div class="setting-row font-size-row">
+            <span>
+              <strong data-i18n="fontSizeStrategy">Розмір шрифту: Стратегія</strong>
+              <small data-i18n="fontSizeHint">Від меншого до більшого</small>
+            </span>
+            <div class="font-size-options" role="group" aria-label="Розмір шрифту для стратегії">
+              <button class="font-size-chip" type="button" data-font-scope="strategy" data-font-size="10">10</button>
+              <button class="font-size-chip active" type="button" data-font-scope="strategy" data-font-size="12">12</button>
+              <button class="font-size-chip" type="button" data-font-scope="strategy" data-font-size="14">14</button>
+            </div>
+          </div>
+
+          <div class="setting-row font-size-row">
+            <span>
+              <strong data-i18n="fontSizeBoard">Розмір шрифту: Борда</strong>
+              <small data-i18n="fontSizeHint">Від меншого до більшого</small>
+            </span>
+            <div class="font-size-options" role="group" aria-label="Розмір шрифту для борди">
+              <button class="font-size-chip" type="button" data-font-scope="board" data-font-size="10">10</button>
+              <button class="font-size-chip active" type="button" data-font-scope="board" data-font-size="12">12</button>
+              <button class="font-size-chip" type="button" data-font-scope="board" data-font-size="14">14</button>
+            </div>
+          </div>
+
+        </section>
+
+        <nav class="bottom-nav" aria-label="Основна навігація">
+          <button class="nav-item active" type="button" data-view="board" aria-label="Борда">
+            <span data-icon="grid"></span>
+            <small>Борда</small>
+          </button>
+          <button class="nav-item" type="button" data-view="list" aria-label="Список">
+            <span data-icon="list"></span>
+            <small>Список</small>
+          </button>
+          <button class="nav-item" type="button" data-view="stats" aria-label="Статистика">
+            <span data-icon="bar"></span>
+            <small>Статистика</small>
+          </button>
+          <button class="nav-item" type="button" data-view="insights" aria-label="Крипта">
+            <span data-icon="grid"></span>
+            <small>Крипта</small>
+          </button>
+          <button class="nav-item" type="button" data-view="settings" aria-label="Налаштування">
+            <span data-icon="settings"></span>
+            <small>Налаштування</small>
+          </button>
+        </nav>
+      </section>
+    </main>
+
+    <dialog class="editor">
+      <form method="dialog" class="editor-card">
+        <header>
+          <h2>Пункт</h2>
+          <button class="icon-button close-editor" value="cancel" type="submit" aria-label="Закрити">
+            <span data-icon="x"></span>
+          </button>
+        </header>
+        <label>
+          <span>Назва</span>
+          <input name="title" maxlength="60" autocomplete="off" required />
+        </label>
+        <label data-order-row>
+          <span data-order-label>Позиція</span>
+          <input name="position" type="number" min="1" step="1" inputmode="numeric" />
+        </label>
+        <label>
+          <span data-section-label>Розділ</span>
+          <select name="type">
+            <option value="goals">Цілі</option>
+            <option value="rules">Правила</option>
+            <option value="strategy">Стратегія</option>
+            <option value="board" hidden>Борда</option>
+          </select>
+        </label>
+        <label data-color-row>
+          <span data-color-label>Колір</span>
+          <select name="color">
+            <option value="purple">Фіолетовий</option>
+            <option value="green">Зелений</option>
+            <option value="amber">Жовтий</option>
+            <option value="orange">Помаранчевий</option>
+            <option value="blue">Синій</option>
+          </select>
+        </label>
+        <menu>
+          <button class="danger-action delete-item" type="button">Видалити</button>
+          <button class="primary-action" value="save" type="submit">Зберегти</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js?v=41"></script>
+    <script src="app.js?v=41" type="module"></script>
+  </body>
+</html>
