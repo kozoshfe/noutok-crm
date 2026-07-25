@@ -1,128 +1,275 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="uk">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#184e77" />
-    <title>Трекер завдань</title>
-    <script>
-      // Run before the stylesheet is painted so returning users never see the access form flash.
-      try {
-        if (
-          localStorage.getItem("simple-task-pwa-access-granted") === "true" ||
-          window.AndroidAccess?.hasAccess?.() === true
-        ) {
-          document.documentElement.classList.add("access-already-granted");
-        }
-      } catch (_) {}
-    </script>
-    <link rel="manifest" href="manifest.json?v=36" />
-    <link rel="icon" href="icon-512.png?v=27" />
-    <link rel="apple-touch-icon" href="icon-192.png?v=27" />
-    <link rel="stylesheet" href="styles.css?v=64" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Таски" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  </head>
-  <body class="access-locked">
-    <section class="access-screen" id="accessScreen" aria-labelledby="accessTitle">
-      <form class="access-card" id="accessForm">
-        <span class="access-lock-icon" aria-hidden="true">⌁</span>
-        <h1 id="accessTitle">Доступ до тасок</h1>
-        <p>Введіть код, щоб відкрити список завдань.</p>
-        <label class="access-label" for="accessCode">Код доступу</label>
-        <input id="accessCode" type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]*" placeholder="Введіть код" required />
-        <p class="access-error" id="accessError" role="alert" aria-live="polite"></p>
-        <button class="access-submit" type="submit">Відкрити</button>
-      </form>
-    </section>
-    <main class="app-shell">
-      <section class="content" id="tasksPanel" aria-labelledby="tasksTab">
-        <div class="section-heading">
-          <div class="task-filter-tabs" role="tablist" aria-label="Фільтр тасок">
-            <button class="task-filter-tab active" type="button" role="tab" data-task-filter="urgent" aria-selected="true">Термінові</button>
-            <button class="task-filter-tab" type="button" role="tab" data-task-filter="all" aria-selected="false">Всі</button>
-            <button class="task-filter-tab" type="button" role="tab" data-task-filter="buy" aria-selected="false">Купити</button>
-            <button class="task-filter-tab" type="button" role="tab" data-task-filter="laptops" aria-selected="false">Ноутбуки</button>
-          </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Ноуток СРМ</title>
+  <meta name="theme-color" content="#061126" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2212%22 y=%2218%22 width=%2276%22 height=%2248%22 rx=%228%22 fill=%22%234b67ff%22/><rect x=%2218%22 y=%2224%22 width=%2264%22 height=%2236%22 rx=%226%22 fill=%22%2349d17c%22/><rect x=%2218%22 y=%2270%22 width=%2264%22 height=%228%22 rx=%224%22 fill=%22%23dbe3f0%22/><text x=%2250%22 y=%2250%22 text-anchor=%22middle%22 font-size=%2230%22 font-family=%22Arial%22 font-weight=%22700%22 fill=%22white%22>NB</text></svg>">
+  <link rel="manifest" href="manifest.json?v=20260520-2">
+  <link rel="icon" type="image/png" href="icon-512.png?v=20260520-2">
+  <link rel="apple-touch-icon" href="icon-192.png?v=20260520-2">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Ноуток СРМ">
+  <link rel="stylesheet" href="styles.css?v=20260520-2">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js?v=20260520-2" defer></script>
+</head>
+<body>
+  <div id="authScreen" class="auth-screen" style="display:none">
+    <div class="auth-card">
+      <div class="auth-topbar">
+        <div class="auth-theme-copy">Тема входу</div>
+        <button id="authThemeToggle" class="auth-theme-toggle" type="button" aria-pressed="false">
+          <span class="auth-theme-track">
+            <span class="auth-theme-thumb"></span>
+          </span>
+          <span id="authThemeLabel" class="auth-theme-label">Світла</span>
+        </button>
+      </div>
+      <h2>Вхід у Ноуток CRM</h2>
+      <div class="auth-note">Увійди через Supabase Authentication. Після входу CRM відкриється автоматично.</div>
+      <div style="display:grid;gap:12px">
+        <div>
+          <label>Email</label>
+          <input id="simpleLogin" type="email" placeholder="you@example.com" />
         </div>
-        <ul class="task-list" id="taskList"></ul>
-      </section>
+        <div>
+          <label>Пароль</label>
+          <input id="simplePassword" type="password" placeholder="Введи пароль" />
+        </div>
+        <button class="primary" id="simpleLoginBtn" type="button">Увійти</button>
+        <div id="simpleLoginMsg" class="auth-note"></div>
+      </div>
+    </div>
+  </div>
 
-      <section class="content" id="trashPanel" aria-labelledby="trashTab" hidden>
-        <div class="section-heading">
-          <div class="task-filter-tabs" role="tablist" aria-label="Обов’язкові задачі">
-            <button class="task-filter-tab active" type="button" role="tab" data-mandatory-filter="reminders" aria-selected="true">Нагадування</button>
-            <button class="task-filter-tab" type="button" role="tab" data-mandatory-filter="recurring" aria-selected="false">Повторюються</button>
+  <div id="appShell" class="app" style="display:none">
+    <div class="top">
+      <div class="top-row">
+        <div class="brand">
+          <div class="logo"><img src="icon-192.png" alt="Ноуток CRM" class="logo-image"></div>
+          <div class="brand-copy">
+            <div class="title">Ноуток СРМ</div>
+            <div class="chips">
+              <div class="chip"><span id="netDot" class="dot red"></span><span id="netText">Офлайн</span></div>
+            </div>
           </div>
         </div>
-        <ul class="task-list" id="trashList"></ul>
-      </section>
-    </main>
+        <div class="top-actions"><button class="ghost top-logout" onclick="authLogout()">Вийти</button></div>
+      </div>
 
-    <div class="modal-backdrop" id="taskModal" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle" hidden>
-      <section class="composer modal-card" aria-label="Додати нове завдання">
-        <div class="modal-heading">
-          <h2 id="taskModalTitle">Нове завдання</h2>
-          <button class="modal-close-button" id="closeTaskModalButton" type="button" aria-label="Закрити">×</button>
-        </div>
-        <label class="input-label" for="taskInput">Що потрібно зробити?</label>
-        <div class="input-row">
-          <input id="taskInput" type="text" placeholder="Наприклад: купити каву" autocomplete="off" />
-          <button class="icon-button mic-button" id="micButton" type="button" aria-label="Диктувати завдання" title="Диктувати завдання">
-            <svg aria-hidden="true" viewBox="0 0 24 24">
-              <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Z" />
-              <path d="M19 11a7 7 0 0 1-14 0" />
-              <path d="M12 18v3" />
-              <path d="M8 21h8" />
-            </svg>
-          </button>
-        </div>
-        <label class="reminder-toggle" for="newReminderEnabled">
-          <input id="newReminderEnabled" type="checkbox" />
-          Додати нагадування
-        </label>
-        <div class="new-reminder-options" id="taskReminder" hidden>
-          <div class="new-reminder-picker">
-            <select id="newReminderDay" aria-label="День"></select>
-            <select id="newReminderMonth" aria-label="Місяць"></select>
-            <select id="newReminderYear" aria-label="Рік"></select>
-            <select id="newReminderHour" aria-label="Година"></select>
-            <select id="newReminderMinute" aria-label="Хвилини"></select>
-          </div>
-          <label class="input-label repeat-label" for="taskRepeat">Повторювати</label>
-          <select class="repeat-select" id="taskRepeat" aria-label="Повторювати">
-            <option value="none">Не повторювати</option>
-            <option value="daily">Щодня</option>
-            <option value="weekly-monday">Щопонеділка</option>
-            <option value="monthly-20">Кожного 20 числа</option>
-          </select>
-        </div>
-        <p class="voice-status" id="voiceStatus" role="status" aria-live="polite"></p>
-        <button class="modal-submit-button" id="submitTaskButton" type="button">Додати таску</button>
-      </section>
+      <div class="nav">
+        <button class="nav-btn active" data-view="dashboard">Головна</button>
+        <button class="nav-btn" data-view="active">Активні</button>
+        <button class="nav-btn" data-view="sold">Продані</button>
+        <button class="nav-btn" data-view="location">Локація</button>
+        <button class="nav-btn" data-view="months">Місяці</button>
+        <button class="nav-btn" data-view="base" style="display:none">База</button>
+      </div>
+
+      <div id="banner" class="banner" aria-live="polite"></div>
     </div>
 
-    <nav class="bottom-tabs" aria-label="Головна навігація">
-      <button class="tab-button active" id="tasksTab" type="button" aria-controls="tasksPanel" aria-selected="true">
-        <span class="tab-icon" aria-hidden="true">✓</span>
-        <span>Таски</span>
-      </button>
-      <button class="nav-mic-button" id="navMicButton" type="button" aria-label="Додати голосом. Подвійний тап для ручного вводу" title="Додати голосом. Подвійний тап для ручного вводу">
-        <svg aria-hidden="true" viewBox="0 0 24 24">
-          <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Z" />
-          <path d="M19 11a7 7 0 0 1-14 0" />
-          <path d="M12 18v3" />
-          <path d="M8 21h8" />
-        </svg>
-      </button>
-      <button class="tab-button" id="trashTab" type="button" aria-controls="trashPanel" aria-selected="false">
-        <span class="tab-icon" aria-hidden="true">!</span>
-        <span>Обов’язкові</span>
-      </button>
-    </nav>
+    <section id="view-dashboard" class="view active">
+      <div class="panel">
+        <div class="section-head">
+          <h2>Швидка статистика</h2>
+        </div>
+        <div id="testTools" class="test-tools" hidden>
+          <div class="test-tools-copy">
+            <div class="k">Тестові записи</div>
+            <div class="v"><span id="testLaptopCount">0</span> шт.</div>
+          </div>
+          <button id="purgeTestLaptopsBtn" class="ghost danger-ghost" type="button">Видалити тестові</button>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="k">Активні ноутбуки</div><div id="statActiveBig" class="v">0</div></div>
+          <div class="stat"><div class="k">Продано за поточний місяць</div><div id="statSoldMonthBig" class="v">0</div></div>
+          <div class="stat"><div class="k">Чистий прибуток за поточний місяць</div><div id="statProfitMonthBig" class="v">0 ₴</div></div>
+          <div class="stat"><div class="k">Загальний чистий прибуток</div><div id="statProfitTotalBig" class="v">0 ₴</div></div>
+          <div class="stat"><div class="k">Собівартість ноутбуків</div><div id="statCostTotalBig" class="v">0 ₴</div></div>
+          <div class="stat"><div class="k">Загальна кількість проданих ноутбуків</div><div id="statSoldOverallBig" class="v">187</div></div>
+        </div>
+        <div class="dashboard-note-card">
+          <div class="dashboard-note-copy">
+            <div class="k">Добавити до доставки</div>
+          </div>
+          <div class="dashboard-note-display">
+            <div id="dashboardDeliveryNoteValue" class="dashboard-note-value">-</div>
+            <button id="dashboardDeliveryNoteEdit" class="edit-mini dashboard-note-edit" type="button" title="Редагувати">✏️</button>
+          </div>
+          <div id="dashboardNoteEditor" class="dashboard-note-controls" hidden>
+            <div id="dashboardDeliveryNote" class="dashboard-note-list" aria-label="Добавити до доставки"></div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-    <script src="app.js?v=92" defer></script>
-  </body>
+    <section id="view-active" class="view">
+      <div class="panel">
+        <div class="section-head">
+          <div class="section-count">Всього: <b id="activeCount">0</b></div>
+          <button id="activeFiltersToggle" class="ghost filters-toggle" type="button" aria-expanded="false" aria-controls="activeFiltersPanel">
+            <span>Фільтри</span>
+            <span id="activeFiltersCount" class="filters-toggle-count" hidden>0</span>
+          </button>
+        </div>
+        <div id="activeFiltersPanel" class="filters-panel" hidden>
+          <div class="filter-card">
+            <label class="filter-label" for="filterStatus">Статус</label>
+            <div class="select-wrap">
+              <select id="filterStatus">
+                <option value="">Всі статуси</option>
+                <option value="in_transit">В дорозі</option>
+                <option value="received">Отримано</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-card">
+            <label class="filter-label" for="filterMarket">Публікація</label>
+            <div class="select-wrap">
+              <select id="filterMarket">
+                <option value="">Всі оголошення</option>
+                <option value="no_olx">Немає OLX</option>
+                <option value="no_telegram">Немає Telegram</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-card">
+            <label class="filter-label" for="filterModelType">Модель</label>
+            <div class="select-wrap">
+              <select id="filterModelType">
+                <option value="">Всі моделі</option>
+                <option value="Elitebook">Elitebook</option>
+                <option value="Zbook">Zbook</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-card">
+            <label class="filter-label" for="filterCostSort">Собівартість</label>
+            <div class="select-wrap">
+              <select id="filterCostSort">
+                <option value="">Без сортування</option>
+                <option value="cost_asc">Від меншої до більшої</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-card">
+            <label class="filter-label" for="filterTracking">Трекінг номер</label>
+            <input id="filterTracking" inputmode="numeric" maxlength="4" placeholder="Останні 4 цифри" />
+          </div>
+        </div>
+      </div>
+      <div id="activeCards" class="cards"></div>
+    </section>
+
+    <section id="view-sold" class="view">
+      <div class="panel">
+        <div class="section-head">
+          <div class="section-count">Продано: <b id="soldCount">0</b></div>
+          <div class="chips">
+            <div class="pill">Виручка: <b id="soldRevenue">0 ₴</b></div>
+            <div class="pill">Чистий прибуток: <b id="soldProfit">0 ₴</b></div>
+          </div>
+        </div>
+      </div>
+      <div id="soldCards" class="cards"></div>
+    </section>
+
+    <section id="view-months" class="view">
+      <div id="monthsWrap" class="cards"></div>
+    </section>
+
+    <section id="view-location" class="view">
+      <div class="panel">
+        <div class="section-head">
+          <h2>Локація</h2>
+        </div>
+        <div class="grid">
+          <div class="field">
+            <div class="k">Фільтр локації</div>
+            <select id="filterLocation">
+              <option value="">Усі локації</option>
+              <option value="Нічого">Нічого</option>
+              <option value="Кладовка низ">Кладовка низ</option>
+              <option value="Кладовка верх">Кладовка верх</option>
+              <option value="Кухня">Кухня</option>
+              <option value="Спальня низ">Спальня низ</option>
+              <option value="Спальня верх">Спальня верх</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="k">Фільтр стану</div>
+            <select id="filterLocationState">
+              <option value="">Усі стани</option>
+              <option value="На чистку">На чистку</option>
+              <option value="Гравіювання">Гравіювання</option>
+              <option value="Ремонт">Ремонт</option>
+              <option value="На фото">На фото</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="k">Кількість</div>
+            <div id="locationCount" class="v">0</div>
+          </div>
+        </div>
+      </div>
+      <div id="locationCards" class="cards"></div>
+    </section>
+
+    <section id="view-base" class="view">
+      <div class="panel">
+        <div class="section-head"><h2>База Supabase</h2></div>
+        <div class="grid">
+          <div class="field"><div class="k">Підключення</div><div id="baseStatus" class="v">Перевірка...</div></div>
+          <div class="field"><div class="k">Realtime</div><div class="v">Увімкнено через Postgres Changes</div></div>
+        </div>
+        <div style="margin-top:14px" class="muted">
+          Якщо не бачиш дані,
+          <br>1. перевір URL і anon key,
+          <br>2. переконайся, що для таблиці <b>laptops</b> правильно налаштований доступ,
+          <br>3. перевір назву таблиці та структуру полів.
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <button class="floating-add" onclick="openAddModal()">+</button>
+
+  <div id="addModal" class="modal-wrap">
+    <div class="modal">
+      <div class="toolbar">
+        <h3 id="modalTitle">Додати ноутбук</h3>
+        <button class="ghost modal-close" onclick="closeAddModal()">Закрити</button>
+      </div>
+      <form id="laptopForm" onsubmit="submitLaptopForm(); return false;">
+        <input type="hidden" id="editId" />
+        <div id="baseFields" class="form-grid">
+          <div class="form-field">
+            <label>Номер ноутбука</label>
+            <input id="number" placeholder="NB-001" />
+          </div>
+          <div class="form-field">
+            <label>Ціна eBay, ₴</label>
+            <input id="ebay_price" type="number" min="0" step="0.01" />
+          </div>
+          <div class="form-field span-2">
+            <label>Посилання eBay</label>
+            <div class="inline-field">
+              <input id="ebay_link" placeholder="https://www.ebay.com/..." />
+              <button class="ghost inline-field-btn" type="button" onclick="pasteIntoField('ebay_link')">Вставити</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="row-actions">
+          <div id="modalSaveMsg" class="modal-save-msg" hidden></div>
+          <button id="saveLaptopBtn" class="primary modal-submit" type="submit">Зберегти</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
 </html>

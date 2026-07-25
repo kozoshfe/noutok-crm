@@ -1,117 +1,125 @@
-const SUPABASE_URL = "https://qzcapeempzzdhicsweqz.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_nXxnpG6C_RO9mVqcYEt1mg_Z9Z-dpDr";
-const SUPABASE_TABLE = "tasks";
-const LEGACY_STORAGE_KEY = "simple-task-pwa-state";
-const PENDING_STORAGE_KEY = "simple-task-pwa-pending-state";
-const APP_VERSION = "85";
-const APP_VERSION_KEY = "simple-task-pwa-version";
-const ACCESS_STORAGE_KEY = "simple-task-pwa-access-granted";
-const ACCESS_CODE = "15057050";
-const DOUBLE_TAP_DELAY_MS = 280;
-const PRIORITIES = {
-  high: {
-    label: "Високий",
-    className: "priority-high",
-  },
-  medium: {
-    label: "Середній",
-    className: "priority-medium",
-  },
-  low: {
-    label: "Лоу",
-    className: "priority-low",
-  },
-};
-const PRIORITY_ORDER = {
-  high: 0,
-  medium: 1,
-  low: 2,
-  none: 3,
-};
+let authBootstrapped = false;
 
-const els = {
-  addButton: document.querySelector("#addButton"),
-  closeTaskModalButton: document.querySelector("#closeTaskModalButton"),
-  micButton: document.querySelector("#micButton"),
-  navMicButton: document.querySelector("#navMicButton"),
-  submitTaskButton: document.querySelector("#submitTaskButton"),
-  taskInput: document.querySelector("#taskInput"),
-  taskReminder: document.querySelector("#taskReminder"),
-  newReminderEnabled: document.querySelector("#newReminderEnabled"),
-  newReminderDay: document.querySelector("#newReminderDay"),
-  newReminderMonth: document.querySelector("#newReminderMonth"),
-  newReminderYear: document.querySelector("#newReminderYear"),
-  newReminderHour: document.querySelector("#newReminderHour"),
-  newReminderMinute: document.querySelector("#newReminderMinute"),
-  taskRepeat: document.querySelector("#taskRepeat"),
-  taskModal: document.querySelector("#taskModal"),
-  taskList: document.querySelector("#taskList"),
-  taskFilterTabs: document.querySelectorAll("[data-task-filter]"),
-  mandatoryFilterTabs: document.querySelectorAll("[data-mandatory-filter]"),
-  appShell: document.querySelector(".app-shell"),
-  tasksPanel: document.querySelector("#tasksPanel"),
-  tasksTab: document.querySelector("#tasksTab"),
-  trashList: document.querySelector("#trashList"),
-  trashPanel: document.querySelector("#trashPanel"),
-  trashTab: document.querySelector("#trashTab"),
-  voiceStatus: document.querySelector("#voiceStatus"),
-  accessScreen: document.querySelector("#accessScreen"),
-  accessForm: document.querySelector("#accessForm"),
-  accessCode: document.querySelector("#accessCode"),
-  accessError: document.querySelector("#accessError"),
-};
+const SUPABASE_URL = 'https://qzcapeempzzdhicsweqz.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_nXxnpG6C_RO9mVqcYEt1mg_Z9Z-dpDr';
+const TABLE = 'laptops';
+const SETTINGS_TABLE = 'app_settings';
 
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let supabaseClient = null;
-let recognition = null;
-let shouldAutoAddVoiceResult = false;
-let dragState = null;
-let navMicTapTimer = null;
-let priorityPickerTaskId = null;
-let activeTaskFilter = "urgent";
-let activeMandatoryFilter = "reminders";
-let taskFilterSwipe = null;
-let mandatoryFilterSwipe = null;
-let syncedTaskIds = new Set();
-const state = {
-  tasks: [],
-  trash: [],
+let laptops = [];
+let currentEditId = null;
+let currentEditMode = 'full';
+let realtimeChannel = null;
+let hasSupabaseConnection = false;
+let logoTapCount = 0;
+let logoTapTimer = null;
+let dashboardDeliveryNoteValue = [];
+let isSavingLaptop = false;
+let lockedScrollY = 0;
+const APP_VERSION = '20260520-modal-scroll-1';
+const APP_VERSION_KEY = 'notebook-crm-app-version';
+const THEME_KEY = 'notebook-crm-theme';
+const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
+const DASHBOARD_DELIVERY_NOTE_SETTING_KEY = 'dashboard_delivery_note';
+const PENDING_SAVE_QUEUE_KEY = 'notebook-crm-pending-save-queue';
+const REQUEST_TIMEOUT_MS = 8000;
+const AUTH_TIMEOUT_MS = 3000;
+const SAVE_UI_TIMEOUT_MS = 10000;
+const HISTORICAL_SOLD_COUNT = 187;
+let isSyncingPendingSaves = false;
+
+const statusLabels = {
+  in_transit: 'В дорозі',
+  received: 'Отримав',
+  sold: 'Продано'
 };
 
-function fillReminderSelect(select, values, selected) {
-  select.replaceChildren(...values.map(([value, text]) => new Option(text, value, value === selected, value === selected)));
+function normalizeStatus(status){
+  const value = String(status || '').trim();
+  if(value === 'received' || value === 'Отримано' || value === 'Отримав') return 'received';
+  if(value === 'sold' || value === 'Продано') return 'sold';
+  return 'in_transit';
 }
 
-function setupNewReminderPicker() {
-  const now = new Date(Date.now() + 3600000);
-  fillReminderSelect(els.newReminderDay, Array.from({ length: 31 }, (_, i) => {
-    const value = String(i + 1).padStart(2, "0"); return [value, value];
-  }), String(now.getDate()).padStart(2, "0"));
-  fillReminderSelect(els.newReminderMonth, ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"].map((text, i) => [String(i), text]), String(now.getMonth()));
-  fillReminderSelect(els.newReminderYear, Array.from({ length: 6 }, (_, i) => {
-    const year = String(now.getFullYear() + i); return [year, year];
-  }), String(now.getFullYear()));
-  fillReminderSelect(els.newReminderHour, Array.from({ length: 24 }, (_, i) => { const v = String(i).padStart(2, "0"); return [v, v]; }), String(now.getHours()).padStart(2, "0"));
-  fillReminderSelect(els.newReminderMinute, Array.from({ length: 12 }, (_, i) => { const v = String(i * 5).padStart(2, "0"); return [v, v]; }), String(Math.round(now.getMinutes() / 5) * 5 % 60).padStart(2, "0"));
+function normalizeLocation(location){
+  const value = String(location || '').trim();
+  const map = {
+    'Кладовка 1': 'Кладовка верх',
+    'Кладовка 2': 'Кладовка низ',
+    'Спальня 1': 'Спальня верх',
+    'Спальня 2': 'Спальня низ'
+  };
+  return map[value] || value;
 }
 
-function getNewReminderValue() {
-  return new Date(Number(els.newReminderYear.value), Number(els.newReminderMonth.value), Number(els.newReminderDay.value), Number(els.newReminderHour.value), Number(els.newReminderMinute.value)).toISOString();
+function normalizeLocationState(state){
+  const value = String(state || '').trim();
+  if(value === 'На гравіювання' || value === 'Гравіювання' || value === 'engraving') return 'Гравіювання';
+  if(value === 'На ремонт' || value === 'Ремонт' || value === 'repair') return 'Ремонт';
+  if(value === 'На чистку' || value === 'Чистка' || value === 'cleaning') return 'На чистку';
+  if(value === 'На фото' || value === 'Фото' || value === 'photo') return 'На фото';
+  return '';
 }
 
-function updateNewReminderVisibility() {
-  els.taskReminder.hidden = !els.newReminderEnabled.checked;
-  if (!els.newReminderEnabled.checked) els.taskRepeat.value = "none";
+function getLocationStateBadgeClass(state){
+  const normalizedState = normalizeLocationState(state);
+  if(normalizedState === 'Ремонт') return 'location-card-badge-repair';
+  if(normalizedState === 'Гравіювання') return 'location-card-badge-engraving';
+  if(normalizedState === 'На чистку') return 'location-card-badge-cleaning';
+  return 'location-card-badge-alt';
 }
 
-function ensureAppVersion() {
+function getTrackingTail(trackingNumber){
+  const value = String(trackingNumber || '').trim();
+  if(!value) return '';
+  return value.slice(-4);
+}
+
+function isTestLaptop(item){
+  return /(?:тест|test)/i.test(String(item?.number || '').trim());
+}
+
+function getTestLaptopIds(){
+  return laptops.filter(isTestLaptop).map((item) => item.id).filter(Boolean);
+}
+
+function updateTestTools(){
+  const countEl = document.getElementById('testLaptopCount');
+  if(countEl) countEl.textContent = String(getTestLaptopIds().length);
+}
+
+function toggleTestTools(){
+  const wrap = document.getElementById('testTools');
+  if(!wrap) return;
+  wrap.hidden = !wrap.hidden;
+  updateTestTools();
+}
+
+function handleLogoTap(){
+  if(logoTapTimer) clearTimeout(logoTapTimer);
+  logoTapCount += 1;
+
+  if(logoTapCount >= 3){
+    logoTapCount = 0;
+    logoTapTimer = null;
+    toggleTestTools();
+    return;
+  }
+
+  logoTapTimer = setTimeout(() => {
+    logoTapCount = 0;
+    logoTapTimer = null;
+  }, 700);
+}
+
+function ensureAppVersion(){
   const savedVersion = localStorage.getItem(APP_VERSION_KEY);
   const currentUrl = new URL(window.location.href);
-  const currentVersionParam = currentUrl.searchParams.get("appv");
+  const currentVersionParam = currentUrl.searchParams.get('appv');
 
-  if (savedVersion !== APP_VERSION && currentVersionParam !== APP_VERSION) {
+  if(savedVersion !== APP_VERSION && currentVersionParam !== APP_VERSION){
     localStorage.setItem(APP_VERSION_KEY, APP_VERSION);
-    currentUrl.searchParams.set("appv", APP_VERSION);
+    currentUrl.searchParams.set('appv', APP_VERSION);
     window.location.replace(currentUrl.toString());
     return false;
   }
@@ -120,1292 +128,1808 @@ function ensureAppVersion() {
   return true;
 }
 
-async function openApp() {
-  if (!ensureAppVersion()) return;
-  await initDatabase();
-  document.body.classList.remove("access-locked");
-  els.accessScreen.hidden = true;
-}
-
-function hasGrantedAccess() {
-  try {
-    return localStorage.getItem(ACCESS_STORAGE_KEY) === "true" || window.AndroidAccess?.hasAccess?.() === true;
-  } catch (_) {
-    return window.AndroidAccess?.hasAccess?.() === true;
-  }
-}
-
-function rememberGrantedAccess() {
-  try {
-    localStorage.setItem(ACCESS_STORAGE_KEY, "true");
-  } catch (_) {}
-  window.AndroidAccess?.grant?.();
-}
-
-function setupAccessGate() {
-  if (hasGrantedAccess()) {
-    // Migrate users who previously authenticated only in WebView storage.
-    rememberGrantedAccess();
-    openApp();
+async function purgeTestLaptops(){
+  const ids = getTestLaptopIds();
+  if(!ids.length){
+    setBanner('Тестових карток не знайдено.', true);
     return;
   }
 
-  els.accessForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    if (els.accessCode.value === ACCESS_CODE) {
-      rememberGrantedAccess();
-      els.accessError.textContent = "";
-      openApp();
+  if(!confirm(`Знайдено тестових карток: ${ids.length}. Видалити їх з бази?`)) return;
+
+  const { error } = await supabaseClient.from(TABLE).delete().in('id', ids);
+  if(error){
+    console.error(error);
+    setBanner('Не вдалося видалити тестові картки.', false);
+    return;
+  }
+
+  setBanner(`Видалено тестових карток: ${ids.length}.`, true);
+  await loadLaptops();
+}
+
+function showAppShell(){
+  const auth = document.getElementById('authScreen');
+  const app = document.getElementById('appShell');
+  if(auth) auth.style.display = 'none';
+  if(app) app.style.display = 'block';
+}
+
+function showAuthScreen(){
+  const auth = document.getElementById('authScreen');
+  const app = document.getElementById('appShell');
+  if(auth) auth.style.display = 'flex';
+  if(app) app.style.display = 'none';
+}
+
+function lockBodyScroll(){
+  if(document.body.classList.contains('modal-open')) return;
+  lockedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+  document.body.classList.add('modal-open');
+  document.body.style.position = 'fixed';
+  document.body.style.top = `-${lockedScrollY}px`;
+  document.body.style.left = '0';
+  document.body.style.right = '0';
+}
+
+function unlockBodyScroll(){
+  if(!document.body.classList.contains('modal-open')) return;
+  document.body.classList.remove('modal-open');
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.left = '';
+  document.body.style.right = '';
+  window.scrollTo(0, lockedScrollY);
+  lockedScrollY = 0;
+}
+
+function showAddModal(){
+  lockBodyScroll();
+  document.getElementById('addModal')?.classList.add('show');
+}
+
+function applyTheme(theme){
+  const normalized = theme === 'light' ? 'light' : 'dark';
+  document.body.dataset.theme = normalized;
+
+  const toggle = document.getElementById('authThemeToggle');
+  const label = document.getElementById('authThemeLabel');
+  if(toggle) toggle.setAttribute('aria-pressed', String(normalized === 'light'));
+  if(label) label.textContent = normalized === 'light' ? 'Світла' : 'Темна';
+
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  if(themeMeta){
+    themeMeta.setAttribute('content', normalized === 'light' ? '#eef4ff' : '#061126');
+  }
+}
+
+function loadTheme(){
+  const saved = localStorage.getItem(THEME_KEY);
+  applyTheme(saved || 'dark');
+}
+
+function toggleTheme(){
+  const nextTheme = document.body.dataset.theme === 'light' ? 'dark' : 'light';
+  localStorage.setItem(THEME_KEY, nextTheme);
+  applyTheme(nextTheme);
+}
+
+async function loadDashboardDeliveryNote(){
+  const input = document.getElementById('dashboardDeliveryNote');
+  if(!input) return;
+
+  if(supabaseClient){
+    const { data, error } = await supabaseClient
+      .from(SETTINGS_TABLE)
+      .select('value')
+      .eq('key', DASHBOARD_DELIVERY_NOTE_SETTING_KEY)
+      .maybeSingle();
+
+    if(!error){
+      const value = String(data?.value || '');
+      dashboardDeliveryNoteValue = parseDashboardDeliverySelection(value);
+      renderDashboardDeliveryOptions();
+      if(value) localStorage.setItem(DASHBOARD_DELIVERY_NOTE_KEY, value);
+      else localStorage.removeItem(DASHBOARD_DELIVERY_NOTE_KEY);
       return;
     }
-
-    els.accessError.textContent = "Невірний код. Спробуйте ще раз.";
-    els.accessCode.select();
-  });
-  els.accessCode.focus();
-}
-
-function normalizeState(value) {
-  return {
-    tasks: Array.isArray(value?.tasks) ? value.tasks.map(normalizeTask) : [],
-    trash: Array.isArray(value?.trash) ? value.trash.map(normalizeTask) : [],
-  };
-}
-
-function normalizeTask(task) {
-  const priority = task?.priority === "priority-high" ? "high"
-    : task?.priority === "priority-medium" ? "medium"
-      : task?.priority === "priority-low" ? "low" : task?.priority;
-  return {
-    ...task,
-    priority: isUrgentTaskTitle(task?.title || "") ? "high" : (hasPriority(priority) ? priority : null),
-  };
-}
-
-function hasPriority(priority) {
-  return Object.prototype.hasOwnProperty.call(PRIORITIES, priority);
-}
-
-function getPriorityRank(task) {
-  return hasPriority(task?.priority) ? PRIORITY_ORDER[task.priority] : PRIORITY_ORDER.none;
-}
-
-function sortTasksByPriority(tasks) {
-  return tasks
-    .map((task, index) => ({ task, index }))
-    .sort((a, b) => getPriorityRank(a.task) - getPriorityRank(b.task) || a.index - b.index)
-    .map(({ task }) => task);
-}
-
-function sortActiveTasks() {
-  state.tasks = sortTasksByPriority(state.tasks);
-}
-
-function getTaskCategory(task) {
-  const title = task.title.toLocaleLowerCase("uk-UA");
-  const matches = [
-    ["urgent", title.indexOf("терміново")],
-    ["buy", title.indexOf("купит")],
-    ["laptops", title.indexOf("ноутбук")],
-  ].filter(([, index]) => index !== -1);
-
-  if (matches.length) {
-    matches.sort(([, firstIndex], [, secondIndex]) => firstIndex - secondIndex);
-    return matches[0][0];
   }
 
-  return task.priority === "high" ? "urgent" : null;
+  const localValue = localStorage.getItem(DASHBOARD_DELIVERY_NOTE_KEY) || '';
+  dashboardDeliveryNoteValue = parseDashboardDeliverySelection(localValue);
+  renderDashboardDeliveryOptions();
 }
 
-function getFilteredTasks() {
-  const isReminderTask = (task) => Boolean(task.reminderAt);
-  return state.tasks.filter((task) => {
-    if (isReminderTask(task)) return false;
-    const category = getTaskCategory(task);
-    return activeTaskFilter === "all" ? category === null : category === activeTaskFilter;
-  });
-}
+async function saveDashboardDeliveryNote(){
+  const value = JSON.stringify(dashboardDeliveryNoteValue);
 
-function getMandatoryTasks() {
-  if (activeMandatoryFilter === "recurring") {
-    return state.tasks.filter((task) => Boolean(task.recurrence));
-  }
+  if(supabaseClient){
+    const { error } = await supabaseClient
+      .from(SETTINGS_TABLE)
+      .upsert({ key: DASHBOARD_DELIVERY_NOTE_SETTING_KEY, value }, { onConflict: 'key' });
 
-  return state.tasks.filter((task) => Boolean(task.reminderAt) && !task.recurrence);
-}
-
-function applyState(nextState) {
-  const normalized = normalizeState(nextState);
-  state.tasks = sortTasksByPriority(normalized.tasks);
-  state.trash = normalized.trash;
-}
-
-function readLegacyState() {
-  try {
-    return normalizeState(JSON.parse(localStorage.getItem(LEGACY_STORAGE_KEY)));
-  } catch {
-    return { tasks: [], trash: [] };
-  }
-}
-
-function readPendingState() {
-  try {
-    return normalizeState(JSON.parse(localStorage.getItem(PENDING_STORAGE_KEY)));
-  } catch {
-    return { tasks: [], trash: [] };
-  }
-}
-
-function hasTasks(value) {
-  return value.tasks.length > 0 || value.trash.length > 0;
-}
-
-function getStateSnapshot() {
-  sortActiveTasks();
-  return {
-    tasks: state.tasks,
-    trash: state.trash,
-  };
-}
-
-function toDatabaseTask(task, isDeleted) {
-  return {
-    id: task.id,
-    value: task.title,
-    done: Boolean(task.done),
-    priority: task.priority || null,
-    created_at: new Date(task.createdAt || Date.now()).toISOString(),
-    reminder_at: task.reminderAt || null,
-    recurrence: task.recurrence || null,
-    last_completed_at: task.lastCompletedAt ? new Date(task.lastCompletedAt).toISOString() : null,
-    deleted_at: isDeleted ? new Date(task.deletedAt || Date.now()).toISOString() : null,
-  };
-}
-
-function fromDatabaseTask(row) {
-  return normalizeTask({
-    id: row.id,
-    title: row.value,
-    done: row.done,
-    priority: row.priority,
-    createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
-    reminderAt: row.reminder_at,
-    recurrence: row.recurrence,
-    lastCompletedAt: row.last_completed_at ? new Date(row.last_completed_at).getTime() : null,
-    deletedAt: row.deleted_at ? new Date(row.deleted_at).getTime() : null,
-  });
-}
-
-function setSyncStatus() {
-  // Sync messages stay silent in the UI.
-}
-
-function getSupabaseHeaders(extra = {}) {
-  return {
-    apikey: SUPABASE_ANON_KEY,
-    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-    ...extra,
-  };
-}
-
-async function parseSupabaseError(response) {
-  try {
-    const body = await response.json();
-    return body.message || body.error || response.statusText;
-  } catch {
-    return response.statusText;
-  }
-}
-
-async function saveState() {
-  localStorage.setItem(PENDING_STORAGE_KEY, JSON.stringify(getStateSnapshot()));
-  setSyncStatus("Зберігаю...", "neutral");
-
-  if (!supabaseClient) {
-    console.error("Supabase client is not ready.");
-    setSyncStatus("Не підключено до бази. Збережено тимчасово.", "error");
-    return false;
-  }
-
-  const snapshot = getStateSnapshot();
-  const rows = [
-    ...snapshot.tasks.map((task) => toDatabaseTask(task, false)),
-    ...snapshot.trash.map((task) => toDatabaseTask(task, true)),
-  ];
-  const currentIds = new Set(rows.map((task) => task.id));
-
-  try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?on_conflict=id`, {
-      method: "POST",
-      headers: getSupabaseHeaders({
-        "Content-Type": "application/json",
-        Prefer: "resolution=merge-duplicates,return=minimal",
-      }),
-      body: JSON.stringify(rows),
-    });
-
-    if (!response.ok) throw new Error(await parseSupabaseError(response));
-
-    const removedIds = [...syncedTaskIds].filter((id) => !currentIds.has(id));
-    if (removedIds.length) {
-      const deleteResponse = await fetch(
-        `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=in.(${removedIds.join(",")})`,
-        { method: "DELETE", headers: getSupabaseHeaders() },
-      );
-      if (!deleteResponse.ok) throw new Error(await parseSupabaseError(deleteResponse));
+    if(!error){
+      if(value) localStorage.setItem(DASHBOARD_DELIVERY_NOTE_KEY, value);
+      else localStorage.removeItem(DASHBOARD_DELIVERY_NOTE_KEY);
+      updateDashboardDeliveryNoteValue(getDashboardDeliveryDisplayNumbers());
+      setDashboardDeliveryEditorOpen(false);
+      clearBanner();
+      return;
     }
-
-    syncedTaskIds = currentIds;
-  } catch (error) {
-    console.error("Failed to save tasks to Supabase:", error);
-    setSyncStatus("Не збережено в базу: немає з'єднання", "error");
-    return false;
   }
 
-  localStorage.removeItem(LEGACY_STORAGE_KEY);
-  localStorage.removeItem(PENDING_STORAGE_KEY);
-  setSyncStatus("Збережено в базу", "success");
-  return true;
+  if(value) localStorage.setItem(DASHBOARD_DELIVERY_NOTE_KEY, value);
+  else localStorage.removeItem(DASHBOARD_DELIVERY_NOTE_KEY);
+
+  updateDashboardDeliveryNoteValue(getDashboardDeliveryDisplayNumbers());
+  setDashboardDeliveryEditorOpen(false);
+  clearBanner();
 }
 
-async function loadState() {
-  if (!supabaseClient) return;
-  setSyncStatus("Читаю базу...", "neutral");
+function updateDashboardDeliveryNoteValue(value){
+  const valueEl = document.getElementById('dashboardDeliveryNoteValue');
+  if(!valueEl) return;
+  const list = Array.isArray(value) ? value.filter(Boolean) : parseDashboardDeliverySelection(value);
+  valueEl.textContent = list.length ? list.join(', ') : '-';
+}
 
-  const legacyState = readLegacyState();
-  const pendingState = readPendingState();
-  let rows = null;
+function parseDashboardDeliverySelection(value){
+  const raw = String(value || '').trim();
+  if(!raw) return [];
 
-  try {
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=*&order=created_at.asc`,
-      {
-        headers: getSupabaseHeaders(),
-      },
+  try{
+    const parsed = JSON.parse(raw);
+    if(Array.isArray(parsed)) return parsed.map((item) => String(item || '').trim()).filter(Boolean);
+  }catch(error){}
+
+  return [raw];
+}
+
+function getDashboardDeliveryDisplayNumbers(){
+  const autoIncludedNumbers = laptops
+    .filter((item) => normalizeStatus(item.status) !== 'sold' && String(item.number || '').trim() && !String(item.tracking_number || '').trim())
+    .map((item) => String(item.number || '').trim());
+
+  return Array.from(new Set([...autoIncludedNumbers, ...dashboardDeliveryNoteValue]));
+}
+
+function renderDashboardDeliveryOptions(){
+  const listWrap = document.getElementById('dashboardDeliveryNote');
+  if(!listWrap) return;
+
+  const activeLaptops = laptops
+    .filter((item) => normalizeStatus(item.status) !== 'sold' && String(item.number || '').trim())
+    .map((item) => ({
+      number: String(item.number || '').trim(),
+      autoIncluded: !String(item.tracking_number || '').trim()
+    }));
+  const activeNumbers = activeLaptops.map((item) => item.number);
+  dashboardDeliveryNoteValue = dashboardDeliveryNoteValue.filter((number) => activeNumbers.includes(number));
+  if(!activeLaptops.length){
+    listWrap.innerHTML = '<div class="dashboard-note-empty">Немає активних ноутбуків для вибору</div>';
+    updateDashboardDeliveryNoteValue(getDashboardDeliveryDisplayNumbers());
+    return;
+  }
+
+  listWrap.innerHTML = activeLaptops.map((item) => `
+    <label class="dashboard-note-option ${item.autoIncluded ? 'dashboard-note-option-auto' : ''}">
+      <input
+        type="checkbox"
+        value="${safe(item.number)}"
+        ${item.autoIncluded || dashboardDeliveryNoteValue.includes(item.number) ? 'checked' : ''}
+        ${item.autoIncluded ? 'disabled' : ''}
+      />
+      <span>
+        ${safe(item.number)}
+        ${item.autoIncluded ? '<span class="dashboard-note-option-meta">Без трекінгу, додано автоматично</span>' : ''}
+      </span>
+    </label>
+  `).join('');
+
+  updateDashboardDeliveryNoteValue(getDashboardDeliveryDisplayNumbers());
+}
+
+function setDashboardDeliveryEditorOpen(open){
+  const editor = document.getElementById('dashboardNoteEditor');
+  const editBtn = document.getElementById('dashboardDeliveryNoteEdit');
+  if(editor) editor.hidden = !open;
+  if(editBtn) editBtn.setAttribute('aria-expanded', String(open));
+}
+
+async function authLogin(){
+  const email = document.getElementById('simpleLogin')?.value.trim();
+  const password = document.getElementById('simplePassword')?.value;
+  const msg = document.getElementById('simpleLoginMsg');
+  if(msg) msg.textContent = '';
+
+  if(!supabaseClient?.auth){
+    if(msg) msg.textContent = 'Підключення ще не готове. Онови сторінку або перевір інтернет.';
+    return;
+  }
+
+  if(!email || !password){
+    if(msg) msg.textContent = 'Введи email і пароль';
+    return;
+  }
+
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if(error && msg){
+    msg.textContent = 'Помилка входу: ' + error.message;
+  }
+}
+
+async function authLogout(){
+  try{
+    await supabaseClient.auth.signOut();
+  }catch(error){}
+  showAuthScreen();
+}
+
+function initAuthUI(){
+  const btn = document.getElementById('simpleLoginBtn');
+  if(btn && !btn.dataset.bound){
+    btn.addEventListener('click', authLogin);
+    btn.dataset.bound = '1';
+  }
+
+  const themeToggle = document.getElementById('authThemeToggle');
+  if(themeToggle && !themeToggle.dataset.bound){
+    themeToggle.addEventListener('click', toggleTheme);
+    themeToggle.dataset.bound = '1';
+  }
+
+  ['simpleLogin', 'simplePassword'].forEach((id) => {
+    const el = document.getElementById(id);
+    if(el && !el.dataset.bound){
+      el.addEventListener('keydown', (event) => {
+        if(event.key === 'Enter') authLogin();
+      });
+      el.dataset.bound = '1';
+    }
+  });
+}
+
+async function handleAuthSession(session){
+  if(session?.user){
+    showAppShell();
+    const msg = document.getElementById('simpleLoginMsg');
+    if(msg) msg.textContent = '';
+    await loadDashboardDeliveryNote();
+    if(!authBootstrapped){
+      await loadLaptops();
+      subscribeRealtime();
+      processPendingSaves();
+      authBootstrapped = true;
+    }
+  } else {
+    authBootstrapped = false;
+    showAuthScreen();
+  }
+}
+
+function money(v){
+  return new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 2 }).format(Number(v || 0)) + ' ₴';
+}
+
+function toNum(v){
+  const n = Number(v);
+  return Number.isNaN(n) ? 0 : n;
+}
+
+function safe(val){
+  return String(val ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function sanitizeExternalUrl(value){
+  const raw = String(value || '').trim();
+  if(!raw) return '';
+
+  try{
+    const normalized = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    const url = new URL(normalized);
+    if(url.protocol === 'http:' || url.protocol === 'https:') return url.toString();
+  }catch(error){}
+
+  return '';
+}
+
+function monthKey(dateStr){
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function monthName(key){
+  const [y, m] = key.split('-').map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString('uk-UA', { month: 'long', year: 'numeric' });
+}
+
+function diffDaysLabel(startDate, endDate){
+  if(!startDate || !endDate) return '';
+
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if(Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return '';
+
+  const startUtc = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate());
+  const endUtc = Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate());
+  const diffDays = Math.max(0, Math.floor((endUtc - startUtc) / 86400000));
+
+  const mod10 = diffDays % 10;
+  const mod100 = diffDays % 100;
+  let unit = 'днів';
+  if(mod10 === 1 && mod100 !== 11) unit = 'день';
+  else if(mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) unit = 'дні';
+
+  return `${diffDays} ${unit}`;
+}
+
+function soldDateLabel(dateStr){
+  if(!dateStr) return '';
+
+  const date = new Date(dateStr);
+  if(Number.isNaN(date.getTime())) return '';
+
+  return date.toLocaleDateString('uk-UA', {
+    day: 'numeric',
+    month: 'long'
+  });
+}
+
+function calcCost(item){
+  return toNum(item.ebay_price)
+    + toNum(item.delivery_cost)
+    + toNum(item.charger_cost)
+    + toNum(item.duty_cost)
+    + toNum(item.olx_ad_cost)
+    + toNum(item.engraving_cost)
+    + toNum(item.ssd)
+    + toNum(item.ram);
+}
+
+function calcProfit(item){
+  return toNum(item.sold_price) - calcCost(item);
+}
+
+function setBanner(text, ok = true){
+  const el = document.getElementById('banner');
+  if(!el) return;
+  el.textContent = text;
+  el.style.color = ok ? '#8cf2b1' : '#ffb5b5';
+  el.style.background = ok ? 'rgba(29,124,76,.22)' : 'rgba(145,42,42,.22)';
+  el.classList.add('show');
+}
+
+function clearBanner(){
+  const el = document.getElementById('banner');
+  if(!el) return;
+  el.textContent = '';
+  el.classList.remove('show');
+}
+
+function timeoutAfter(ms, message){
+  return new Promise((_, reject) => {
+    window.setTimeout(() => reject(new Error(message)), ms);
+  });
+}
+
+async function withTimeout(label, task, ms = REQUEST_TIMEOUT_MS){
+  return await Promise.race([
+    task(),
+    timeoutAfter(ms, `${label} timed out after ${ms / 1000}s`)
+  ]);
+}
+
+async function ensureFreshSession(){
+  if(!supabaseClient?.auth) return;
+
+  try{
+    const { data: { session } } = await withTimeout(
+      'Get session',
+      () => supabaseClient.auth.getSession(),
+      AUTH_TIMEOUT_MS
     );
-    if (!response.ok) throw new Error(await parseSupabaseError(response));
-    rows = await response.json();
-
-    // Completed one-off tasks are not kept as history in the shared table.
-    const completedOneOffIds = rows
-      .filter((row) => row.done && !row.recurrence)
-      .map((row) => row.id);
-    if (completedOneOffIds.length) {
-      const deleteResponse = await fetch(
-        `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=in.(${completedOneOffIds.join(",")})`,
-        { method: "DELETE", headers: getSupabaseHeaders() },
+    const expiresAtMs = Number(session?.expires_at || 0) * 1000;
+    const needsRefresh = session && expiresAtMs && (expiresAtMs - Date.now() < 2 * 60 * 1000);
+    if(needsRefresh){
+      await withTimeout(
+        'Refresh session',
+        () => supabaseClient.auth.refreshSession(),
+        AUTH_TIMEOUT_MS
       );
-      if (!deleteResponse.ok) throw new Error(await parseSupabaseError(deleteResponse));
-      rows = rows.filter((row) => !completedOneOffIds.includes(row.id));
     }
-  } catch (error) {
-    console.error("Failed to load tasks from Supabase:", error);
-    setSyncStatus("Не прочитано з бази", "error");
-    if (hasTasks(pendingState)) applyState(pendingState);
-    else if (hasTasks(legacyState)) applyState(legacyState);
-    render();
-    return;
+  }catch(error){
+    console.error('Session refresh failed:', error);
+  }
+}
+
+function isRetryableAuthError(error){
+  const message = String(error?.message || '').toLowerCase();
+  const code = String(error?.code || '').toLowerCase();
+  const status = Number(error?.status || 0);
+  return Boolean(
+    status === 401 ||
+    status === 403 ||
+    code === 'jwt_expired' ||
+    code === 'invalid_jwt' ||
+    message.includes('jwt') ||
+    message.includes('token') ||
+    message.includes('session') ||
+    message.includes('refresh')
+  );
+}
+
+function isRetryableNetworkError(error){
+  const message = String(error?.message || '').toLowerCase();
+  return Boolean(
+    message.includes('failed to fetch') ||
+    message.includes('networkerror') ||
+    message.includes('network request failed') ||
+    message.includes('load failed') ||
+    message.includes('timed out') ||
+    message.includes('fetch')
+  );
+}
+
+function isMissingModelTypeColumnError(error){
+  const message = String(error?.message || '').toLowerCase();
+  const details = String(error?.details || '').toLowerCase();
+  const hint = String(error?.hint || '').toLowerCase();
+  const code = String(error?.code || '').toLowerCase();
+  return Boolean(
+    code === 'pgrst204' ||
+    message.includes('model_type') ||
+    details.includes('model_type') ||
+    hint.includes('model_type')
+  );
+}
+
+function errorSummary(error){
+  const status = error?.status ? `HTTP ${error.status}: ` : '';
+  const code = error?.code ? `[${error.code}] ` : '';
+  return `${status}${code}${error?.message || 'невідома помилка'}`;
+}
+
+async function runWithReconnect(label, task, options = {}){
+  let response;
+  try{
+    response = await withRequestTimeout(label, task);
+  }catch(error){
+    if(!options.retryThrown || !isRetryableNetworkError(error)) throw error;
+
+    try{
+      await ensureFreshSession();
+      if(supabaseClient) subscribeRealtime();
+    }catch(reconnectError){
+      console.error(`Reconnect prep failed for ${label}:`, reconnectError);
+    }
+
+    return await withRequestTimeout(`${label} retry`, task);
   }
 
-  // The shared database is the source of truth. A stale offline copy from a
-  // different browser must never overwrite the current shared task list.
-  if (rows.length) {
-    applyState({
-      tasks: rows.filter((row) => !row.deleted_at).map(fromDatabaseTask),
-      trash: rows.filter((row) => row.deleted_at).map(fromDatabaseTask),
+  if(!response?.error) return response;
+
+  const retryable = isRetryableAuthError(response.error) || isRetryableNetworkError(response.error);
+  if(!retryable) return response;
+
+  try{
+    await ensureFreshSession();
+    if(supabaseClient) subscribeRealtime();
+  }catch(error){
+    console.error(`Reconnect prep failed for ${label}:`, error);
+  }
+
+  response = await withRequestTimeout(`${label} retry`, task);
+  if(!response?.error){
+    hasSupabaseConnection = true;
+    updateNetwork();
+  }
+  return response;
+}
+
+function attachAbortSignal(query, signal){
+  if(signal && query && typeof query.abortSignal === 'function'){
+    return query.abortSignal(signal);
+  }
+  return query;
+}
+
+function resetSaveButton(saveBtn, saveWatchdog){
+  if(saveWatchdog) window.clearTimeout(saveWatchdog);
+  isSavingLaptop = false;
+  if(saveBtn){
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Зберегти';
+  }
+}
+
+function setModalSaveMessage(text){
+  const el = document.getElementById('modalSaveMsg');
+  if(!el) return;
+  el.textContent = text || '';
+  el.hidden = !text;
+  if(text) localStorage.setItem('notebook-crm-last-save-error', `${new Date().toISOString()} ${text}`);
+}
+
+async function withRequestTimeout(label, task){
+  await ensureFreshSession();
+  const controller = new AbortController();
+  let timer = null;
+
+  try{
+    return await Promise.race([
+      task(controller.signal),
+      new Promise((_, reject) => {
+        timer = window.setTimeout(() => {
+          controller.abort();
+          reject(new Error(`${label} timed out after ${REQUEST_TIMEOUT_MS / 1000}s`));
+        }, REQUEST_TIMEOUT_MS);
+      })
+    ]);
+  }finally{
+    if(timer) window.clearTimeout(timer);
+  }
+}
+
+async function getAuthToken(){
+  if(!supabaseClient?.auth) return SUPABASE_ANON_KEY;
+  const { data: { session } } = await withTimeout(
+    'Get auth token',
+    () => supabaseClient.auth.getSession(),
+    AUTH_TIMEOUT_MS
+  );
+  return session?.access_token || SUPABASE_ANON_KEY;
+}
+
+async function updateLaptopDirect(id, payload, label = 'Save laptop direct'){
+  const token = await getAuthToken();
+  const controller = new AbortController();
+  let timer = null;
+
+  try{
+    const response = await Promise.race([
+      fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?id=eq.${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          Prefer: 'return=minimal'
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      }),
+      new Promise((_, reject) => {
+        timer = window.setTimeout(() => {
+          controller.abort();
+          reject(new Error(`${label} timed out after ${REQUEST_TIMEOUT_MS / 1000}s`));
+        }, REQUEST_TIMEOUT_MS);
+      })
+    ]);
+
+    if(!response.ok){
+      let errorText = '';
+      try{
+        errorText = await response.text();
+      }catch(error){}
+      let parsed = null;
+      try{
+        parsed = errorText ? JSON.parse(errorText) : null;
+      }catch(error){}
+      return {
+        error: {
+          status: response.status,
+          message: parsed?.message || errorText || response.statusText,
+          details: parsed?.details,
+          hint: parsed?.hint,
+          code: parsed?.code
+        }
+      };
+    }
+
+    return { data: null, error: null };
+  }finally{
+    if(timer) window.clearTimeout(timer);
+  }
+}
+
+function getPendingSaveQueue(){
+  try{
+    const parsed = JSON.parse(localStorage.getItem(PENDING_SAVE_QUEUE_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  }catch(error){
+    return [];
+  }
+}
+
+function setPendingSaveQueue(queue){
+  localStorage.setItem(PENDING_SAVE_QUEUE_KEY, JSON.stringify(queue));
+}
+
+function queueLaptopPatch(id, payload){
+  if(!id) return;
+  const queue = getPendingSaveQueue();
+  const index = queue.findIndex((item) => item.id === id);
+  const entry = {
+    id,
+    payload: { ...(index >= 0 ? queue[index].payload : {}), ...payload },
+    attempts: index >= 0 ? queue[index].attempts : 0,
+    updated_at: new Date().toISOString()
+  };
+  if(index >= 0) queue[index] = entry;
+  else queue.push(entry);
+  setPendingSaveQueue(queue);
+}
+
+function removePendingSave(id){
+  if(!id) return;
+  setPendingSaveQueue(getPendingSaveQueue().filter((item) => item.id !== id));
+}
+
+async function saveLaptopPatchToDatabase(id, payload, label = 'Save laptop direct'){
+  let savedPayload = payload;
+  let savedWithoutModelType = false;
+  let response = await updateLaptopDirect(id, savedPayload, label);
+
+  if(response.error && isMissingModelTypeColumnError(response.error) && Object.prototype.hasOwnProperty.call(savedPayload, 'model_type')){
+    savedPayload = { ...savedPayload };
+    delete savedPayload.model_type;
+    savedWithoutModelType = true;
+    response = await updateLaptopDirect(id, savedPayload, `${label} without model type`);
+  }
+
+  if(!response.error) removePendingSave(id);
+  return { response, savedPayload, savedWithoutModelType };
+}
+
+async function processPendingSaves(){
+  if(isSyncingPendingSaves || !supabaseClient) return;
+  let queue = getPendingSaveQueue();
+  if(!queue.length) return;
+
+  isSyncingPendingSaves = true;
+  try{
+    const remaining = [];
+    for(const item of queue){
+      let payload = item.payload || {};
+      let response = await updateLaptopDirect(item.id, payload, 'Sync pending laptop');
+      if(response.error && isMissingModelTypeColumnError(response.error) && Object.prototype.hasOwnProperty.call(payload, 'model_type')){
+        payload = { ...payload };
+        delete payload.model_type;
+        response = await updateLaptopDirect(item.id, payload, 'Sync pending laptop without model type');
+      }
+
+      if(response.error){
+        remaining.push({
+          ...item,
+          attempts: (item.attempts || 0) + 1,
+          last_error: errorSummary(response.error),
+          updated_at: new Date().toISOString()
+        });
+      }
+    }
+
+    setPendingSaveQueue(remaining);
+    if(remaining.length){
+      setBanner(`Є ${remaining.length} незбережена зміна. CRM повторить синхронізацію автоматично.`, false);
+    } else {
+      setBanner('Зміни синхронізовано з базою.');
+      refreshLaptopsInBackground();
+    }
+  }catch(error){
+    const queueNow = getPendingSaveQueue();
+    if(queueNow.length) setBanner(`Синхронізація ще не пройшла: ${errorSummary(error)}`, false);
+  }finally{
+    isSyncingPendingSaves = false;
+  }
+}
+
+function normalizeSerialNumber(value){
+  return String(value || '').trim().toUpperCase();
+}
+
+function setBaseStatus(text, ok = true){
+  const el = document.getElementById('baseStatus');
+  if(!el) return;
+  el.textContent = text;
+  el.style.color = ok ? '#8cf2b1' : '#ffb5b5';
+}
+
+function updateNetwork(){
+  const online = hasSupabaseConnection || (!supabaseClient && navigator.onLine);
+  const dot = document.getElementById('netDot');
+  const text = document.getElementById('netText');
+  if(dot) dot.className = 'dot ' + (online ? 'green' : 'red');
+  if(text) text.textContent = online ? 'Онлайн' : 'Офлайн';
+}
+
+function syncDisplayModeClass(){
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  document.body.classList.toggle('standalone-mode', Boolean(isStandalone));
+}
+
+function resetFilters(){
+  const filterStatus = document.getElementById('filterStatus');
+  const filterMarket = document.getElementById('filterMarket');
+  const filterModelType = document.getElementById('filterModelType');
+  const filterCostSort = document.getElementById('filterCostSort');
+  const filterTracking = document.getElementById('filterTracking');
+  const filterLocation = document.getElementById('filterLocation');
+  const filterLocationState = document.getElementById('filterLocationState');
+
+  if(filterStatus) filterStatus.value = '';
+  if(filterMarket) filterMarket.value = '';
+  if(filterModelType) filterModelType.value = '';
+  if(filterCostSort) filterCostSort.value = '';
+  if(filterTracking) filterTracking.value = '';
+  if(filterLocation) filterLocation.value = '';
+  if(filterLocationState) filterLocationState.value = '';
+  setActiveFiltersOpen(false);
+  updateActiveFiltersToggle();
+}
+
+function getActiveFiltersCount(){
+  return [
+    document.getElementById('filterStatus')?.value,
+    document.getElementById('filterMarket')?.value,
+    document.getElementById('filterModelType')?.value,
+    document.getElementById('filterCostSort')?.value,
+    String(document.getElementById('filterTracking')?.value || '').trim()
+  ].filter(Boolean).length;
+}
+
+function setActiveFiltersOpen(open){
+  const panel = document.getElementById('activeFiltersPanel');
+  const toggle = document.getElementById('activeFiltersToggle');
+  if(panel) panel.hidden = !open;
+  if(toggle) toggle.setAttribute('aria-expanded', String(open));
+}
+
+function toggleActiveFilters(){
+  const panel = document.getElementById('activeFiltersPanel');
+  setActiveFiltersOpen(Boolean(panel?.hidden));
+}
+
+function updateActiveFiltersToggle(){
+  const count = getActiveFiltersCount();
+  const countEl = document.getElementById('activeFiltersCount');
+  if(!countEl) return;
+  countEl.textContent = String(count);
+  countEl.hidden = count === 0;
+}
+
+function switchView(name){
+  resetFilters();
+  document.querySelectorAll('.view').forEach((view) => view.classList.remove('active'));
+  document.getElementById('view-' + name)?.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach((btn) => btn.classList.remove('active'));
+  document.querySelector(`.nav-btn[data-view="${name}"]`)?.classList.add('active');
+  renderActive();
+  renderLocation();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderStats(){
+  const active = laptops.filter((x) => normalizeStatus(x.status) !== 'sold');
+  const sold = laptops.filter((x) => normalizeStatus(x.status) === 'sold');
+  const totalSoldOverall = HISTORICAL_SOLD_COUNT + sold.length;
+  const currentMonth = monthKey(new Date().toISOString());
+  const soldMonth = sold.filter((x) => x.sold_at && monthKey(x.sold_at) === currentMonth);
+  const profitMonth = soldMonth.reduce((s, x) => s + calcProfit(x), 0);
+  const profitTotal = sold.reduce((s, x) => s + calcProfit(x), 0);
+  const soldRevenue = sold.reduce((s, x) => s + toNum(x.sold_price), 0);
+  const totalCost = active.reduce((s, x) => s + calcCost(x), 0);
+
+  document.getElementById('statActiveBig').textContent = active.length;
+  document.getElementById('statSoldMonthBig').textContent = soldMonth.length;
+  document.getElementById('statProfitMonthBig').textContent = money(profitMonth);
+  document.getElementById('statProfitTotalBig').textContent = money(profitTotal);
+  const statCostTotalBig = document.getElementById('statCostTotalBig');
+  if(statCostTotalBig) statCostTotalBig.textContent = money(totalCost);
+  const statSoldOverallBig = document.getElementById('statSoldOverallBig');
+  if(statSoldOverallBig) statSoldOverallBig.textContent = String(totalSoldOverall);
+
+  document.getElementById('activeCount').textContent = active.length;
+  document.getElementById('soldCount').textContent = sold.length;
+
+  const soldRevenueEl = document.getElementById('soldRevenue');
+  const soldProfitEl = document.getElementById('soldProfit');
+  if(soldRevenueEl) soldRevenueEl.textContent = money(soldRevenue);
+  if(soldProfitEl) soldProfitEl.textContent = money(profitTotal);
+}
+
+function cardTemplate(item, soldMode){
+  const normalizedStatus = normalizeStatus(item.status);
+  const modelType = item.model_type || item.charger_type || '';
+  const modelDot = modelType === 'Zbook'
+    ? '<span class="model-dot model-dot-zbook" title="Zbook" aria-label="Zbook"></span>'
+    : modelType === 'Elitebook'
+      ? '<span class="model-dot model-dot-elitebook" title="Elitebook" aria-label="Elitebook"></span>'
+      : '';
+  const cost = calcCost(item);
+  const sale = toNum(item.sold_price);
+  const profit = sale - cost;
+  const soldDays = diffDaysLabel(item.created_at, item.sold_at);
+  const soldDate = soldDateLabel(item.sold_at);
+  const trackingTail = getTrackingTail(item.tracking_number);
+  const ebayLink = sanitizeExternalUrl(item.ebay_link);
+  const olxLink = sanitizeExternalUrl(item.olx_link);
+  const telegramLink = sanitizeExternalUrl(item.telegram_link);
+
+  if(soldMode){
+    return `
+      <div class="item">
+        <div class="sold-card">
+          <div class="sold-card-top">
+            <div class="sold-card-header">
+              <div class="sold-card-heading">
+                <div class="item-title">${safe(item.number || 'Без номера')}</div>
+                <button class="edit-mini sold-card-edit" onclick="openEditModal('${item.id}')" title="Редагувати">✏️</button>
+                ${soldDate ? `<div class="sold-date-badge sold-date-badge-top">📅 ${safe(soldDate)}</div>` : ''}
+              </div>
+            <div class="sold-card-links">
+              ${ebayLink ? `<a href="${safe(ebayLink)}" target="_blank" rel="noreferrer" style="padding:8px 12px;border-radius:12px;background:rgba(138,180,255,0.15);color:#8ab4ff;font-size:14px;text-decoration:none;display:inline-block;">🔗 eBay</a>` : ''}
+              ${soldDays ? `<div class="sold-days-badge">⏱ ${safe(soldDays)}</div>` : ''}
+              ${item.serial_number ? `<div class="sold-serial-badge">🔢 ${safe(item.serial_number)}</div>` : ''}
+            </div>
+            </div>
+            <div class="sold-card-side">
+              <div class="badge sold-card-status st-${safe(normalizedStatus)}">${safe(statusLabels[normalizedStatus] || item.status)}</div>
+              <div class="sold-profit ${profit >= 0 ? 'sold-profit-pos' : 'sold-profit-neg'}">📈 ${sale ? money(profit) : '—'}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="item">
+      <div class="active-card-body">
+        <div class="active-card-heading">
+          <div class="item-title">${safe(item.number || 'Без номера')}</div>
+          ${modelDot}
+          <button class="edit-mini active-card-edit" onclick="openEditModal('${item.id}')" title="Редагувати">✏️</button>
+          ${trackingTail ? `<div class="tracking-badge" title="Трекінг номер">📦 ${safe(trackingTail)}</div>` : ''}
+        </div>
+        <div class="active-card-side">
+          <span class="cost-badge active-card-price">💰 ${money(calcCost(item))}</span>
+          <div class="badge active-card-status st-${safe(normalizedStatus)}">${safe(statusLabels[normalizedStatus] || item.status)}</div>
+        </div>
+        <div class="active-card-links">
+          ${ebayLink ? `<a href="${safe(ebayLink)}" target="_blank" rel="noreferrer" style="padding:8px 12px;border-radius:12px;background:rgba(138,180,255,0.15);color:#8ab4ff;font-size:14px;text-decoration:none;display:inline-block;">🔗 eBay</a>` : ''}
+          ${olxLink ? `<a href="${safe(olxLink)}" target="_blank" rel="noreferrer" style="padding:8px 12px;border-radius:12px;background:rgba(34,197,94,0.15);color:#7df0a3;font-size:14px;display:inline-block;text-decoration:none;">✅ OLX</a>` : ''}
+          ${telegramLink ? `<a href="${safe(telegramLink)}" target="_blank" rel="noreferrer" style="padding:8px 12px;border-radius:12px;background:rgba(139,92,246,0.15);color:#d8b4fe;font-size:14px;display:inline-block;text-decoration:none;">✈️ Telegram</a>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderActive(){
+  const statusF = document.getElementById('filterStatus')?.value;
+  const marketF = document.getElementById('filterMarket')?.value;
+  const modelTypeF = document.getElementById('filterModelType')?.value;
+  const costSortF = document.getElementById('filterCostSort')?.value;
+  const trackingF = String(document.getElementById('filterTracking')?.value || '').trim();
+
+  let data = laptops.filter((x) => normalizeStatus(x.status) !== 'sold');
+
+  if(statusF) data = data.filter((x) => normalizeStatus(x.status) === statusF);
+  if(marketF === 'no_olx') data = data.filter((x) => !x.olx_link);
+  if(marketF === 'no_telegram') data = data.filter((x) => !x.telegram_link);
+  if(modelTypeF) data = data.filter((x) => (x.model_type || x.charger_type) === modelTypeF);
+  if(trackingF) data = data.filter((x) => getTrackingTail(x.tracking_number).includes(trackingF));
+  if(costSortF === 'cost_asc') data = [...data].sort((a, b) => calcCost(a) - calcCost(b));
+  updateActiveFiltersToggle();
+
+  const activeCountEl = document.getElementById('activeCount');
+  if(activeCountEl) activeCountEl.textContent = data.length;
+
+  document.getElementById('activeCards').innerHTML = data.length
+    ? data.map((item) => cardTemplate(item, false)).join('')
+    : '<div class="empty">Немає ноутбуків по фільтру</div>';
+}
+
+function renderSold(){
+  const data = laptops
+    .filter((x) => normalizeStatus(x.status) === 'sold')
+    .sort((a, b) => {
+      const aTime = new Date(a.sold_at || a.created_at || 0).getTime();
+      const bTime = new Date(b.sold_at || b.created_at || 0).getTime();
+      return bTime - aTime;
     });
-    syncedTaskIds = new Set(rows.map((row) => row.id));
-    localStorage.removeItem(LEGACY_STORAGE_KEY);
-    localStorage.removeItem(PENDING_STORAGE_KEY);
-  } else if (hasTasks(legacyState)) {
-    applyState(legacyState);
-    setSyncStatus("Локальні таски готові до збереження", "neutral");
-  } else if (hasTasks(pendingState)) {
-    applyState(pendingState);
-    setSyncStatus("Локальні таски готові до збереження", "neutral");
-  } else {
-    applyState({ tasks: [], trash: [] });
-    setSyncStatus("База підключена", "success");
-  }
-
-  render();
-  if (!hasTasks(readPendingState())) setSyncStatus("База підключена", "success");
+  document.getElementById('soldCards').innerHTML = data.length
+    ? data.map((item) => cardTemplate(item, true)).join('')
+    : '<div class="empty">Ще немає проданих ноутбуків</div>';
 }
 
-async function initDatabase() {
-  if (window.location.protocol === "file:") {
-    setSyncStatus("Локальний файл не синхронізується з базою", "neutral");
+function renderLocation(){
+  const locationF = document.getElementById('filterLocation')?.value;
+  const locationStateF = document.getElementById('filterLocationState')?.value;
+  let data = laptops.filter((x) => normalizeStatus(x.status) === 'received');
+  if(locationF) data = data.filter((x) => normalizeLocation(x.location) === locationF);
+  if(locationStateF) data = data.filter((x) => normalizeLocationState(x.location_state) === locationStateF);
+  const wrap = document.getElementById('locationCards');
+  const countEl = document.getElementById('locationCount');
+  if(countEl) countEl.textContent = String(data.length);
+  if(!wrap) return;
+
+  wrap.innerHTML = data.length ? data.map((item) => `
+    <div class="item">
+      <div class="location-card">
+        <div class="location-card-header">
+          <div class="location-card-meta">
+            <div class="location-card-title">${safe(item.number || 'Без номера')}</div>
+            ${item.location ? `<div class="location-card-badge">${safe(normalizeLocation(item.location))}</div>` : ''}
+            ${item.location_state ? `<div class="location-card-badge ${getLocationStateBadgeClass(item.location_state)}">${safe(normalizeLocationState(item.location_state))}</div>` : ''}
+          </div>
+          <button class="edit-mini location-card-edit" onclick="openEditModal('${item.id}', 'location')" title="Редагувати локацію">✏️</button>
+        </div>
+      </div>
+    </div>
+  `).join('') : `<div class="empty">${locationF || locationStateF ? 'Немає ноутбуків по вибраних фільтрах' : 'Немає ноутбуків зі статусом "Отримано"'}</div>`;
+}
+
+function renderMonths(){
+  const sold = laptops.filter((x) => normalizeStatus(x.status) === 'sold' && x.sold_at);
+  const wrap = document.getElementById('monthsWrap');
+  if(!sold.length){
+    wrap.innerHTML = '<div class="empty">Ще немає статистики по місяцях</div>';
     return;
   }
 
-  supabaseClient = true;
-  await loadState();
+  const grouped = {};
+  sold.forEach((item) => {
+    const key = monthKey(item.sold_at);
+    if(!grouped[key]) grouped[key] = { count: 0, profit: 0 };
+    grouped[key].count += 1;
+    grouped[key].profit += calcProfit(item);
+  });
+
+  const keys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+  wrap.innerHTML = keys.map((key) => `
+    <div class="month-card">
+      <div class="muted">Місяць</div>
+      <div class="month-title">${safe(monthName(key))}</div>
+      <div style="margin-top:10px">Продано ноутбуків: <b>${grouped[key].count}</b></div>
+      <div style="margin-top:8px">Чистий заробіток: <b>${money(grouped[key].profit)}</b></div>
+    </div>
+  `).join('');
 }
 
-function formatDate(value) {
-  return new Intl.DateTimeFormat("uk-UA", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
+function renderAll(){
+  renderStats();
+  renderDashboardDeliveryOptions();
+  renderActive();
+  renderSold();
+  renderLocation();
+  renderMonths();
+  updateTestTools();
 }
 
-function formatTaskTitle(title) {
-  const cleanTitle = title.trim();
-  if (!cleanTitle) return "";
+function applyLaptopToState(item){
+  if(!item?.id) return;
 
-  return cleanTitle.charAt(0).toLocaleUpperCase("uk-UA") + cleanTitle.slice(1);
-}
-
-function isUrgentTaskTitle(title) {
-  return title.toLocaleLowerCase("uk-UA").includes("терміново");
-}
-
-function createTask(title) {
-  const formattedTitle = formatTaskTitle(title);
-  return {
-    id: crypto.randomUUID(),
-    title: formattedTitle,
-    done: false,
-    createdAt: Date.now(),
-    priority: isUrgentTaskTitle(formattedTitle) ? "high" : null,
-    reminderAt: null,
-    recurrence: null,
+  const normalizedItem = {
+    ...item,
+    status: normalizeStatus(item.status),
+    location: normalizeLocation(item.location),
+    location_state: normalizeLocationState(item.location_state)
   };
+  const index = laptops.findIndex((entry) => entry.id === normalizedItem.id);
+  if(index >= 0) laptops[index] = { ...laptops[index], ...normalizedItem };
+  else laptops.unshift(normalizedItem);
+  renderAll();
 }
 
-function parseVoiceReminder(text) {
-  const months = {
-    січня: 0, лютого: 1, березня: 2, квітня: 3, травня: 4, червня: 5,
-    липня: 6, серпня: 7, вересня: 8, жовтня: 9, листопада: 10, грудня: 11,
-  };
-  const now = new Date();
-  const weekdays = {
-    понеділок: 1, понеділка: 1,
-    вівторок: 2, вівторка: 2,
-    середа: 3, середу: 3,
-    четвер: 4, четверга: 4,
-    "п’ятниця": 5, "п'ятниця": 5, пятниця: 5, "п’ятницю": 5, "п'ятницю": 5, пятницю: 5,
-    субота: 6, суботу: 6,
-    неділя: 0, неділю: 0,
-  };
-  const weekdayMatch = text.match(/(?:^|\s)(понеділок|понеділка|вівторок|вівторка|середа|середу|четвер|четверга|п[’']?ятниця|п[’']?ятницю|субота|суботу|неділя|неділю)(?=\s|$)(?:\s*(?:о|в))?\s*(\d{1,2})(?:\s*[:.,]\s*(\d{1,2}))?(?:\s*(?:та\s+)?год(?:ина|ині|ин)?\.?)?/i);
-  if (weekdayMatch) {
-    const targetDay = weekdays[weekdayMatch[1].toLocaleLowerCase("uk-UA")];
-    const reminderDate = new Date(now);
-    let daysUntil = (targetDay - now.getDay() + 7) % 7;
-    if (daysUntil === 0) daysUntil = 7;
-    reminderDate.setDate(reminderDate.getDate() + daysUntil);
-    reminderDate.setHours(Number(weekdayMatch[2]), Number(weekdayMatch[3] || 0), 0, 0);
-
-    const title = text.replace(weekdayMatch[0], " ").replace(/^\s*(?:на|для)\s+/i, "").replace(/\s+/g, " ").trim();
-    return { title: title || text, reminderAt: reminderDate.toISOString() };
-  }
-  const relativeMatch = text.match(/(?:^|\s)(сьогодні|завтра)(?=\s|$)(?:\s*(?:о|в))?\s*(\d{1,2})?(?:\s*[:.,]\s*(\d{1,2}))?/i);
-  if (relativeMatch) {
-    const reminderDate = new Date(now);
-    if (relativeMatch[1].toLocaleLowerCase("uk-UA") === "завтра") {
-      reminderDate.setDate(reminderDate.getDate() + 1);
-    }
-
-    const hasTime = relativeMatch[2] !== undefined;
-    const roundedMinutes = Math.ceil((now.getMinutes() + 1) / 5) * 5;
-    const hour = hasTime ? Number(relativeMatch[2]) : now.getHours() + Math.floor(roundedMinutes / 60);
-    const minute = hasTime ? Number(relativeMatch[3] || 0) : roundedMinutes % 60;
-    reminderDate.setHours(hour, minute, 0, 0);
-
-    const title = text.replace(relativeMatch[0], " ").replace(/^\s*(?:на|для)\s+/i, "").replace(/\s+/g, " ").trim();
-    return { title: title || text, reminderAt: reminderDate.toISOString() };
-  }
-
-  const match = text.match(/(?:на\s+)?(\d{1,2})\s+(січня|лютого|березня|квітня|травня|червня|липня|серпня|жовтня|листопада|грудня)(?:\s+(\d{4}))?\s*(?:о|в)\s*(\d{1,2})(?:\s*[:.,]\s*(\d{1,2}))?/i);
-  if (!match) return { title: text, reminderAt: null };
-
-  const year = Number(match[3] || now.getFullYear());
-  const hour = Number(match[4]);
-  const minute = Number(match[5] || 0);
-  const reminderDate = new Date(year, months[match[2].toLocaleLowerCase("uk-UA")], Number(match[1]), hour, minute);
-  if (!match[3] && reminderDate.getTime() < Date.now()) reminderDate.setFullYear(year + 1);
-  const title = text.replace(match[0], " ").replace(/\s+/g, " ").trim();
-  return { title: title || text, reminderAt: reminderDate.toISOString() };
+function refreshLaptopsInBackground(){
+  loadLaptops().catch((error) => {
+    console.error('Background laptops refresh failed:', error);
+  });
 }
 
-function scheduleNativeReminder(task) {
-  if (!task.reminderAt || !window.AndroidNotifications?.schedule) return;
-  window.AndroidNotifications.schedule(String(task.id), task.title, new Date(task.reminderAt).getTime());
-}
+async function pasteIntoField(fieldId){
+  const field = document.getElementById(fieldId);
+  if(!field) return;
 
-function cancelNativeReminder(taskId) {
-  window.AndroidNotifications?.cancel?.(String(taskId));
-}
+  field.focus();
+  field.select();
 
-function rescheduleNativeReminders() {
-  state.tasks.forEach((task) => scheduleNativeReminder(task));
-}
+  const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
+  const manualHint = isMac ? 'Поле готове. Натисни Cmd+V, щоб вставити.' : 'Поле готове. Натисни Ctrl+V, щоб вставити.';
 
-async function addTask() {
-  const title = els.taskInput.value.trim();
-  if (!title) {
-    els.taskInput.focus();
+  const isSecureClipboard = window.isSecureContext && navigator.clipboard && typeof navigator.clipboard.readText === 'function';
+  if(!isSecureClipboard){
+    setBanner(manualHint);
     return;
   }
 
-  const parsedTitle = parseVoiceReminder(title);
-  const task = createTask(parsedTitle.title);
-  task.reminderAt = parsedTitle.reminderAt || (els.newReminderEnabled.checked ? getNewReminderValue() : null);
-  task.recurrence = task.reminderAt && els.taskRepeat.value !== "none" ? els.taskRepeat.value : null;
-  state.tasks.push(task);
-  scheduleNativeReminder(task);
-  els.taskInput.value = "";
-  els.newReminderEnabled.checked = false;
-  updateNewReminderVisibility();
-  els.taskRepeat.value = "none";
-  closeTaskModal();
-  render();
-  await saveState();
-}
-
-async function addTaskFromTitle(title) {
-  const cleanTitle = title.trim();
-  if (!cleanTitle) return;
-
-  const parsed = parseVoiceReminder(cleanTitle);
-  const task = createTask(parsed.title);
-  task.reminderAt = parsed.reminderAt;
-  state.tasks.push(task);
-  scheduleNativeReminder(task);
-  render();
-  await saveState();
-}
-
-function openTaskTitleEditor(task) {
-  const backdrop = document.createElement("div");
-  backdrop.className = "modal-backdrop title-editor-backdrop";
-  backdrop.setAttribute("role", "dialog");
-  backdrop.setAttribute("aria-modal", "true");
-  backdrop.setAttribute("aria-label", "Редагувати назву таски");
-
-  const card = document.createElement("section");
-  card.className = "composer modal-card";
-  const heading = document.createElement("div");
-  heading.className = "modal-heading";
-  heading.innerHTML = "<h2>Редагувати таску</h2>";
-  const closeButton = document.createElement("button");
-  closeButton.className = "modal-close-button";
-  closeButton.type = "button";
-  closeButton.textContent = "×";
-  closeButton.setAttribute("aria-label", "Скасувати");
-  heading.append(closeButton);
-
-  const label = document.createElement("label");
-  label.className = "input-label";
-  label.textContent = "Назва таски";
-  const input = document.createElement("input");
-  input.type = "text";
-  input.value = task.title;
-  input.maxLength = 160;
-  label.append(input);
-
-  const saveButton = document.createElement("button");
-  saveButton.className = "modal-submit-button";
-  saveButton.type = "button";
-  saveButton.textContent = "Зберегти";
-  const close = () => backdrop.remove();
-  closeButton.addEventListener("click", close);
-  backdrop.addEventListener("click", (event) => { if (event.target === backdrop) close(); });
-  const save = async () => {
-    const title = formatTaskTitle(input.value);
-    if (!title) {
-      input.focus();
+  try{
+    const text = await navigator.clipboard.readText();
+    if(text && text.trim()){
+      field.value = text;
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      field.dispatchEvent(new Event('change', { bubbles: true }));
+      setBanner('Вставлено з буфера обміну.');
       return;
     }
-    task.title = title;
-    if (isUrgentTaskTitle(title)) task.priority = "high";
-    close();
-    render();
-    await saveState();
+    setBanner(manualHint);
+  }catch(error){
+    console.error(error);
+    setBanner('Автовставка недоступна в цьому браузері. Спробуй вставити вручну через клавіатуру.', false);
+  }
+}
+
+function openAddModal(){
+  currentEditId = null;
+  currentEditMode = 'full';
+  setModalSaveMessage('');
+  document.getElementById('modalTitle').textContent = 'Додати ноутбук';
+  const delBtn = document.getElementById('deleteBtn');
+  if(delBtn) delBtn.style.display = 'none';
+  document.getElementById('laptopForm').reset();
+  document.getElementById('editId').value = '';
+  const baseFields = document.getElementById('baseFields');
+  if(baseFields) baseFields.style.display = '';
+  const extra = document.getElementById('editOnlyFields');
+  if(extra) extra.remove();
+  const locationOnly = document.getElementById('locationOnlyFields');
+  if(locationOnly) locationOnly.remove();
+  showAddModal();
+}
+
+function closeAddModal(){
+  document.getElementById('addModal')?.classList.remove('show');
+  unlockBodyScroll();
+}
+
+function resetForm(){
+  document.getElementById('laptopForm').reset();
+  setModalSaveMessage('');
+  const baseFields = document.getElementById('baseFields');
+  if(baseFields){
+    baseFields.style.display = '';
+    baseFields.querySelectorAll('input, select, textarea, button').forEach((el) => {
+      el.disabled = false;
+    });
+  }
+  const extra = document.getElementById('editOnlyFields');
+  if(extra) extra.remove();
+  const locationOnly = document.getElementById('locationOnlyFields');
+  if(locationOnly) locationOnly.remove();
+  document.getElementById('editId').value = '';
+  currentEditId = null;
+  currentEditMode = 'full';
+}
+
+function ensureSoldPriceField(){
+  const grid = document.getElementById('editOnlyFields')?.querySelector('.form-grid');
+  if(!grid) return null;
+
+  let wrap = document.getElementById('soldPriceWrap');
+  if(!wrap){
+    wrap = document.createElement('div');
+    wrap.id = 'soldPriceWrap';
+    wrap.innerHTML = '<label>Ціна продажу, ₴</label><input id="sold_price" type="number" min="0" step="0.01" />';
+    grid.appendChild(wrap);
+  }
+  return wrap;
+}
+
+function toggleSoldPriceField(){
+  const statusEl = document.getElementById('status');
+  const wrap = document.getElementById('soldPriceWrap');
+  if(!statusEl || !wrap) return;
+  wrap.style.display = statusEl.value === 'sold' ? 'block' : 'none';
+  if(statusEl.value !== 'sold'){
+    const input = document.getElementById('sold_price');
+    if(input) input.value = '';
+  }
+}
+
+function ensureLocationOnlyFields(){
+  let wrap = document.getElementById('locationOnlyFields');
+  if(wrap) return wrap;
+
+  const actions = document.querySelector('#laptopForm .row-actions');
+  if(!actions) return null;
+
+  wrap = document.createElement('div');
+  wrap.id = 'locationOnlyFields';
+  wrap.className = 'span-3';
+  wrap.innerHTML = `
+    <div class="form-grid" style="margin-top:12px">
+      <div>
+        <label>Локація</label>
+        <select id="location">
+          <option value="Нічого">Нічого</option>
+          <option value="Кладовка верх">Кладовка верх</option>
+          <option value="Кладовка низ">Кладовка низ</option>
+          <option value="Кухня">Кухня</option>
+          <option value="Спальня верх">Спальня верх</option>
+          <option value="Спальня низ">Спальня низ</option>
+        </select>
+      </div>
+      <div>
+        <label>Стан</label>
+        <select id="location_state">
+          <option value="">Нічого</option>
+          <option value="На чистку">На чистку</option>
+          <option value="Гравіювання">Гравіювання</option>
+          <option value="Ремонт">Ремонт</option>
+          <option value="На фото">На фото</option>
+        </select>
+      </div>
+    </div>`;
+  actions.parentNode.insertBefore(wrap, actions);
+  return wrap;
+}
+
+function setBaseFieldsEnabled(enabled){
+  const baseFields = document.getElementById('baseFields');
+  if(!baseFields) return;
+  baseFields.style.display = enabled ? '' : 'none';
+  baseFields.querySelectorAll('input, select, textarea, button').forEach((el) => {
+    el.disabled = !enabled;
+  });
+}
+
+function setAdditionalCostsVisibility(expanded){
+  const wrap = document.getElementById('additionalCostsFields');
+  const toggle = document.getElementById('additionalCostsToggle');
+  if(!wrap || !toggle) return;
+  wrap.hidden = !expanded;
+  toggle.textContent = expanded ? 'Сховати додаткові витрати' : 'Додаткові витрати';
+  toggle.setAttribute('aria-expanded', String(expanded));
+}
+
+function toggleAdditionalCosts(){
+  const wrap = document.getElementById('additionalCostsFields');
+  if(!wrap) return;
+  setAdditionalCostsVisibility(wrap.hidden);
+}
+
+function getSelectedModelType(){
+  return document.querySelector('.model-type-btn.active')?.dataset.type || '';
+}
+
+function selectModelType(type){
+  document.querySelectorAll('.model-type-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.type === type);
+  });
+}
+
+function openEditModal(id, mode = 'full'){
+  const item = laptops.find((x) => x.id === id);
+  if(!item) return;
+
+  setModalSaveMessage('');
+  currentEditId = id;
+  currentEditMode = mode;
+  document.getElementById('modalTitle').textContent = mode === 'location' ? 'Оновити локацію' : 'Редагувати ноутбук';
+  const delBtn = document.getElementById('deleteBtn');
+  if(delBtn) delBtn.style.display = 'none';
+  document.getElementById('editId').value = id;
+  const locationOnly = document.getElementById('locationOnlyFields');
+  if(locationOnly) locationOnly.remove();
+
+  if(mode === 'location'){
+    setBaseFieldsEnabled(false);
+    const extraFields = document.getElementById('editOnlyFields');
+    if(extraFields) extraFields.remove();
+    ensureLocationOnlyFields();
+    const locationInput = document.getElementById('location');
+    if(locationInput) locationInput.value = item.location || 'Кладовка верх';
+    const locationStateInput = document.getElementById('location_state');
+    if(locationStateInput) locationStateInput.value = normalizeLocationState(item.location_state);
+    showAddModal();
+    return;
+  }
+
+  setBaseFieldsEnabled(true);
+  document.getElementById('number').value = item.number || '';
+  document.getElementById('ebay_price').value = item.ebay_price || '';
+  document.getElementById('ebay_link').value = item.ebay_link || '';
+
+  let extra = document.getElementById('editOnlyFields');
+  if(!extra){
+    const actions = document.querySelector('#laptopForm .row-actions');
+    extra = document.createElement('div');
+    extra.id = 'editOnlyFields';
+    extra.className = 'span-3';
+    extra.innerHTML = `
+      <div class="form-grid" style="margin-top:12px">
+        <div><label>Доставка, ₴</label><input id="delivery_cost" type="number" min="0" step="0.01" /></div>
+        <div class="span-3 model-type-actions" aria-label="Модель ноутбука">
+          <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Elitebook" onclick="selectModelType('Elitebook')">Elitebook</button>
+          <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Zbook" onclick="selectModelType('Zbook')">Zbook</button>
+        </div>
+        <div><label>Зарядний, ₴</label><input id="charger_cost" type="number" min="0" step="0.01" /></div>
+        <div class="span-3 additional-costs-toggle-row">
+          <button id="additionalCostsToggle" class="ghost inline-field-btn additional-costs-toggle" type="button" aria-expanded="false">Додаткові витрати</button>
+        </div>
+        <div id="additionalCostsFields" class="span-3 additional-costs-fields" hidden>
+          <div class="form-grid additional-costs-grid">
+            <div><label>Мито, ₴</label><input id="duty_cost" type="number" min="0" step="0.01" /></div>
+            <div><label>Реклама OLX, ₴</label><input id="olx_ad_cost" type="number" min="0" step="0.01" value="300" readonly /></div>
+            <div><label>Гравіювання, ₴</label><input id="engraving_cost" type="number" min="0" step="0.01" value="200" readonly /></div>
+            <div><label>SSD, ₴</label><input id="ssd" type="number" min="0" step="0.01" /></div>
+            <div><label>RAM, ₴</label><input id="ram" type="number" min="0" step="0.01" /></div>
+          </div>
+        </div>
+        <div><label>Статус</label>
+          <select id="status">
+            <option value="in_transit">В дорозі</option>
+            <option value="received">Отримав</option>
+            <option value="sold">Продано</option>
+          </select>
+        </div>
+        <div><label>Серійний номер</label><input id="serial_number" /></div>
+        <div><label>Собівартість, ₴</label><input id="cost_display" disabled /></div>
+        <div class="span-2"><label>Трекінг номер</label><div style="display:flex;gap:8px;align-items:center"><input id="tracking_number" placeholder="Наприклад: 1234567890" /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('tracking_number')">Вставити</button></div></div>
+        <div class="span-2"><label>Посилання OLX</label><div style="display:flex;gap:8px;align-items:center"><input id="olx_link" placeholder="https://www.olx.ua/..." /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('olx_link')">Вставити</button></div></div>
+        <div class="span-2"><label>Посилання Telegram</label><div style="display:flex;gap:8px;align-items:center"><input id="telegram_link" placeholder="https://t.me/..." /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('telegram_link')">Вставити</button></div></div>
+      </div>`;
+    actions.parentNode.insertBefore(extra, actions);
+  }
+
+  const additionalCostsToggle = document.getElementById('additionalCostsToggle');
+  if(additionalCostsToggle && !additionalCostsToggle.dataset.bound){
+    additionalCostsToggle.addEventListener('click', toggleAdditionalCosts);
+    additionalCostsToggle.dataset.bound = '1';
+  }
+  setAdditionalCostsVisibility(false);
+
+  applyStatusOptions(item.status || 'in_transit');
+  document.getElementById('serial_number').value = normalizeSerialNumber(item.serial_number);
+  document.getElementById('delivery_cost').value = item.delivery_cost || '';
+  selectModelType(item.model_type || item.charger_type || '');
+  document.getElementById('charger_cost').value = item.charger_cost || '';
+  document.getElementById('duty_cost').value = item.duty_cost || '';
+  document.getElementById('olx_ad_cost').value = 300;
+  document.getElementById('engraving_cost').value = 200;
+  document.getElementById('ssd').value = item.ssd || '';
+  document.getElementById('ram').value = item.ram || '';
+  document.getElementById('tracking_number').value = item.tracking_number || '';
+  document.getElementById('olx_link').value = item.olx_link || '';
+  document.getElementById('telegram_link').value = item.telegram_link || '';
+  document.getElementById('cost_display').value = calcCost(item);
+
+  const wrap = ensureSoldPriceField();
+  if(wrap){
+    const soldInput = document.getElementById('sold_price');
+    if(soldInput) soldInput.value = item.sold_price || '';
+  }
+
+  toggleSoldPriceField();
+
+  const statusEl = document.getElementById('status');
+  if(statusEl && !statusEl.dataset.boundSoldPrice){
+    statusEl.addEventListener('change', toggleSoldPriceField);
+    statusEl.dataset.boundSoldPrice = '1';
+  }
+
+  showAddModal();
+}
+
+function applyStatusOptions(currentStatus){
+  const select = document.getElementById('status');
+  if(!select) return;
+
+  const allowedNext = {
+    in_transit: ['in_transit', 'received'],
+    received: ['received', 'sold'],
+    sold: ['sold', 'received']
   };
-  saveButton.addEventListener("click", save);
-  input.addEventListener("keydown", (event) => { if (event.key === "Enter") save(); });
-  card.append(heading, label, saveButton);
-  backdrop.append(card);
-  document.body.append(backdrop);
-  window.requestAnimationFrame(() => {
-    backdrop.classList.add("open");
-    input.focus();
-    input.setSelectionRange(input.value.length, input.value.length);
+
+  [...select.options].forEach((opt) => {
+    opt.disabled = !allowedNext[currentStatus]?.includes(opt.value);
   });
+  select.value = currentStatus || 'in_transit';
 }
 
-function openTaskModal() {
-  els.taskModal.hidden = false;
-  window.requestAnimationFrame(() => {
-    els.taskModal.classList.add("open");
-    els.taskInput.focus();
-  });
-}
-
-function startVoiceInput({ autoAdd = false } = {}) {
-  if (window.AndroidSpeech?.start) {
-    shouldAutoAddVoiceResult = autoAdd;
-    els.voiceStatus.textContent = "Слухаю...";
-    window.AndroidSpeech.start();
+async function loadLaptops(){
+  const { data, error } = await withRequestTimeout('Load laptops', (signal) =>
+    attachAbortSignal(
+      supabaseClient.from(TABLE).select('*').order('created_at', { ascending: false }),
+      signal
+    )
+  );
+  if(error){
+    hasSupabaseConnection = false;
+    updateNetwork();
+    console.error(error);
+    setBaseStatus('Помилка читання', false);
+    setBanner('Помилка читання з бази', false);
     return;
   }
-  if (!recognition) {
-    els.voiceStatus.textContent = "Голосове введення недоступне в цьому браузері.";
-    return;
-  }
+  hasSupabaseConnection = true;
+  updateNetwork();
+  laptops = (data || []).map((item) => ({
+    ...item,
+    status: normalizeStatus(item.status),
+    location: normalizeLocation(item.location),
+    location_state: normalizeLocationState(item.location_state)
+  }));
+  clearBanner();
+  renderAll();
+}
 
-  shouldAutoAddVoiceResult = autoAdd;
+async function wakeAppConnection(){
+  if(!supabaseClient) return;
 
-  try {
-    recognition.start();
-  } catch {
-    els.voiceStatus.textContent = "Мікрофон уже слухає.";
+  try{
+    await ensureFreshSession();
+    subscribeRealtime();
+    await loadLaptops();
+    processPendingSaves();
+  }catch(error){
+    console.error('Wake app connection failed:', error);
   }
 }
 
-window.onAndroidSpeechResult = async (text) => {
-  const transcript = String(text || "").trim();
-  if (!transcript) return;
-  if (shouldAutoAddVoiceResult) {
-    shouldAutoAddVoiceResult = false;
-    await addTaskFromTitle(transcript);
-  } else {
-    els.taskInput.value = transcript;
-    els.taskInput.focus();
-  }
-  els.voiceStatus.textContent = "Готово.";
-};
-
-window.onAndroidSpeechError = (message) => {
-  shouldAutoAddVoiceResult = false;
-  els.voiceStatus.textContent = message || "Не вдалося розпізнати голос.";
-};
-
-function addVoiceTask() {
-  startVoiceInput({ autoAdd: true });
-}
-
-function handleNavMicTap(event) {
+async function saveLaptop(event){
   event.preventDefault();
+  if(isSavingLaptop) return;
 
-  if (navMicTapTimer) {
-    window.clearTimeout(navMicTapTimer);
-    navMicTapTimer = null;
-    openTaskModal();
-    return;
+  const saveBtn = document.getElementById('saveLaptopBtn');
+  let saveWatchdog = null;
+  const targetEditId = currentEditId || document.getElementById('editId')?.value || '';
+  const editingExistingLaptop = Boolean(targetEditId);
+  isSavingLaptop = true;
+  if(saveBtn){
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Збереження...';
+    setModalSaveMessage('');
+    if(editingExistingLaptop) saveWatchdog = window.setTimeout(() => {
+      if(!isSavingLaptop) return;
+      isSavingLaptop = false;
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Зберегти';
+      const text = 'Збереження зависло за таймаутом. Натисни “Зберегти” ще раз або перевір інтернет.';
+      setModalSaveMessage(text);
+      setBanner(text, false);
+    }, SAVE_UI_TIMEOUT_MS);
   }
 
-  navMicTapTimer = window.setTimeout(() => {
-    navMicTapTimer = null;
-    addVoiceTask();
-  }, DOUBLE_TAP_DELAY_MS);
-}
+  try{
+    if(currentEditMode === 'location' && targetEditId){
+      const locationState = normalizeLocationState(document.getElementById('location_state')?.value);
+      const payload = {
+        location: document.getElementById('location')?.value || 'Кладовка верх',
+        location_state: locationState || null
+      };
+      const { response, savedPayload } = await saveLaptopPatchToDatabase(targetEditId, payload, 'Save laptop location');
+      if(response.error){
+        hasSupabaseConnection = false;
+        updateNetwork();
+        console.error(response.error);
+        const text = `Не вдалося записати в базу: ${errorSummary(response.error)}`;
+        setModalSaveMessage(text);
+        setBanner(text, false);
+        return;
+      }
 
-function closeTaskModal() {
-  els.taskModal.classList.remove("open");
-  els.taskModal.hidden = true;
-  els.voiceStatus.textContent = "";
-}
-
-function getNextReminderAt(task) {
-  const now = new Date();
-  const next = new Date(task.reminderAt || now);
-
-  if (task.recurrence === "daily") {
-    do next.setDate(next.getDate() + 1); while (next <= now);
-  } else if (task.recurrence === "weekly-monday") {
-    do next.setDate(next.getDate() + 1); while (next.getDay() !== 1 || next <= now);
-  } else if (task.recurrence === "monthly-20") {
-    do {
-      next.setMonth(next.getMonth() + 1, 20);
-    } while (next <= now);
-  } else {
-    return null;
-  }
-
-  return next.toISOString();
-}
-
-function isSameCalendarDay(first, second = new Date()) {
-  return first.getFullYear() === second.getFullYear()
-    && first.getMonth() === second.getMonth()
-    && first.getDate() === second.getDate();
-}
-
-function isRecurringTaskCompletedToday(task) {
-  return Boolean(task.recurrence && task.lastCompletedAt
-    && isSameCalendarDay(new Date(task.lastCompletedAt)));
-}
-
-function isRecurringTaskReadyToComplete(task) {
-  return Boolean(task.recurrence && task.reminderAt
-    && new Date(task.reminderAt).getTime() <= Date.now());
-}
-
-async function moveToTrash(id, { openTrash = true } = {}) {
-  const index = state.tasks.findIndex((task) => task.id === id);
-  if (index === -1) return;
-  cancelNativeReminder(id);
-
-  const [task] = state.tasks.splice(index, 1);
-  state.trash.unshift({ ...task, deletedAt: Date.now() });
-  render();
-  if (openTrash) switchTab("trash");
-  await saveState();
-}
-
-function closePriorityPicker() {
-  const picker = document.querySelector(".priority-picker");
-  if (picker) picker.remove();
-  priorityPickerTaskId = null;
-}
-
-async function setTaskPriority(id, priority) {
-  const task = state.tasks.find((item) => item.id === id) || state.trash.find((item) => item.id === id);
-  if (!task || (priority !== null && !hasPriority(priority))) return;
-
-  task.priority = priority;
-  closePriorityPicker();
-  sortActiveTasks();
-  render();
-  await saveState();
-}
-
-function openPriorityPicker(task, anchor, showReminder = false) {
-  closePriorityPicker();
-  priorityPickerTaskId = task.id;
-
-  const picker = document.createElement("div");
-  picker.className = "priority-picker";
-  picker.setAttribute("role", "menu");
-
-  const closePickerButton = document.createElement("button");
-  closePickerButton.className = "picker-close-button";
-  closePickerButton.type = "button";
-  closePickerButton.setAttribute("aria-label", "Закрити меню");
-  closePickerButton.textContent = "×";
-  closePickerButton.addEventListener("click", (event) => {
-    event.stopPropagation();
-    closePriorityPicker();
-  });
-  picker.append(closePickerButton);
-
-  if (!showReminder) Object.entries(PRIORITIES).forEach(([priority, details]) => {
-    const button = document.createElement("button");
-    button.className = `priority-option ${details.className}`;
-    button.type = "button";
-    button.setAttribute("role", "menuitemradio");
-    button.setAttribute("aria-checked", String(task.priority === priority));
-    button.innerHTML = `<span class="priority-dot" aria-hidden="true"></span><span>${details.label}</span>`;
-    button.addEventListener("click", (event) => {
-      event.stopPropagation();
-      setTaskPriority(task.id, priority);
-    });
-    picker.append(button);
-  });
-
-  if (!showReminder) {
-    const clearPriorityButton = document.createElement("button");
-    clearPriorityButton.className = "priority-option priority-clear";
-    clearPriorityButton.type = "button";
-    clearPriorityButton.setAttribute("role", "menuitemradio");
-    clearPriorityButton.setAttribute("aria-checked", String(!task.priority));
-    clearPriorityButton.innerHTML = '<span class="priority-clear-icon" aria-hidden="true">—</span><span>Без пріоритету</span>';
-    clearPriorityButton.addEventListener("click", (event) => {
-      event.stopPropagation();
-      setTaskPriority(task.id, null);
-    });
-    picker.append(clearPriorityButton);
-  }
-
-  if (showReminder) {
-  const currentReminder = task.reminderAt ? new Date(task.reminderAt) : new Date(Date.now() + 3600000);
-  const pickerFields = document.createElement("div");
-  pickerFields.className = "reminder-picker-fields";
-  const makeSelect = (label, values, selected) => {
-    const wrapper = document.createElement("label");
-    wrapper.className = "reminder-field";
-    wrapper.innerHTML = `<span>${label}</span>`;
-    const select = document.createElement("select");
-    values.forEach(([value, text]) => {
-      const option = new Option(text, value, value === selected, value === selected);
-      select.append(option);
-    });
-    wrapper.append(select);
-    pickerFields.append(wrapper);
-    return select;
-  };
-  const days = Array.from({ length: 31 }, (_, index) => {
-    const value = String(index + 1).padStart(2, "0");
-    return [value, value];
-  });
-  const months = ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"]
-    .map((text, index) => [String(index), text]);
-  const years = Array.from({ length: 7 }, (_, index) => {
-    const year = String(new Date().getFullYear() - 1 + index); return [year, year];
-  });
-  const hours = Array.from({ length: 24 }, (_, index) => String(index).padStart(2, "0"));
-  const minutes = Array.from({ length: 12 }, (_, index) => String(index * 5).padStart(2, "0"));
-  const daySelect = makeSelect("День", days, String(currentReminder.getDate()).padStart(2, "0"));
-  const monthSelect = makeSelect("Місяць", months, String(currentReminder.getMonth()));
-  const yearSelect = makeSelect("Рік", years, String(currentReminder.getFullYear()));
-  const hourSelect = makeSelect("Година", hours.map((value) => [value, value]), String(currentReminder.getHours()).padStart(2, "0"));
-  const minuteSelect = makeSelect("Хвилини", minutes.map((value) => [value, value]), String(Math.round(currentReminder.getMinutes() / 5) * 5 % 60).padStart(2, "0"));
-  const recurrenceSelect = makeSelect("Повторювати", [
-    ["none", "Не повторювати"],
-    ["daily", "Щодня"],
-    ["weekly-monday", "Щопонеділка"],
-    ["monthly-20", "Кожного 20 числа"],
-  ], task.recurrence || "none");
-  recurrenceSelect.closest(".reminder-field")?.classList.add("reminder-recurrence-field");
-
-  const reminderActions = document.createElement("div");
-  reminderActions.className = "reminder-picker-actions";
-  const saveReminderButton = document.createElement("button");
-  saveReminderButton.className = "priority-option reminder-action reminder-save-action";
-  saveReminderButton.type = "button";
-  saveReminderButton.textContent = "Зберегти дату";
-  saveReminderButton.addEventListener("click", async (event) => {
-    event.stopPropagation();
-    const selectedDate = new Date(Number(yearSelect.value), Number(monthSelect.value), Number(daySelect.value), Number(hourSelect.value), Number(minuteSelect.value));
-    task.reminderAt = selectedDate.toISOString();
-    task.recurrence = recurrenceSelect.value === "none" ? null : recurrenceSelect.value;
-    cancelNativeReminder(task.id);
-    scheduleNativeReminder(task);
-    closePriorityPicker();
-    render();
-    await saveState();
-  });
-  const removeReminderButton = document.createElement("button");
-  removeReminderButton.className = "priority-option reminder-action reminder-remove-action";
-  removeReminderButton.type = "button";
-  removeReminderButton.textContent = "Прибрати нагадування";
-  removeReminderButton.addEventListener("click", async (event) => {
-    event.stopPropagation();
-    task.reminderAt = null;
-    task.recurrence = null;
-    task.lastCompletedAt = null;
-    cancelNativeReminder(task.id);
-    closePriorityPicker();
-    render();
-    await saveState();
-  });
-  const deleteTaskButton = document.createElement("button");
-  deleteTaskButton.className = "priority-option reminder-action reminder-delete-action";
-  deleteTaskButton.type = "button";
-  deleteTaskButton.textContent = "Видалити таску";
-  deleteTaskButton.addEventListener("click", async (event) => {
-    event.stopPropagation();
-    closePriorityPicker();
-    await deleteTaskPermanently(task.id);
-  });
-  reminderActions.append(saveReminderButton, removeReminderButton, deleteTaskButton);
-  picker.append(pickerFields, reminderActions);
-  }
-
-  document.body.append(picker);
-  const rect = anchor.getBoundingClientRect();
-  const viewport = window.visualViewport;
-  const viewportTop = viewport?.offsetTop || 0;
-  const viewportLeft = viewport?.offsetLeft || 0;
-  const viewportHeight = viewport?.height || window.innerHeight;
-  const viewportWidth = viewport?.width || window.innerWidth;
-  picker.style.maxHeight = `${Math.max(160, viewportHeight - 24)}px`;
-  const pickerRect = picker.getBoundingClientRect();
-  const left = Math.min(Math.max(viewportLeft + 12, rect.left), viewportLeft + viewportWidth - pickerRect.width - 12);
-  const top = Math.min(Math.max(viewportTop + 12, rect.bottom + 8), viewportTop + viewportHeight - pickerRect.height - 12);
-  picker.style.left = `${left}px`;
-  picker.style.top = `${top}px`;
-}
-
-async function deleteTaskPermanently(id) {
-  cancelNativeReminder(id);
-  state.tasks = state.tasks.filter((task) => task.id !== id);
-  state.trash = state.trash.filter((task) => task.id !== id);
-  render();
-  await saveState();
-}
-
-async function removeForever(id) {
-  await deleteTaskPermanently(id);
-}
-
-async function completeTask(id) {
-  const task = state.tasks.find((item) => item.id === id);
-  if (!task) return;
-
-  if (task.recurrence && !isRecurringTaskReadyToComplete(task)) return;
-  const nextReminderAt = getNextReminderAt(task);
-  if (nextReminderAt) {
-    if (isRecurringTaskCompletedToday(task)) return;
-    cancelNativeReminder(id);
-    task.reminderAt = nextReminderAt;
-    task.done = false;
-    task.lastCompletedAt = Date.now();
-    scheduleNativeReminder(task);
-    render();
-    await saveState();
-    return;
-  }
-
-  // A completed task without recurrence has no next occurrence, so remove it
-  // completely instead of leaving a completed row in the database.
-  cancelNativeReminder(id);
-  state.tasks = state.tasks.filter((item) => item.id !== id);
-  render();
-  await saveState();
-}
-
-function moveTaskToIndex(id, nextIndex) {
-  const currentIndex = state.tasks.findIndex((task) => task.id === id);
-  if (currentIndex === -1 || currentIndex === nextIndex) return false;
-
-  const [task] = state.tasks.splice(currentIndex, 1);
-  state.tasks.splice(nextIndex, 0, task);
-  return true;
-}
-
-function getTaskDragIndex(pointerY, draggingItem) {
-  const items = [...els.taskList.querySelectorAll(".task-item:not(.dragging)")];
-  return items.reduce((index, item) => {
-    const rect = item.getBoundingClientRect();
-    return pointerY > rect.top + rect.height / 2 ? index + 1 : index;
-  }, 0);
-}
-
-function syncDraggedTaskPosition(pointerY) {
-  if (!dragState?.active) return;
-
-  const nextIndex = getTaskDragIndex(pointerY, dragState.item);
-  if (!moveTaskToIndex(dragState.id, nextIndex)) return;
-
-  const siblings = [...els.taskList.querySelectorAll(".task-item:not(.dragging)")];
-  els.taskList.insertBefore(dragState.item, siblings[nextIndex] || null);
-  dragState.moved = true;
-}
-
-function startTaskDrag(item) {
-  if (!dragState || dragState.active) return;
-
-  dragState.active = true;
-  dragState.moved = false;
-  item.classList.remove("pressing");
-  item.classList.add("dragging");
-  document.body.classList.add("is-reordering");
-}
-
-function cancelPendingTaskDrag() {
-  if (!dragState || dragState.active) return;
-
-  clearTimeout(dragState.timer);
-  dragState.item.classList.remove("pressing");
-  dragState = null;
-}
-
-async function finishTaskDrag() {
-  if (!dragState) return;
-
-  clearTimeout(dragState.timer);
-  const { item, moved, active } = dragState;
-  item.classList.remove("pressing", "dragging", "swiping");
-  document.body.classList.remove("is-reordering");
-  dragState = null;
-
-  if (active && moved) {
-    sortActiveTasks();
-    render();
-    await saveState();
-  }
-}
-
-function setupTaskReorder(item, task, mode) {
-  if (mode !== "tasks") return;
-
-  item.dataset.taskId = task.id;
-  item.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0 || event.target.closest("button")) return;
-
-    dragState = {
-      active: false,
-      id: task.id,
-      item,
-      moved: false,
-      menuOpened: false,
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      timer: window.setTimeout(() => {
-        if (!dragState || dragState.item !== item || dragState.active) return;
-        dragState.menuOpened = true;
-        item.classList.remove("pressing");
-        openPriorityPicker(task, item, true);
-      }, 560),
-    };
-
-    item.classList.add("pressing");
-    item.setPointerCapture(event.pointerId);
-  });
-
-  item.addEventListener("pointermove", (event) => {
-    if (!dragState || dragState.item !== item || dragState.pointerId !== event.pointerId) return;
-
-    const deltaX = event.clientX - dragState.startX;
-    const moveX = Math.abs(deltaX);
-    const moveY = Math.abs(event.clientY - dragState.startY);
-    if (!dragState.active && (moveX > 8 || moveY > 8)) {
-      clearTimeout(dragState.timer);
-      item.classList.remove("pressing");
-      item.classList.toggle("swiping", moveX > 44 && moveY < 34);
+      hasSupabaseConnection = true;
+      updateNetwork();
+      const currentItem = laptops.find((x) => x.id === targetEditId);
+      applyLaptopToState({ ...(currentItem || {}), ...savedPayload, id: targetEditId });
+      closeAddModal();
+      resetForm();
+      resetSaveButton(saveBtn, saveWatchdog);
+      setBanner('Збережено в базу.');
+      refreshLaptopsInBackground();
       return;
     }
 
-    if (!dragState.active) return;
-
-    event.preventDefault();
-    if (event.clientY < 90) window.scrollBy({ top: -12, behavior: "auto" });
-    if (event.clientY > window.innerHeight - 120) window.scrollBy({ top: 12, behavior: "auto" });
-    syncDraggedTaskPosition(event.clientY);
-  });
-
-  item.addEventListener("pointerup", (event) => {
-    if (!dragState || dragState.item !== item || dragState.pointerId !== event.pointerId) return;
-    const isHorizontalSwipe = Math.abs(event.clientX - dragState.startX) > 64 && Math.abs(event.clientY - dragState.startY) < 34;
-    if (isHorizontalSwipe && !dragState.active) {
-      clearTimeout(dragState.timer);
-      item.classList.remove("pressing", "swiping");
-      dragState = null;
-      openTaskTitleEditor(task);
-      return;
-    }
-    finishTaskDrag();
-  });
-
-  item.addEventListener("pointercancel", (event) => {
-    if (!dragState || dragState.item !== item || dragState.pointerId !== event.pointerId) return;
-    finishTaskDrag();
-  });
-}
-
-function makeTaskItem(task, mode) {
-  const item = document.createElement("li");
-  item.className = `task-item${task.done ? " done" : ""}`;
-  const completedToday = isRecurringTaskCompletedToday(task);
-  const notReadyYet = Boolean(task.recurrence && !completedToday && !isRecurringTaskReadyToComplete(task));
-
-  const checkButton = document.createElement("button");
-  checkButton.className = `check-button${completedToday ? " completed-today" : ""}${notReadyYet ? " not-ready-yet" : ""}`;
-  checkButton.type = "button";
-  checkButton.textContent = task.done || completedToday ? "✓" : "";
-  checkButton.setAttribute("aria-label", completedToday ? "Виконано сьогодні" : notReadyYet ? `Доступно після ${formatDate(task.reminderAt)}` : task.done ? "Позначити активним" : "Позначити виконаним");
-  checkButton.setAttribute("aria-pressed", String(task.done || completedToday));
-  if (completedToday) checkButton.title = "Виконано сьогодні";
-  if (notReadyYet) checkButton.title = `Можна відмітити після ${formatDate(task.reminderAt)}`;
-  checkButton.disabled = mode === "trash";
-  checkButton.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (completedToday || notReadyYet) return;
-    completeTask(task.id);
-  });
-
-  const text = document.createElement("div");
-  text.className = "task-text";
-  const titleRow = document.createElement("div");
-  titleRow.className = "task-title-row";
-  const priority = hasPriority(task.priority) ? PRIORITIES[task.priority] : null;
-  const priorityDot = document.createElement("span");
-  priorityDot.className = `priority-dot task-priority-dot${priority ? ` ${priority.className}` : ""}`;
-  priorityDot.title = priority ? priority.label : "Без пріоритету";
-  priorityDot.setAttribute("aria-label", priority ? `Пріоритет: ${priority.label}` : "Без пріоритету");
-  const title = document.createElement("div");
-  title.className = "task-title";
-  title.textContent = task.title;
-  titleRow.append(priorityDot, title);
-  const meta = document.createElement("span");
-  meta.className = "task-meta";
-  if (task.reminderAt && mode !== "trash") {
-    meta.classList.add("task-reminder-meta");
-    meta.textContent = completedToday
-      ? `Виконано сьогодні · Наступне ${formatDate(task.reminderAt)}`
-      : `Нагадати ${formatDate(task.reminderAt)}`;
-  } else if (mode === "trash") {
-    meta.textContent = `Видалено ${formatDate(task.deletedAt)}`;
-  } else {
-    meta.hidden = true;
-  }
-  text.append(titleRow, meta);
-
-  const actions = document.createElement("div");
-  actions.className = "item-actions";
-
-  if (mode === "trash") {
-    const deleteButton = document.createElement("button");
-    deleteButton.className = "mini-button danger";
-    deleteButton.type = "button";
-    deleteButton.textContent = "×";
-    deleteButton.title = "Видалити назавжди";
-    deleteButton.setAttribute("aria-label", "Видалити назавжди");
-    deleteButton.addEventListener("click", () => removeForever(task.id));
-    actions.append(deleteButton);
-  } else {
-    actions.append(checkButton);
-  }
-
-  if (mode === "trash") {
-    item.append(checkButton, text, actions);
-  } else {
-    item.append(text, actions);
-  }
-
-  item.addEventListener("click", (event) => {
-    if (event.target.closest("button") || dragState?.active) return;
-    if (event.detail === 3) {
-      event.preventDefault();
-      openPriorityPicker(task, item);
-    }
-  });
-
-  setupTaskReorder(item, task, mode);
-  return item;
-}
-
-function render() {
-  sortActiveTasks();
-  const visibleTasks = getFilteredTasks();
-  const mandatoryTasks = getMandatoryTasks();
-  els.taskList.replaceChildren(...visibleTasks.map((task) => makeTaskItem(task, "tasks")));
-  els.trashList.replaceChildren(...mandatoryTasks.map((task) => makeTaskItem(task, "tasks")));
-  rescheduleNativeReminders();
-}
-
-window.openTaskFromNotification = (taskId, attempts = 0) => {
-  const task = state.tasks.find((item) => item.id === taskId);
-  if (!task) {
-    if (attempts < 20) window.setTimeout(() => window.openTaskFromNotification(taskId, attempts + 1), 250);
-    return;
-  }
-
-  const isReminderTask = Boolean(task.reminderAt);
-  const taskFilter = getTaskCategory(task) || "all";
-  setTaskFilter(taskFilter);
-  switchTab(isReminderTask ? "trash" : "tasks");
-  if (isReminderTask && task.recurrence) setMandatoryFilter("recurring");
-  const taskItem = (isReminderTask ? els.trashList : els.taskList)
-    .querySelector(`.task-item[data-task-id="${CSS.escape(taskId)}"]`);
-  if (!taskItem) return;
-
-  taskItem.scrollIntoView({ behavior: "smooth", block: "center" });
-  taskItem.classList.add("notification-target");
-  window.setTimeout(() => taskItem.classList.remove("notification-target"), 3000);
-};
-
-function setTaskFilter(filterName) {
-  activeTaskFilter = filterName;
-  els.taskFilterTabs.forEach((tab) => {
-    const isActive = tab.dataset.taskFilter === activeTaskFilter;
-    tab.classList.toggle("active", isActive);
-    tab.setAttribute("aria-selected", String(isActive));
-  });
-  render();
-}
-
-function setMandatoryFilter(filterName) {
-  activeMandatoryFilter = filterName;
-  els.mandatoryFilterTabs.forEach((tab) => {
-    const isActive = tab.dataset.mandatoryFilter === activeMandatoryFilter;
-    tab.classList.toggle("active", isActive);
-    tab.setAttribute("aria-selected", String(isActive));
-  });
-  render();
-}
-
-function setupTaskFilterSwipe() {
-  const filterOrder = ["urgent", "all", "buy", "laptops"];
-  const swipeThreshold = 64;
-
-  const isBlankTasksArea = (event) => {
-    if (els.tasksPanel.hidden || event.pointerType !== "touch") return false;
-    if (event.target.closest("button, input, select, textarea, a, .task-item")) return false;
-
-    // The gesture is reserved for the unused space below the task card list.
-    return event.clientY >= els.tasksPanel.getBoundingClientRect().bottom;
-  };
-
-  els.appShell.addEventListener("pointerdown", (event) => {
-    if (!isBlankTasksArea(event)) return;
-    taskFilterSwipe = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
+    const payload = {
+      number: document.getElementById('number').value.trim(),
+      ebay_price: toNum(document.getElementById('ebay_price').value),
+      ebay_link: sanitizeExternalUrl(document.getElementById('ebay_link').value),
+      status: document.getElementById('status') ? document.getElementById('status').value : 'in_transit',
+      serial_number: document.getElementById('serial_number') ? normalizeSerialNumber(document.getElementById('serial_number').value) : '',
+      delivery_cost: document.getElementById('delivery_cost') ? toNum(document.getElementById('delivery_cost').value) : 0,
+      model_type: document.getElementById('charger_cost') ? (getSelectedModelType() || null) : null,
+      charger_cost: document.getElementById('charger_cost') ? toNum(document.getElementById('charger_cost').value) : 0,
+      duty_cost: document.getElementById('duty_cost') ? toNum(document.getElementById('duty_cost').value) : 0,
+      olx_ad_cost: 300,
+      engraving_cost: 200,
+      ssd: document.getElementById('ssd') ? toNum(document.getElementById('ssd').value) : 0,
+      ram: document.getElementById('ram') ? toNum(document.getElementById('ram').value) : 0,
+      sold_price: (document.getElementById('status') && document.getElementById('status').value === 'sold' && document.getElementById('sold_price'))
+        ? toNum(document.getElementById('sold_price').value)
+        : 0,
+      tracking_number: document.getElementById('tracking_number') ? document.getElementById('tracking_number').value.trim() : '',
+      olx_link: document.getElementById('olx_link') ? sanitizeExternalUrl(document.getElementById('olx_link').value) : '',
+      telegram_link: document.getElementById('telegram_link') ? sanitizeExternalUrl(document.getElementById('telegram_link').value) : '',
+      sold_at: null
     };
-  });
 
-  els.appShell.addEventListener("pointerup", (event) => {
-    if (!taskFilterSwipe || taskFilterSwipe.pointerId !== event.pointerId) return;
-
-    const deltaX = event.clientX - taskFilterSwipe.startX;
-    const deltaY = event.clientY - taskFilterSwipe.startY;
-    taskFilterSwipe = null;
-
-    if (Math.abs(deltaX) < swipeThreshold || Math.abs(deltaX) <= Math.abs(deltaY)) return;
-
-    const currentIndex = filterOrder.indexOf(activeTaskFilter);
-    const nextIndex = currentIndex + (deltaX < 0 ? 1 : -1);
-    if (nextIndex >= 0 && nextIndex < filterOrder.length) setTaskFilter(filterOrder[nextIndex]);
-  });
-
-  els.appShell.addEventListener("pointercancel", () => {
-    taskFilterSwipe = null;
-  });
-}
-
-function setupMandatoryFilterSwipe() {
-  const filterOrder = ["reminders", "recurring"];
-  const swipeThreshold = 64;
-
-  const isBlankMandatoryArea = (event) => {
-    if (els.trashPanel.hidden || event.pointerType !== "touch") return false;
-    if (event.target.closest("button, input, select, textarea, a, .task-item")) return false;
-    return event.clientY >= els.trashPanel.getBoundingClientRect().bottom;
-  };
-
-  els.appShell.addEventListener("pointerdown", (event) => {
-    if (!isBlankMandatoryArea(event)) return;
-    mandatoryFilterSwipe = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-    };
-  });
-
-  els.appShell.addEventListener("pointerup", (event) => {
-    if (!mandatoryFilterSwipe || mandatoryFilterSwipe.pointerId !== event.pointerId) return;
-
-    const deltaX = event.clientX - mandatoryFilterSwipe.startX;
-    const deltaY = event.clientY - mandatoryFilterSwipe.startY;
-    mandatoryFilterSwipe = null;
-    if (Math.abs(deltaX) < swipeThreshold || Math.abs(deltaX) <= Math.abs(deltaY)) return;
-
-    const currentIndex = filterOrder.indexOf(activeMandatoryFilter);
-    const nextIndex = currentIndex + (deltaX < 0 ? 1 : -1);
-    if (nextIndex >= 0 && nextIndex < filterOrder.length) setMandatoryFilter(filterOrder[nextIndex]);
-  });
-
-  els.appShell.addEventListener("pointercancel", () => {
-    mandatoryFilterSwipe = null;
-  });
-}
-
-function switchTab(tabName) {
-  const showTasks = tabName === "tasks";
-  // The mandatory screen always opens on one-time reminders first.
-  if (!showTasks) setMandatoryFilter("reminders");
-  els.tasksPanel.hidden = !showTasks;
-  els.trashPanel.hidden = showTasks;
-  els.tasksTab.classList.toggle("active", showTasks);
-  els.trashTab.classList.toggle("active", !showTasks);
-  els.tasksTab.setAttribute("aria-selected", String(showTasks));
-  els.trashTab.setAttribute("aria-selected", String(!showTasks));
-}
-
-function setupSpeechRecognition() {
-  if (!SpeechRecognition) {
-    els.voiceStatus.textContent = "Голосове введення недоступне в цьому браузері.";
-    els.micButton.disabled = true;
-    return;
-  }
-
-  recognition = new SpeechRecognition();
-  recognition.lang = "uk-UA";
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
-
-  recognition.addEventListener("start", () => {
-    els.micButton.classList.add("listening");
-    els.navMicButton.classList.add("listening");
-    els.voiceStatus.textContent = "Слухаю...";
-  });
-
-  recognition.addEventListener("result", async (event) => {
-    const transcript = event.results[0][0].transcript.trim();
-
-    if (shouldAutoAddVoiceResult && transcript) {
-      shouldAutoAddVoiceResult = false;
-      setSyncStatus("Додаю голосову таску...", "neutral");
-      await addTaskFromTitle(transcript);
+    if(!payload.number){
+      setModalSaveMessage('Введи номер ноутбука.');
       return;
     }
 
-    els.taskInput.value = transcript;
-    els.voiceStatus.textContent = "Готово. Можна додати або відредагувати текст.";
-    els.taskInput.focus();
-  });
+    if(targetEditId){
+      const currentItem = laptops.find((x) => x.id === targetEditId);
+      const allowed = {
+        in_transit: ['in_transit', 'received'],
+        received: ['received', 'sold'],
+        sold: ['sold', 'received']
+      };
 
-  recognition.addEventListener("error", () => {
-    shouldAutoAddVoiceResult = false;
-    els.voiceStatus.textContent = "Не вдалося розпізнати голос. Спробуйте ще раз.";
-  });
+      if(currentItem && !allowed[currentItem.status]?.includes(payload.status)){
+        setModalSaveMessage('Недозволена зміна статусу.');
+        return;
+      }
 
-  recognition.addEventListener("end", () => {
-    els.micButton.classList.remove("listening");
-    els.navMicButton.classList.remove("listening");
-    if (els.voiceStatus.textContent === "Слухаю...") {
-      els.voiceStatus.textContent = "";
+      if(payload.status === 'sold' && (!payload.sold_price || Number(payload.sold_price) <= 0)){
+        setModalSaveMessage('Введи ціну продажу перед статусом Продано.');
+        return;
+      }
+
+      if(payload.serial_number && payload.serial_number.trim() !== '' && payload.status !== 'sold'){
+        payload.status = 'received';
+      }
+
+      if(payload.status === 'received' && currentItem && currentItem.status !== 'received'){
+        payload.location_state = 'На чистку';
+      } else if(payload.status === 'in_transit'){
+        payload.location_state = null;
+      }
+
+      if(currentItem && payload.status === 'sold' && currentItem.status !== 'sold'){
+        payload.sold_at = new Date().toISOString();
+      } else if(payload.status === 'received' || payload.status === 'in_transit'){
+        payload.sold_at = null;
+      } else {
+        payload.sold_at = currentItem?.sold_at || new Date().toISOString();
+      }
+    } else if(payload.status === 'received' || payload.status === 'in_transit'){
+      payload.sold_at = null;
+    } else {
+      payload.status = 'in_transit';
+      payload.location_state = null;
+      payload.sold_at = null;
     }
-  });
+
+    if(targetEditId){
+      const currentItem = laptops.find((x) => x.id === targetEditId);
+      const { response, savedPayload, savedWithoutModelType } = await saveLaptopPatchToDatabase(targetEditId, payload, 'Save laptop direct');
+      if(response.error){
+        hasSupabaseConnection = false;
+        updateNetwork();
+        console.error(response.error);
+        const text = `Не вдалося записати в базу: ${errorSummary(response.error)}`;
+        setModalSaveMessage(text);
+        setBanner(text, false);
+        return;
+      }
+
+      hasSupabaseConnection = true;
+      updateNetwork();
+      applyLaptopToState({ ...(currentItem || {}), ...savedPayload, id: targetEditId });
+      closeAddModal();
+      resetForm();
+      resetSaveButton(saveBtn, saveWatchdog);
+      if(savedWithoutModelType){
+        setBanner('Збережено в базу, але модель не записалась: додай колонку model_type у Supabase.', false);
+      } else {
+        setBanner('Збережено в базу.');
+        refreshLaptopsInBackground();
+      }
+      return;
+    }
+
+    let savedWithoutModelType = false;
+    let response = await runWithReconnect(
+      'Save laptop',
+      (signal) => attachAbortSignal(
+        supabaseClient.from(TABLE).insert([payload]).select().single(),
+        signal
+      ),
+      { retryThrown: false }
+    );
+
+    if(response.error && isMissingModelTypeColumnError(response.error) && Object.prototype.hasOwnProperty.call(payload, 'model_type')){
+      const fallbackPayload = { ...payload };
+      delete fallbackPayload.model_type;
+      savedWithoutModelType = true;
+      response = await runWithReconnect(
+        'Save laptop without model type',
+        (signal) => attachAbortSignal(
+          supabaseClient.from(TABLE).insert([fallbackPayload]).select().single(),
+          signal
+        ),
+        { retryThrown: false }
+      );
+    }
+
+    if(response.error){
+      hasSupabaseConnection = false;
+      updateNetwork();
+      console.error(response.error);
+      const text = `Помилка збереження в базу: ${errorSummary(response.error)}`;
+      setModalSaveMessage(text);
+      setBanner(text, false);
+      return;
+    }
+    hasSupabaseConnection = true;
+    updateNetwork();
+    if(targetEditId){
+      const currentItem = laptops.find((x) => x.id === targetEditId);
+      applyLaptopToState({ ...(currentItem || {}), ...payload, id: targetEditId });
+    } else if(response.data) {
+      applyLaptopToState(response.data);
+    }
+    if(savedWithoutModelType){
+      setBanner('Збережено, але модель не записалась: додай колонку model_type у Supabase.', false);
+    }
+
+    closeAddModal();
+    resetForm();
+    if(!savedWithoutModelType) refreshLaptopsInBackground();
+  }catch(error){
+    console.error(error);
+    const message = error?.message || 'невідома помилка';
+    resetSaveButton(saveBtn, saveWatchdog);
+    if(message.includes('timed out')){
+      const text = 'Збереження не відповіло за таймаут. Натисни “Зберегти” ще раз.';
+      setModalSaveMessage(text);
+      setBanner(text, false);
+    } else {
+      const text = `Помилка збереження: ${errorSummary(error)}`;
+      setModalSaveMessage(text);
+      setBanner(text, false);
+    }
+  }finally{
+    resetSaveButton(saveBtn, saveWatchdog);
+  }
 }
 
-els.addButton?.addEventListener("click", openTaskModal);
-els.submitTaskButton.addEventListener("click", addTask);
-els.closeTaskModalButton.addEventListener("click", closeTaskModal);
-els.taskModal.addEventListener("click", (event) => {
-  if (event.target === els.taskModal) closeTaskModal();
-});
-els.taskInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") addTask();
-});
+function submitLaptopForm(){
+  return saveLaptop({ preventDefault(){} });
+}
 
-window.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !els.taskModal.hidden) closeTaskModal();
-  if (event.key === "Escape" && priorityPickerTaskId) closePriorityPicker();
-});
+async function quickStatus(id, status){
+  const item = laptops.find((x) => x.id === id);
+  if(!item) return;
 
-document.addEventListener("click", (event) => {
-  if (!priorityPickerTaskId) return;
-  if (event.target.closest(".priority-picker") || event.target.closest(".task-item")) return;
-  closePriorityPicker();
-});
+  const allowed = {
+    in_transit: ['received'],
+    received: ['sold'],
+    sold: ['sold', 'received']
+  };
 
-els.tasksTab.addEventListener("click", () => switchTab("tasks"));
-els.trashTab.addEventListener("click", () => switchTab("trash"));
-els.taskFilterTabs.forEach((tab) => {
-  tab.addEventListener("click", () => setTaskFilter(tab.dataset.taskFilter));
-});
-els.mandatoryFilterTabs.forEach((tab) => {
-  tab.addEventListener("click", () => setMandatoryFilter(tab.dataset.mandatoryFilter));
-});
-setupTaskFilterSwipe();
-setupMandatoryFilterSwipe();
-els.navMicButton.addEventListener("contextmenu", (event) => event.preventDefault());
-els.navMicButton.addEventListener("click", handleNavMicTap);
+  if(!allowed[item.status]?.includes(status)){
+    alert('Недозволена зміна статусу');
+    return;
+  }
 
-els.micButton.addEventListener("click", () => startVoiceInput());
+  const payload = { status };
+  if(status === 'received' && item.status !== 'received') payload.location_state = 'На чистку';
+  if(status === 'in_transit') payload.location_state = null;
+  payload.sold_at = status === 'sold' ? new Date().toISOString() : null;
 
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch((error) => {
-      console.warn("Service worker registration failed", error);
+  const response = await runWithReconnect('Quick status', (signal) =>
+    attachAbortSignal(
+      supabaseClient.from(TABLE).update(payload).eq('id', id).select().single(),
+      signal
+    )
+  );
+  if(response.error){
+    hasSupabaseConnection = false;
+    updateNetwork();
+    console.error(response.error);
+    alert(`Не вдалося змінити статус: ${response.error.message || 'невідома помилка'}`);
+    return;
+  }
+
+  hasSupabaseConnection = true;
+  updateNetwork();
+  if(response.data) applyLaptopToState(response.data);
+  refreshLaptopsInBackground();
+}
+
+async function removeLaptop(id){
+  if(!confirm('Видалити ноутбук?')) return;
+  const { error } = await supabaseClient.from(TABLE).delete().eq('id', id);
+  if(error){
+    console.error(error);
+    alert('Не вдалося видалити');
+    return;
+  }
+  closeAddModal();
+  await loadLaptops();
+}
+
+async function deleteCurrent(){}
+
+async function duplicateLaptop(id){
+  const item = laptops.find((x) => x.id === id);
+  if(!item) return;
+
+  const copy = {
+    number: (item.number || 'copy') + '-copy',
+    ebay_price: item.ebay_price,
+    ebay_link: item.ebay_link,
+    delivery_cost: item.delivery_cost,
+    model_type: item.model_type || item.charger_type,
+    charger_cost: item.charger_cost,
+    duty_cost: item.duty_cost,
+    olx_ad_cost: item.olx_ad_cost,
+    engraving_cost: item.engraving_cost,
+    serial_number: item.serial_number,
+    tracking_number: item.tracking_number,
+    olx_link: item.olx_link,
+    telegram_link: item.telegram_link,
+    sold_price: item.sold_price,
+    status: 'in_transit',
+    sold_at: null
+  };
+
+  const { error } = await supabaseClient.from(TABLE).insert([copy]);
+  if(error){
+    console.error(error);
+    alert('Не вдалося дублювати');
+    return;
+  }
+
+  await loadLaptops();
+}
+
+function subscribeRealtime(){
+  if(realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
+  realtimeChannel = supabaseClient
+    .channel('laptops-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, async () => {
+      await loadLaptops();
+    })
+    .subscribe();
+}
+
+async function init(){
+  if(!ensureAppVersion()) return;
+  loadTheme();
+  syncDisplayModeClass();
+  updateNetwork();
+  initAuthUI();
+
+  if(!SUPABASE_URL || SUPABASE_URL.includes('PASTE_') || !SUPABASE_ANON_KEY || SUPABASE_ANON_KEY.includes('PASTE_')){
+    hasSupabaseConnection = false;
+    updateNetwork();
+    const msg = document.getElementById('simpleLoginMsg');
+    if(msg) msg.textContent = 'Встав URL і KEY у код';
+    setBaseStatus('Не налаштовано', false);
+    setBanner('Встав URL і KEY у код', false);
+    showAuthScreen();
+    return;
+  }
+
+  try{
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    hasSupabaseConnection = true;
+    updateNetwork();
+    setBaseStatus('Підключено', true);
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    await handleAuthSession(session);
+
+    supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+      await handleAuthSession(session);
     });
-  });
+  } catch (error){
+    hasSupabaseConnection = false;
+    updateNetwork();
+    console.error(error);
+    const msg = document.getElementById('simpleLoginMsg');
+    if(msg) msg.textContent = 'Не вдалося підключитися до Supabase';
+    setBaseStatus('Помилка підключення', false);
+    setBanner('Не вдалося підключитися до Supabase', false);
+    showAuthScreen();
+  }
 }
 
-setupSpeechRecognition();
-setupNewReminderPicker();
-els.newReminderEnabled.addEventListener("change", updateNewReminderVisibility);
-updateNewReminderVisibility();
-render();
-setupAccessGate();
+function bindUI(){
+  const logo = document.querySelector('.logo');
+  if(logo && !logo.dataset.boundTestTools){
+    logo.addEventListener('click', handleLogoTap);
+    logo.dataset.boundTestTools = '1';
+  }
+
+  const purgeBtn = document.getElementById('purgeTestLaptopsBtn');
+  if(purgeBtn && !purgeBtn.dataset.bound){
+    purgeBtn.addEventListener('click', purgeTestLaptops);
+    purgeBtn.dataset.bound = '1';
+  }
+
+  const dashboardDeliveryNoteEdit = document.getElementById('dashboardDeliveryNoteEdit');
+  if(dashboardDeliveryNoteEdit && !dashboardDeliveryNoteEdit.dataset.bound){
+    dashboardDeliveryNoteEdit.addEventListener('click', () => {
+      const editor = document.getElementById('dashboardNoteEditor');
+      setDashboardDeliveryEditorOpen(Boolean(editor?.hidden));
+    });
+    dashboardDeliveryNoteEdit.dataset.bound = '1';
+  }
+
+  const dashboardDeliveryNote = document.getElementById('dashboardDeliveryNote');
+  if(dashboardDeliveryNote && !dashboardDeliveryNote.dataset.bound){
+    dashboardDeliveryNote.addEventListener('change', async (event) => {
+      const target = event.target;
+      if(!(target instanceof HTMLInputElement) || target.type !== 'checkbox') return;
+
+      const value = String(target.value || '').trim();
+      if(!value) return;
+
+      if(target.checked){
+        if(!dashboardDeliveryNoteValue.includes(value)) dashboardDeliveryNoteValue.push(value);
+      } else {
+        dashboardDeliveryNoteValue = dashboardDeliveryNoteValue.filter((item) => item !== value);
+      }
+
+      updateDashboardDeliveryNoteValue(dashboardDeliveryNoteValue);
+      await saveDashboardDeliveryNote();
+      setDashboardDeliveryEditorOpen(true);
+    });
+    dashboardDeliveryNote.dataset.bound = '1';
+  }
+
+  document.querySelectorAll('.nav-btn').forEach((btn) => {
+    btn.addEventListener('click', () => switchView(btn.dataset.view));
+  });
+
+  const activeFiltersToggle = document.getElementById('activeFiltersToggle');
+  if(activeFiltersToggle && !activeFiltersToggle.dataset.bound){
+    activeFiltersToggle.addEventListener('click', toggleActiveFilters);
+    activeFiltersToggle.dataset.bound = '1';
+  }
+
+  document.addEventListener('input', (event) => {
+    if(event.target?.id !== 'serial_number') return;
+    const input = event.target;
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    input.value = normalizeSerialNumber(input.value);
+    if(start !== null && end !== null) input.setSelectionRange(start, end);
+  });
+
+  window.addEventListener('online', async () => {
+    updateNetwork();
+    await wakeAppConnection();
+  });
+  window.addEventListener('offline', updateNetwork);
+  document.addEventListener('visibilitychange', async () => {
+    if(document.visibilityState === 'visible'){
+      await wakeAppConnection();
+    }
+  });
+  window.addEventListener('click', (event) => {
+    if(event.target.id === 'addModal') closeAddModal();
+  });
+
+  document.addEventListener('change', (event) => {
+    if(event.target.id === 'filterStatus' || event.target.id === 'filterMarket' || event.target.id === 'filterModelType' || event.target.id === 'filterCostSort' || event.target.id === 'filterTracking'){
+      renderActive();
+    }
+    if(event.target.id === 'filterLocation' || event.target.id === 'filterLocationState'){
+      renderLocation();
+    }
+  });
+
+  document.getElementById('filterTracking')?.addEventListener('input', renderActive);
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js').catch((error) => {
+        console.log('SW register failed:', error);
+      });
+    });
+  }
+}
+
+bindUI();
+init();
