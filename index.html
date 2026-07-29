@@ -111,6 +111,9 @@
       <div class="panel">
         <div class="section-head">
           <div class="section-count">Всього: <b id="activeCount">0</b></div>
+          <div class="tracking-quick-filter">
+            <input id="filterTracking" inputmode="numeric" maxlength="4" placeholder="Останні 4 цифри" aria-label="Трекінг номер" />
+          </div>
           <button id="activeFiltersToggle" class="ghost filters-toggle" type="button" aria-expanded="false" aria-controls="activeFiltersPanel">
             <span>Фільтри</span>
             <span id="activeFiltersCount" class="filters-toggle-count" hidden>0</span>
@@ -155,10 +158,6 @@
                 <option value="cost_asc">Від меншої до більшої</option>
               </select>
             </div>
-          </div>
-          <div class="filter-card">
-            <label class="filter-label" for="filterTracking">Трекінг номер</label>
-            <input id="filterTracking" inputmode="numeric" maxlength="4" placeholder="Останні 4 цифри" />
           </div>
         </div>
       </div>

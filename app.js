@@ -956,6 +956,7 @@ function cardTemplate(item, soldMode){
   const soldDays = diffDaysLabel(item.created_at, item.sold_at);
   const soldDate = soldDateLabel(item.sold_at);
   const trackingTail = getTrackingTail(item.tracking_number);
+  const hasDelivery = toNum(item.delivery_cost) > 0;
   const ebayLink = sanitizeExternalUrl(item.ebay_link);
   const olxLink = sanitizeExternalUrl(item.olx_link);
   const telegramLink = sanitizeExternalUrl(item.telegram_link);
@@ -995,6 +996,7 @@ function cardTemplate(item, soldMode){
           ${modelDot}
           <button class="edit-mini active-card-edit" onclick="openEditModal('${item.id}')" title="Редагувати">✏️</button>
           ${trackingTail ? `<div class="tracking-badge" title="Трекінг номер">📦 ${safe(trackingTail)}</div>` : ''}
+          ${hasDelivery ? `<div class="delivery-indicator" title="Доставка: ${safe(money(item.delivery_cost))}" aria-label="Є доставка">🚚</div>` : ''}
         </div>
         <div class="active-card-side">
           <span class="cost-badge active-card-price">💰 ${money(calcCost(item))}</span>

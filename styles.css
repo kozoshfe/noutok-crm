@@ -186,6 +186,16 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
 }
 .section-count{font-size:15px;color:var(--muted)}
 .section-count b{font-size:34px;line-height:1;color:#fff}
+.tracking-quick-filter{
+  width:220px;
+  margin-left:auto;
+}
+.tracking-quick-filter input{
+  width:100%;
+  min-height:44px;
+  padding:0 14px;
+  border-radius:16px;
+}
 .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
 .stat{background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:16px}
 .stat .k{font-size:13px;color:var(--muted)}
@@ -332,6 +342,19 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
   line-height:1;
   white-space:nowrap;
   flex:0 0 auto;
+}
+.delivery-indicator{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:36px;
+  height:36px;
+  border-radius:12px;
+  background:rgba(96,165,250,.14);
+  border:1px solid rgba(96,165,250,.24);
+  font-size:17px;
+  line-height:1;
+  flex:0 0 36px;
 }
 .active-card-side{grid-area:side}
 .active-card-links{grid-area:links}
@@ -1252,8 +1275,16 @@ body:not([data-theme="light"]) #authScreen .auth-theme-toggle[aria-pressed="true
 
   #view-active .panel .section-head{
     display:grid;
-    grid-template-columns:1fr auto;
+    grid-template-columns:auto minmax(0,1fr) auto;
     align-items:center;
+  }
+  #view-active .tracking-quick-filter{
+    width:auto;
+    margin-left:0;
+    min-width:0;
+  }
+  #view-active .tracking-quick-filter input{
+    min-width:0;
   }
 
   #view-active .panel select{margin-top:4px}
@@ -1316,7 +1347,8 @@ body:not([data-theme="light"]) #authScreen .auth-theme-toggle[aria-pressed="true
     flex:0 0 auto !important;
   }
   #activeCards .active-card-edit,
-  #activeCards .item .tracking-badge{
+  #activeCards .item .tracking-badge,
+  #activeCards .item .delivery-indicator{
     flex:0 0 auto !important;
   }
   #activeCards .active-card-side{
@@ -1333,7 +1365,8 @@ body:not([data-theme="light"]) #authScreen .auth-theme-toggle[aria-pressed="true
   #activeCards .item span[style*="inline-block"],
   #activeCards .item .ebay-btn,
   #activeCards .item .olx-badge,
-  #activeCards .item .tracking-badge{
+  #activeCards .item .tracking-badge,
+  #activeCards .item .delivery-indicator{
     display:inline-flex !important;
     align-items:center !important;
     justify-content:center !important;
@@ -1654,7 +1687,8 @@ body:not([data-theme="light"]) #authScreen .auth-theme-toggle[aria-pressed="true
     width:100% !important;
   }
   body.standalone-mode #activeCards .item a,
-  body.standalone-mode #activeCards .item .tracking-badge{
+  body.standalone-mode #activeCards .item .tracking-badge,
+  body.standalone-mode #activeCards .item .delivery-indicator{
     min-height:30px !important;
     height:30px !important;
     padding:0 7px !important;
