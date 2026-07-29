@@ -877,8 +877,7 @@ function getActiveFiltersCount(){
     document.getElementById('filterStatus')?.value,
     document.getElementById('filterMarket')?.value,
     document.getElementById('filterModelType')?.value,
-    document.getElementById('filterCostSort')?.value,
-    String(document.getElementById('filterTracking')?.value || '').trim()
+    document.getElementById('filterCostSort')?.value
   ].filter(Boolean).length;
 }
 
