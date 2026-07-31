@@ -161,6 +161,25 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
 .banner.show{display:block}
 .view{display:none}
 .view.active{display:block}
+
+@media (max-width:768px){
+  .view.active.view-slide-next{animation:view-slide-in-next 220ms cubic-bezier(.22,.8,.28,1) both}
+  .view.active.view-slide-prev{animation:view-slide-in-prev 220ms cubic-bezier(.22,.8,.28,1) both}
+
+  @keyframes view-slide-in-next{
+    from{opacity:.35;transform:translate3d(28px,0,0)}
+    to{opacity:1;transform:translate3d(0,0,0)}
+  }
+
+  @keyframes view-slide-in-prev{
+    from{opacity:.35;transform:translate3d(-28px,0,0)}
+    to{opacity:1;transform:translate3d(0,0,0)}
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .view.active.view-slide-next,.view.active.view-slide-prev{animation:none}
+}
 .panel{background:rgba(9,21,48,.88);border:1px solid rgba(255,255,255,.06);border-radius:26px;padding:16px;box-shadow:var(--shadow);margin-bottom:16px}
 .section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .section-head h2{margin:0;font-size:24px}

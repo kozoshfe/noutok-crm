@@ -901,15 +901,24 @@ function updateActiveFiltersToggle(){
   countEl.hidden = count === 0;
 }
 
-function switchView(name){
+function switchView(name, direction = ''){
+  const nextView = document.getElementById('view-' + name);
+  const currentView = document.querySelector('.view.active');
+  if(!nextView || currentView === nextView) return;
+
   resetFilters();
-  document.querySelectorAll('.view').forEach((view) => view.classList.remove('active'));
-  document.getElementById('view-' + name)?.classList.add('active');
+  document.querySelectorAll('.view').forEach((view) => {
+    view.classList.remove('active', 'view-slide-next', 'view-slide-prev');
+  });
+  nextView.classList.add('active');
+  if(direction){
+    // Restart the CSS animation even when the same direction is used repeatedly.
+    void nextView.offsetWidth;
+    nextView.classList.add(`view-slide-${direction}`);
+  }
   document.querySelectorAll('.nav-btn').forEach((btn) => btn.classList.remove('active'));
   document.querySelector(`.nav-btn[data-view="${name}"]`)?.classList.add('active');
-  renderActive();
-  renderLocation();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'auto' });
 }
 
 function bindMobileTabSwipe(){
@@ -947,7 +956,9 @@ function bindMobileTabSwipe(){
     if(currentIndex < 0) return;
 
     const nextIndex = currentIndex + (deltaX < 0 ? 1 : -1);
-    if(nextIndex >= 0 && nextIndex < tabs.length) switchView(tabs[nextIndex].dataset.view);
+    if(nextIndex >= 0 && nextIndex < tabs.length){
+      switchView(tabs[nextIndex].dataset.view, deltaX < 0 ? 'next' : 'prev');
+    }
   }, { passive: true });
 
   appShell.addEventListener('touchcancel', () => { swipeStart = null; }, { passive: true });
