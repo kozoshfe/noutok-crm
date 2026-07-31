@@ -1141,7 +1141,7 @@ function renderLocation(){
   if(locationStateF) data = data.filter((x) => normalizeLocationState(x.location_state) === locationStateF);
   const wrap = document.getElementById('locationCards');
   const countEl = document.getElementById('locationCount');
-  if(countEl) countEl.innerHTML = `${data.length} <small>ноутбуків</small>`;
+  if(countEl) countEl.textContent = String(data.length);
   if(!wrap) return;
 
   wrap.innerHTML = data.length ? data.map((item) => `
