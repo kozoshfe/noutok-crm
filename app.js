@@ -912,6 +912,48 @@ function switchView(name){
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function bindMobileTabSwipe(){
+  const appShell = document.getElementById('appShell');
+  if(!appShell || appShell.dataset.swipeTabsBound) return;
+
+  let swipeStart = null;
+  const ignoredSelector = 'input, textarea, select, button, a, [contenteditable="true"]';
+
+  appShell.addEventListener('touchstart', (event) => {
+    if(!window.matchMedia('(max-width: 768px)').matches || event.touches.length !== 1) return;
+    if(event.target.closest(ignoredSelector)) return;
+
+    const touch = event.touches[0];
+    swipeStart = { x: touch.clientX, y: touch.clientY };
+  }, { passive: true });
+
+  appShell.addEventListener('touchend', (event) => {
+    if(!swipeStart || event.changedTouches.length !== 1) {
+      swipeStart = null;
+      return;
+    }
+
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - swipeStart.x;
+    const deltaY = touch.clientY - swipeStart.y;
+    swipeStart = null;
+
+    // Require a deliberate horizontal gesture, so vertical page scrolling is unaffected.
+    if(Math.abs(deltaX) < 70 || Math.abs(deltaX) < Math.abs(deltaY) * 1.5) return;
+
+    const tabs = [...document.querySelectorAll('.nav-btn')]
+      .filter((button) => button.offsetParent !== null);
+    const currentIndex = tabs.findIndex((button) => button.classList.contains('active'));
+    if(currentIndex < 0) return;
+
+    const nextIndex = currentIndex + (deltaX < 0 ? 1 : -1);
+    if(nextIndex >= 0 && nextIndex < tabs.length) switchView(tabs[nextIndex].dataset.view);
+  }, { passive: true });
+
+  appShell.addEventListener('touchcancel', () => { swipeStart = null; }, { passive: true });
+  appShell.dataset.swipeTabsBound = '1';
+}
+
 function renderStats(){
   const active = laptops.filter((x) => normalizeStatus(x.status) !== 'sold');
   const sold = laptops.filter((x) => normalizeStatus(x.status) === 'sold');
@@ -1882,6 +1924,7 @@ function bindUI(){
   document.querySelectorAll('.nav-btn').forEach((btn) => {
     btn.addEventListener('click', () => switchView(btn.dataset.view));
   });
+  bindMobileTabSwipe();
 
   const activeFiltersToggle = document.getElementById('activeFiltersToggle');
   if(activeFiltersToggle && !activeFiltersToggle.dataset.bound){
