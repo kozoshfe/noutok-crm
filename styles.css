@@ -785,6 +785,14 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
   color:#8da0c0;
 }
 .pill{display:inline-flex;gap:8px;align-items:center;background:#0a1427;padding:10px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.06)}
+.sold-summary-panel{padding:12px 14px}
+.sold-summary{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);align-items:center;gap:10px}
+.sold-summary-count{display:flex;flex-direction:column;justify-content:center;min-width:82px;padding-right:12px;border-right:1px solid rgba(255,255,255,.08)}
+.sold-summary-count span,.sold-summary-metric span{font-size:12px;color:var(--muted);line-height:1.15}
+.sold-summary-count b{font-size:29px;line-height:1.05;color:#fff}
+.sold-summary-metric{min-width:0;padding:7px 9px;border-radius:14px;background:rgba(255,255,255,.035)}
+.sold-summary-metric b{display:block;margin-top:3px;font-size:14px;line-height:1.15;white-space:nowrap;color:#fff}
+.sold-summary-metric.profit b{color:#78e5a0}
 .floating-add{position:fixed;right:18px;bottom:18px;z-index:60;width:64px;height:64px;border-radius:50%;background:linear-gradient(180deg,var(--blue),var(--blue2));font-size:34px;font-weight:900;box-shadow:0 16px 28px rgba(0,0,0,.35)}
 .cost-badge{
   padding:9px 12px;
@@ -1085,6 +1093,11 @@ body[data-theme="light"] .pill{
 body[data-theme="light"] .pill b{
   color:#19345f;
 }
+body[data-theme="light"] .sold-summary-count{border-color:rgba(110,136,189,.14)}
+body[data-theme="light"] .sold-summary-count b,
+body[data-theme="light"] .sold-summary-metric b{color:#19345f}
+body[data-theme="light"] .sold-summary-metric{background:rgba(94,125,180,.06)}
+body[data-theme="light"] .sold-summary-metric.profit b{color:#16844b}
 body[data-theme="light"] .st-in_transit{
   background:rgba(79,124,231,.14);
   color:#3a62b1;
@@ -1291,6 +1304,12 @@ body:not([data-theme="light"]) #authScreen .auth-theme-toggle[aria-pressed="true
   .stat .k{font-size:11px;line-height:1.25}
   .stat .v{font-size:22px;margin-top:8px}
   .pill{padding:8px 10px;font-size:12px;border-radius:999px}
+  .sold-summary-panel{padding:10px 12px}
+  .sold-summary{gap:7px}
+  .sold-summary-count{min-width:70px;padding-right:8px}
+  .sold-summary-count b{font-size:26px}
+  .sold-summary-metric{padding:7px 8px;border-radius:13px}
+  .sold-summary-metric b{font-size:13px}
 
   #view-active .panel .section-head{
     display:grid;
