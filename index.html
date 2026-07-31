@@ -169,8 +169,7 @@
         <div class="sold-summary">
           <div class="sold-summary-count">
             <span>Продано</span>
-            <b id="soldCount">0</b>
-            <small>ноутбуків</small>
+            <b><span id="soldCount">0</span> шт.</b>
           </div>
           <div class="sold-summary-metric">
             <span>Виручка</span>
@@ -190,13 +189,11 @@
     </section>
 
     <section id="view-location" class="view">
-      <div class="panel">
-        <div class="section-head">
-          <h2>Локація</h2>
-        </div>
-        <div class="grid">
-          <div class="field">
-            <div class="k">Фільтр локації</div>
+      <div class="panel location-filter-panel">
+        <h2 class="location-filter-title">Локація</h2>
+        <div class="location-filter-controls">
+          <label class="location-filter-select">
+            <span class="location-filter-icon" aria-hidden="true">⌖</span>
             <select id="filterLocation">
               <option value="">Усі локації</option>
               <option value="Нічого">Нічого</option>
@@ -206,9 +203,9 @@
               <option value="Спальня низ">Спальня низ</option>
               <option value="Спальня верх">Спальня верх</option>
             </select>
-          </div>
-          <div class="field">
-            <div class="k">Фільтр стану</div>
+          </label>
+          <label class="location-filter-select">
+            <span class="location-filter-icon" aria-hidden="true">◇</span>
             <select id="filterLocationState">
               <option value="">Усі стани</option>
               <option value="На чистку">На чистку</option>
@@ -216,11 +213,14 @@
               <option value="Ремонт">Ремонт</option>
               <option value="На фото">На фото</option>
             </select>
+          </label>
+        </div>
+        <div class="location-filter-footer">
+          <div class="location-found">
+            <span class="location-found-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"></rect><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2"></path></svg></span>
+            <div><span>Знайдено</span><b id="locationCount">0 <small>ноутбуків</small></b></div>
           </div>
-          <div class="field">
-            <div class="k">Кількість</div>
-            <div id="locationCount" class="v">0</div>
-          </div>
+          <button id="clearLocationFilters" class="location-clear-filters" type="button"><span class="location-clear-icon" aria-hidden="true">↻</span><span>Очистити фільтри</span></button>
         </div>
       </div>
       <div id="locationCards" class="cards"></div>

@@ -872,6 +872,14 @@ function resetFilters(){
   updateActiveFiltersToggle();
 }
 
+function clearLocationFilters(){
+  const location = document.getElementById('filterLocation');
+  const state = document.getElementById('filterLocationState');
+  if(location) location.value = '';
+  if(state) state.value = '';
+  renderLocation();
+}
+
 function getActiveFiltersCount(){
   return [
     document.getElementById('filterStatus')?.value,
@@ -927,30 +935,45 @@ function bindMobileTabSwipe(){
   const appShell = document.getElementById('appShell');
   if(!appShell || appShell.dataset.swipeTabsBound) return;
 
-  let swipeStart = null;
-  const ignoredSelector = 'input, textarea, select, button, a, [contenteditable="true"]';
+  let swipe = null;
+  const ignoredSelector = 'input, textarea, select, [contenteditable="true"]';
+  let suppressClickUntil = 0;
 
   appShell.addEventListener('touchstart', (event) => {
     if(!window.matchMedia('(max-width: 768px)').matches || event.touches.length !== 1) return;
     if(event.target.closest(ignoredSelector)) return;
 
     const touch = event.touches[0];
-    swipeStart = { x: touch.clientX, y: touch.clientY };
+    swipe = { x: touch.clientX, y: touch.clientY, isHorizontal: false };
   }, { passive: true });
 
+  appShell.addEventListener('touchmove', (event) => {
+    if(!swipe || event.touches.length !== 1) return;
+
+    const touch = event.touches[0];
+    const deltaX = touch.clientX - swipe.x;
+    const deltaY = touch.clientY - swipe.y;
+    if(Math.abs(deltaX) > 12 && Math.abs(deltaX) > Math.abs(deltaY)){
+      swipe.isHorizontal = true;
+      // Keep the browser from treating a deliberate tab swipe as page movement.
+      event.preventDefault();
+    }
+  }, { passive: false });
+
   appShell.addEventListener('touchend', (event) => {
-    if(!swipeStart || event.changedTouches.length !== 1) {
-      swipeStart = null;
+    if(!swipe || event.changedTouches.length !== 1) {
+      swipe = null;
       return;
     }
 
     const touch = event.changedTouches[0];
-    const deltaX = touch.clientX - swipeStart.x;
-    const deltaY = touch.clientY - swipeStart.y;
-    swipeStart = null;
+    const deltaX = touch.clientX - swipe.x;
+    const deltaY = touch.clientY - swipe.y;
+    const isHorizontal = swipe.isHorizontal;
+    swipe = null;
 
     // Require a deliberate horizontal gesture, so vertical page scrolling is unaffected.
-    if(Math.abs(deltaX) < 70 || Math.abs(deltaX) < Math.abs(deltaY) * 1.5) return;
+    if(!isHorizontal || Math.abs(deltaX) < 55 || Math.abs(deltaX) < Math.abs(deltaY) * 1.35) return;
 
     const tabs = [...document.querySelectorAll('.nav-btn')]
       .filter((button) => button.offsetParent !== null);
@@ -959,11 +982,17 @@ function bindMobileTabSwipe(){
 
     const nextIndex = currentIndex + (deltaX < 0 ? 1 : -1);
     if(nextIndex >= 0 && nextIndex < tabs.length){
+      suppressClickUntil = Date.now() + 350;
       switchView(tabs[nextIndex].dataset.view, deltaX < 0 ? 'next' : 'prev');
     }
   }, { passive: true });
 
-  appShell.addEventListener('touchcancel', () => { swipeStart = null; }, { passive: true });
+  appShell.addEventListener('touchcancel', () => { swipe = null; }, { passive: true });
+  appShell.addEventListener('click', (event) => {
+    if(Date.now() >= suppressClickUntil) return;
+    event.preventDefault();
+    event.stopPropagation();
+  }, true);
   appShell.dataset.swipeTabsBound = '1';
 }
 
@@ -1112,7 +1141,7 @@ function renderLocation(){
   if(locationStateF) data = data.filter((x) => normalizeLocationState(x.location_state) === locationStateF);
   const wrap = document.getElementById('locationCards');
   const countEl = document.getElementById('locationCount');
-  if(countEl) countEl.textContent = String(data.length);
+  if(countEl) countEl.innerHTML = `${data.length} <small>ноутбуків</small>`;
   if(!wrap) return;
 
   wrap.innerHTML = data.length ? data.map((item) => `
@@ -1943,6 +1972,12 @@ function bindUI(){
   if(activeFiltersToggle && !activeFiltersToggle.dataset.bound){
     activeFiltersToggle.addEventListener('click', toggleActiveFilters);
     activeFiltersToggle.dataset.bound = '1';
+  }
+
+  const clearLocationFiltersButton = document.getElementById('clearLocationFilters');
+  if(clearLocationFiltersButton && !clearLocationFiltersButton.dataset.bound){
+    clearLocationFiltersButton.addEventListener('click', clearLocationFilters);
+    clearLocationFiltersButton.dataset.bound = '1';
   }
 
   document.addEventListener('input', (event) => {
