@@ -918,7 +918,9 @@ function switchView(name, direction = ''){
   }
   document.querySelectorAll('.nav-btn').forEach((btn) => btn.classList.remove('active'));
   document.querySelector(`.nav-btn[data-view="${name}"]`)?.classList.add('active');
-  window.scrollTo({ top: 0, behavior: 'auto' });
+  // A swipe should move only the tab content. Resetting the page scroll here
+  // makes the whole mobile viewport jump while the transition is running.
+  if(!direction) window.scrollTo({ top: 0, behavior: 'auto' });
 }
 
 function bindMobileTabSwipe(){
