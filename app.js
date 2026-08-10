@@ -55,10 +55,38 @@ function normalizeLocation(location){
 function normalizeLocationState(state){
   const value = String(state || '').trim();
   if(value === 'На гравіювання' || value === 'Гравіювання' || value === 'engraving') return 'Гравіювання';
-  if(value === 'На ремонт' || value === 'Ремонт' || value === 'repair') return 'Ремонт';
+  if(value === 'На ремонт' || value === 'Ремонт' || value === 'repair' || value.startsWith('Ремонт:')) return 'Ремонт';
   if(value === 'На чистку' || value === 'Чистка' || value === 'cleaning') return 'На чистку';
   if(value === 'На фото' || value === 'Фото' || value === 'photo') return 'На фото';
   return '';
+}
+
+function getRepairType(state){
+  const match = String(state || '').trim().match(/^Ремонт:\s*(.+)$/);
+  return match ? match[1].trim() : '';
+}
+
+const repairTypeIcons = {
+  'Екран': '🖥️',
+  'ССД': '💾',
+  'ОЗУ': '🧠',
+  'Батарея': '🔋',
+  'Клавіатура': '⌨️',
+  'USB': '🔌',
+  'Камера': '📷'
+};
+
+function repairTypeIconsTemplate(state){
+  return getRepairType(state).split(', ').filter(Boolean).map((type) => {
+    const icon = repairTypeIcons[type] || '🛠️';
+    return `<span class="repair-type-icon" title="${safe(type)}" aria-label="${safe(type)}">${icon}</span>`;
+  }).join('');
+}
+
+function normalizeLocationStateValue(state){
+  const normalizedState = normalizeLocationState(state);
+  const repairType = getRepairType(state);
+  return normalizedState === 'Ремонт' && repairType ? `Ремонт: ${repairType}` : normalizedState;
 }
 
 function getLocationStateBadgeClass(state){
@@ -1057,12 +1085,15 @@ function cardTemplate(item, soldMode){
               </div>
             <div class="sold-card-links">
               ${ebayLink ? `<a href="${safe(ebayLink)}" target="_blank" rel="noreferrer" style="padding:8px 12px;border-radius:12px;background:rgba(138,180,255,0.15);color:#8ab4ff;font-size:14px;text-decoration:none;display:inline-block;">🔗 eBay</a>` : ''}
-              ${soldDays ? `<div class="sold-days-badge">⏱ ${safe(soldDays)}</div>` : ''}
-              ${item.serial_number ? `<div class="sold-serial-badge">🔢 ${safe(item.serial_number)}</div>` : ''}
+              ${olxLink ? `<a href="${safe(olxLink)}" target="_blank" rel="noreferrer" style="padding:8px 12px;border-radius:12px;background:rgba(34,197,94,0.15);color:#7df0a3;font-size:14px;display:inline-block;text-decoration:none;">✅ OLX</a>` : ''}
+              ${telegramLink ? `<a href="${safe(telegramLink)}" target="_blank" rel="noreferrer" style="padding:8px 12px;border-radius:12px;background:rgba(139,92,246,0.15);color:#d8b4fe;font-size:14px;display:inline-block;text-decoration:none;">✈️ Tel</a>` : ''}
             </div>
             </div>
             <div class="sold-card-side">
-              <div class="badge sold-card-status st-${safe(normalizedStatus)}">${safe(statusLabels[normalizedStatus] || item.status)}</div>
+              <div class="sold-card-sale-row">
+                ${item.serial_number ? `<div class="sold-serial-badge">🔢 ${safe(item.serial_number)}</div>` : ''}
+                ${soldDays ? `<div class="sold-days-badge">⏱ ${safe(soldDays)}</div>` : ''}
+              </div>
               <div class="sold-profit ${profit >= 0 ? 'sold-profit-pos' : 'sold-profit-neg'}">📈 ${sale ? money(profit) : '—'}</div>
             </div>
           </div>
@@ -1150,8 +1181,9 @@ function renderLocation(){
         <div class="location-card-header">
           <div class="location-card-meta">
             <div class="location-card-title">${safe(item.number || 'Без номера')}</div>
-            ${item.location ? `<div class="location-card-badge">${safe(normalizeLocation(item.location))}</div>` : ''}
-            ${item.location_state ? `<div class="location-card-badge ${getLocationStateBadgeClass(item.location_state)}">${safe(normalizeLocationState(item.location_state))}</div>` : ''}
+            ${item.location && normalizeLocationState(item.location_state) !== 'Ремонт' ? `<div class="location-card-badge">${safe(normalizeLocation(item.location))}</div>` : ''}
+            ${item.location_state && normalizeLocationState(item.location_state) !== 'Ремонт' ? `<div class="location-card-badge ${getLocationStateBadgeClass(item.location_state)}">${safe(normalizeLocationState(item.location_state))}</div>` : ''}
+            ${getRepairType(item.location_state) ? `<div class="repair-type-icons">${repairTypeIconsTemplate(item.location_state)}</div>` : ''}
           </div>
           <button class="edit-mini location-card-edit" onclick="openEditModal('${item.id}', 'location')" title="Редагувати локацію">✏️</button>
         </div>
@@ -1204,7 +1236,7 @@ function applyLaptopToState(item){
     ...item,
     status: normalizeStatus(item.status),
     location: normalizeLocation(item.location),
-    location_state: normalizeLocationState(item.location_state)
+    location_state: normalizeLocationStateValue(item.location_state)
   };
   const index = laptops.findIndex((entry) => entry.id === normalizedItem.id);
   if(index >= 0) laptops[index] = { ...laptops[index], ...normalizedItem };
@@ -1350,9 +1382,25 @@ function ensureLocationOnlyFields(){
           <option value="На фото">На фото</option>
         </select>
       </div>
+      <div id="repairTypeField" style="display:none">
+        <label>Що ремонтувати</label>
+        <div class="repair-type-options">
+          ${['Екран', 'ССД', 'ОЗУ', 'Батарея', 'Клавіатура', 'USB', 'Камера'].map((type) => `<label><input type="checkbox" name="repair_type" value="${type}"> ${type}</label>`).join('')}
+        </div>
+      </div>
     </div>`;
   actions.parentNode.insertBefore(wrap, actions);
+  document.getElementById('location_state')?.addEventListener('change', toggleRepairTypeField);
   return wrap;
+}
+
+function toggleRepairTypeField(){
+  const state = document.getElementById('location_state')?.value;
+  const field = document.getElementById('repairTypeField');
+  if(!field) return;
+  const isRepair = state === 'Ремонт';
+  field.style.display = isRepair ? '' : 'none';
+  if(!isRepair) document.querySelectorAll('input[name="repair_type"]').forEach((input) => { input.checked = false; });
 }
 
 function setBaseFieldsEnabled(enabled){
@@ -1412,6 +1460,11 @@ function openEditModal(id, mode = 'full'){
     if(locationInput) locationInput.value = item.location || 'Кладовка верх';
     const locationStateInput = document.getElementById('location_state');
     if(locationStateInput) locationStateInput.value = normalizeLocationState(item.location_state);
+    const repairTypes = getRepairType(item.location_state).split(', ').filter(Boolean);
+    document.querySelectorAll('input[name="repair_type"]').forEach((input) => {
+      input.checked = repairTypes.includes(input.value);
+    });
+    toggleRepairTypeField();
     showAddModal();
     return;
   }
@@ -1539,7 +1592,7 @@ async function loadLaptops(){
     ...item,
     status: normalizeStatus(item.status),
     location: normalizeLocation(item.location),
-    location_state: normalizeLocationState(item.location_state)
+    location_state: normalizeLocationStateValue(item.location_state)
   }));
   clearBanner();
   renderAll();
@@ -1585,9 +1638,10 @@ async function saveLaptop(event){
   try{
     if(currentEditMode === 'location' && targetEditId){
       const locationState = normalizeLocationState(document.getElementById('location_state')?.value);
+      const repairType = [...document.querySelectorAll('input[name="repair_type"]:checked')].map((input) => input.value).join(', ');
       const payload = {
         location: document.getElementById('location')?.value || 'Кладовка верх',
-        location_state: locationState || null
+        location_state: locationState === 'Ремонт' && repairType ? `Ремонт: ${repairType}` : locationState || null
       };
       const { response, savedPayload } = await saveLaptopPatchToDatabase(targetEditId, payload, 'Save laptop location');
       if(response.error){

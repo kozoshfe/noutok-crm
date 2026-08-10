@@ -388,6 +388,7 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
 .sold-date-badge-top{margin-left:auto}
 .sold-card-links{display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-width:0}
 .sold-card-side{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:0 0 auto}
+.sold-card-sale-row{display:flex;align-items:center;justify-content:flex-end;gap:8px}
 .sold-card-edit{width:34px;height:34px;font-size:14px;border-radius:11px}
 .sold-days-badge{
   display:inline-flex;
@@ -502,6 +503,13 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
   border:1px solid rgba(56,189,248,.18);
   color:#9ce7ff;
 }
+.repair-type-icons{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.repair-type-icon{display:grid;place-items:center;width:30px;height:30px;border:1px solid rgba(255,123,139,.32);border-radius:9px;background:rgba(255,123,139,.12);font-size:16px;line-height:1}
+.market-logo{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
+.market-logo-ebay{font-size:16px;font-weight:900;font-style:normal;letter-spacing:-2px}
+.market-logo-ebay i{font-style:normal}.market-logo-ebay i:nth-child(1){color:#e53238}.market-logo-ebay i:nth-child(2){color:#0064d2}.market-logo-ebay i:nth-child(3){color:#f5af02}.market-logo-ebay i:nth-child(4){color:#86b817}
+.market-logo-olx{width:19px;height:19px;border:2px solid #78e56d;border-radius:50%;color:#78e56d;font-size:8px;font-weight:900;letter-spacing:-1px}
+.market-logo-telegram{width:19px;height:19px;fill:#62b9ff}
 .location-card-edit{width:34px;height:34px;font-size:14px;border-radius:11px}
 .price{font-size:14px;font-weight:900;color:#fff}
 
@@ -792,6 +800,9 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
 .location-filter-select{display:flex;align-items:center;gap:14px;min-width:0;padding:0 18px;border:1px solid rgba(133,165,218,.14);border-radius:22px;background:rgba(4,17,42,.44)}
 .location-filter-icon{flex:0 0 auto;color:#7a52ff;font-size:32px;line-height:1}
 .location-filter-select select{min-width:0;width:100%;height:76px;padding:0 28px 0 0;border:0;background:transparent;color:#f3f6ff;font-size:18px;font-weight:750;outline:0}
+.repair-type-options{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.repair-type-options label{display:inline-flex;align-items:center;gap:6px;width:auto;min-height:0;padding:8px 10px;border:1px solid rgba(133,165,218,.22);border-radius:10px;color:var(--text);font-size:14px;font-weight:700;line-height:1.1;cursor:pointer}
+.repair-type-options input{width:16px !important;height:16px !important;min-height:16px !important;margin:0 !important;padding:0 !important;border-radius:4px !important;flex:0 0 16px;accent-color:#22c55e}
 .location-filter-footer{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:20px;padding:18px 10px;border-radius:20px;background:linear-gradient(90deg,rgba(42,89,172,.1),rgba(7,20,47,.12))}
 .location-found{display:flex;align-items:center;gap:14px;margin-left:-20px}
 .location-found-icon{display:grid;place-items:center;flex:0 0 auto;width:56px;height:56px;border-radius:50%;background:rgba(58,85,255,.18);color:#6980ff}
@@ -1722,19 +1733,25 @@ body:not([data-theme="light"]) #authScreen .auth-theme-toggle[aria-pressed="true
   }
 
   #soldCards .sold-card-top{
-    display:flex !important;
-    flex-wrap:nowrap !important;
-    justify-content:space-between !important;
-    align-items:flex-start !important;
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) auto !important;
+    grid-template-areas:
+      "heading side"
+      "links side" !important;
     gap:10px !important;
   }
   #soldCards .sold-card-header{
-    min-width:0 !important;
-    flex:1 1 auto !important;
+    display:contents !important;
+  }
+  #soldCards .sold-card-heading{
+    grid-area:heading !important;
+  }
+  #soldCards .sold-card-links{
+    grid-area:links !important;
   }
   #soldCards .sold-card-side{
+    grid-area:side !important;
     margin-left:auto !important;
-    flex:0 0 auto !important;
     align-items:flex-end !important;
   }
 }
