@@ -784,6 +784,61 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
   color:#f8fbff !important;
   box-shadow:0 16px 28px rgba(28,77,174,.28), inset 0 1px 0 rgba(255,255,255,.18);
 }
+.confirm-overlay{
+  position:fixed;
+  inset:0;
+  z-index:220;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:22px;
+  background:rgba(2,8,20,.62);
+  backdrop-filter:blur(14px);
+}
+.confirm-card{
+  width:min(420px,100%);
+  padding:22px;
+  border-radius:28px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(92,135,255,.18), transparent 30%),
+    linear-gradient(180deg,#0b1934,#071328);
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 28px 70px rgba(0,0,0,.38);
+}
+.confirm-icon{
+  width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  border-radius:16px;
+  background:rgba(64,124,255,.18);
+  color:#9fbcff;
+  border:1px solid rgba(126,164,255,.22);
+  font-size:24px;
+  font-weight:900;
+}
+.confirm-card h3{
+  margin:18px 0 22px;
+  color:#f5f8ff;
+  font-size:28px;
+  line-height:1.05;
+  letter-spacing:0;
+}
+.confirm-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.confirm-btn{
+  min-height:54px;
+  border-radius:18px !important;
+  font-size:17px;
+}
+.confirm-no{
+  background:linear-gradient(180deg,rgba(27,42,74,.98),rgba(16,29,54,.98)) !important;
+  color:#dfe8ff !important;
+  border:1px solid rgba(122,150,212,.18) !important;
+}
 .modal input,
 .modal select,
 .modal textarea{
@@ -1080,6 +1135,30 @@ body[data-theme="light"] .modal-submit{
   background:linear-gradient(180deg,#5a87ff,#3466e3) !important;
   color:#f9fbff !important;
   box-shadow:0 16px 28px rgba(68,102,198,.2), inset 0 1px 0 rgba(255,255,255,.16);
+}
+body[data-theme="light"] .confirm-overlay{
+  background:rgba(116,134,172,.28);
+}
+body[data-theme="light"] .confirm-card{
+  background:
+    radial-gradient(circle at 0% 0%, rgba(116,145,255,.14), transparent 30%),
+    linear-gradient(180deg,rgba(255,255,255,.98),rgba(241,246,255,.96));
+  border-color:rgba(110,136,189,.14);
+  box-shadow:0 28px 70px rgba(116,133,170,.22);
+}
+body[data-theme="light"] .confirm-card h3{
+  color:#18284d;
+}
+body[data-theme="light"] .confirm-icon{
+  background:rgba(69,107,255,.12);
+  color:#4266dd;
+  border-color:rgba(91,121,218,.18);
+}
+body[data-theme="light"] .confirm-no{
+  background:linear-gradient(180deg,#f9fbff,#edf2fb) !important;
+  border-color:rgba(110,136,189,.12) !important;
+  color:#28406b !important;
+  box-shadow:0 10px 24px rgba(116,133,170,.1), inset 0 1px 0 rgba(255,255,255,.9);
 }
 body[data-theme="light"] .test-tools{
   background:rgba(255,255,255,.72);

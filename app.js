@@ -16,7 +16,7 @@ let logoTapTimer = null;
 let dashboardDeliveryNoteValue = [];
 let isSavingLaptop = false;
 let lockedScrollY = 0;
-const APP_VERSION = '20260817-receipt-confirm-1';
+const APP_VERSION = '20260817-receipt-confirm-modal-1';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -1450,9 +1450,46 @@ function selectModelType(type){
   setModelTypeInvalid(false);
 }
 
-function confirmReceiptBeforeSold(currentStatus, nextStatus){
+function showReceiptConfirmDialog(){
+  return new Promise((resolve) => {
+    const existing = document.getElementById('receiptConfirmOverlay');
+    if(existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'receiptConfirmOverlay';
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-card" role="dialog" aria-modal="true" aria-labelledby="receiptConfirmTitle">
+        <div class="confirm-icon">✓</div>
+        <h3 id="receiptConfirmTitle">Чек видано?</h3>
+        <div class="confirm-actions">
+          <button class="ghost confirm-btn confirm-no" type="button">Ні</button>
+          <button class="primary confirm-btn confirm-yes" type="button">Так</button>
+        </div>
+      </div>`;
+
+    const finish = (value) => {
+      overlay.remove();
+      resolve(value);
+    };
+
+    overlay.querySelector('.confirm-no')?.addEventListener('click', () => finish(false));
+    overlay.querySelector('.confirm-yes')?.addEventListener('click', () => finish(true));
+    overlay.addEventListener('click', (event) => {
+      if(event.target === overlay) finish(false);
+    });
+    overlay.addEventListener('keydown', (event) => {
+      if(event.key === 'Escape') finish(false);
+    });
+
+    document.body.appendChild(overlay);
+    window.setTimeout(() => overlay.querySelector('.confirm-yes')?.focus(), 0);
+  });
+}
+
+async function confirmReceiptBeforeSold(currentStatus, nextStatus){
   if(normalizeStatus(currentStatus) === 'sold' || normalizeStatus(nextStatus) !== 'sold') return true;
-  return confirm('Чек видано?');
+  return showReceiptConfirmDialog();
 }
 
 function ensureAddModelTypeFields(){
@@ -1758,7 +1795,7 @@ async function saveLaptop(event){
         return;
       }
 
-      if(currentItem && !confirmReceiptBeforeSold(currentItem.status, payload.status)){
+      if(currentItem && !(await confirmReceiptBeforeSold(currentItem.status, payload.status))){
         return;
       }
 
@@ -1905,7 +1942,7 @@ async function quickStatus(id, status){
     return;
   }
 
-  if(!confirmReceiptBeforeSold(item.status, status)){
+  if(!(await confirmReceiptBeforeSold(item.status, status))){
     return;
   }
 
