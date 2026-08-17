@@ -746,6 +746,10 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
   min-width:0;
   width:100%;
 }
+.model-type-actions.invalid .model-type-btn{
+  border-color:rgba(255,93,93,.72) !important;
+  box-shadow:0 0 0 3px rgba(255,93,93,.14), inset 0 1px 0 rgba(255,255,255,.04);
+}
 .model-type-btn.active{
   background:linear-gradient(180deg,rgba(67,103,172,.98),rgba(33,68,142,.98)) !important;
   border-color:rgba(129,169,245,.42) !important;

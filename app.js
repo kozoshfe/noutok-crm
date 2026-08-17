@@ -16,7 +16,7 @@ let logoTapTimer = null;
 let dashboardDeliveryNoteValue = [];
 let isSavingLaptop = false;
 let lockedScrollY = 0;
-const APP_VERSION = '20260520-modal-scroll-1';
+const APP_VERSION = '20260817-receipt-confirm-1';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -1034,11 +1034,13 @@ function renderStats(){
   const profitTotal = sold.reduce((s, x) => s + calcProfit(x), 0);
   const soldRevenue = sold.reduce((s, x) => s + toNum(x.sold_price), 0);
   const totalCost = active.reduce((s, x) => s + calcCost(x), 0);
+  const activeZbookCount = active.filter((x) => (x.model_type || x.charger_type) === 'Zbook').length;
+  const activeElitebookCount = active.filter((x) => (x.model_type || x.charger_type) === 'Elitebook').length;
 
   document.getElementById('statActiveBig').textContent = active.length;
   document.getElementById('statSoldMonthBig').textContent = soldMonth.length;
   document.getElementById('statProfitMonthBig').textContent = money(profitMonth);
-  document.getElementById('statProfitTotalBig').textContent = money(profitTotal);
+  document.getElementById('statProfitTotalBig').textContent = `${activeZbookCount} / ${activeElitebookCount}`;
   const statCostTotalBig = document.getElementById('statCostTotalBig');
   if(statCostTotalBig) statCostTotalBig.textContent = money(totalCost);
   const statSoldOverallBig = document.getElementById('statSoldOverallBig');
@@ -1297,6 +1299,8 @@ function openAddModal(){
   if(extra) extra.remove();
   const locationOnly = document.getElementById('locationOnlyFields');
   if(locationOnly) locationOnly.remove();
+  ensureAddModelTypeFields();
+  selectModelType('');
   showAddModal();
 }
 
@@ -1431,10 +1435,46 @@ function getSelectedModelType(){
   return document.querySelector('.model-type-btn.active')?.dataset.type || '';
 }
 
+function setModelTypeInvalid(invalid){
+  const wrap = document.querySelector('.model-type-actions');
+  if(wrap) wrap.classList.toggle('invalid', Boolean(invalid));
+  document.querySelectorAll('.model-type-btn').forEach((btn) => {
+    btn.setAttribute('aria-invalid', String(Boolean(invalid)));
+  });
+}
+
 function selectModelType(type){
   document.querySelectorAll('.model-type-btn').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.type === type);
   });
+  setModelTypeInvalid(false);
+}
+
+function confirmReceiptBeforeSold(currentStatus, nextStatus){
+  if(normalizeStatus(currentStatus) === 'sold' || normalizeStatus(nextStatus) !== 'sold') return true;
+  return confirm('Чек видано?');
+}
+
+function ensureAddModelTypeFields(){
+  const actions = document.querySelector('#laptopForm .row-actions');
+  if(!actions || document.getElementById('editOnlyFields')) return;
+
+  const extra = document.createElement('div');
+  extra.id = 'editOnlyFields';
+  extra.dataset.mode = 'add';
+  extra.className = 'span-3';
+  extra.innerHTML = `
+    <div class="form-grid" style="margin-top:12px">
+      <div class="span-3 model-type-field">
+        <label>Модель ноутбука</label>
+        <div class="model-type-actions" aria-label="Модель ноутбука">
+          <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Elitebook" onclick="selectModelType('Elitebook')">Elitebook</button>
+          <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Zbook" onclick="selectModelType('Zbook')">Zbook</button>
+        </div>
+        <input id="charger_cost" type="hidden" value="" />
+      </div>
+    </div>`;
+  actions.parentNode.insertBefore(extra, actions);
 }
 
 function openEditModal(id, mode = 'full'){
@@ -1475,6 +1515,10 @@ function openEditModal(id, mode = 'full'){
   document.getElementById('ebay_link').value = item.ebay_link || '';
 
   let extra = document.getElementById('editOnlyFields');
+  if(extra?.dataset.mode === 'add'){
+    extra.remove();
+    extra = null;
+  }
   if(!extra){
     const actions = document.querySelector('#laptopForm .row-actions');
     extra = document.createElement('div');
@@ -1694,6 +1738,13 @@ async function saveLaptop(event){
       return;
     }
 
+    if(document.getElementById('charger_cost') && !payload.model_type){
+      setModelTypeInvalid(true);
+      setModalSaveMessage('Вибери модель ноутбука: Elitebook або Zbook.');
+      document.querySelector('.model-type-btn')?.focus();
+      return;
+    }
+
     if(targetEditId){
       const currentItem = laptops.find((x) => x.id === targetEditId);
       const allowed = {
@@ -1704,6 +1755,10 @@ async function saveLaptop(event){
 
       if(currentItem && !allowed[currentItem.status]?.includes(payload.status)){
         setModalSaveMessage('Недозволена зміна статусу.');
+        return;
+      }
+
+      if(currentItem && !confirmReceiptBeforeSold(currentItem.status, payload.status)){
         return;
       }
 
@@ -1847,6 +1902,10 @@ async function quickStatus(id, status){
 
   if(!allowed[item.status]?.includes(status)){
     alert('Недозволена зміна статусу');
+    return;
+  }
+
+  if(!confirmReceiptBeforeSold(item.status, status)){
     return;
   }
 
