@@ -16,7 +16,7 @@ let logoTapTimer = null;
 let dashboardDeliveryNoteValue = [];
 let isSavingLaptop = false;
 let lockedScrollY = 0;
-const APP_VERSION = '20260817-receipt-confirm-modal-1';
+const APP_VERSION = '20260817-reset-filters-on-tabs-1';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -897,7 +897,10 @@ function resetFilters(){
   if(filterLocation) filterLocation.value = '';
   if(filterLocationState) filterLocationState.value = '';
   setActiveFiltersOpen(false);
+  syncActiveFilterButtons();
   updateActiveFiltersToggle();
+  renderActive();
+  renderLocation();
 }
 
 function clearLocationFilters(){
@@ -906,6 +909,19 @@ function clearLocationFilters(){
   if(location) location.value = '';
   if(state) state.value = '';
   renderLocation();
+}
+
+function clearActiveFilters(){
+  const filterStatus = document.getElementById('filterStatus');
+  const filterMarket = document.getElementById('filterMarket');
+  const filterModelType = document.getElementById('filterModelType');
+  const filterCostSort = document.getElementById('filterCostSort');
+  if(filterStatus) filterStatus.value = '';
+  if(filterMarket) filterMarket.value = '';
+  if(filterModelType) filterModelType.value = '';
+  if(filterCostSort) filterCostSort.value = '';
+  syncActiveFilterButtons();
+  renderActive();
 }
 
 function getActiveFiltersCount(){
@@ -935,6 +951,28 @@ function updateActiveFiltersToggle(){
   if(!countEl) return;
   countEl.textContent = String(count);
   countEl.hidden = count === 0;
+}
+
+function syncActiveFilterButtons(){
+  document.querySelectorAll('.filter-button-group').forEach((group) => {
+    const targetId = group.querySelector('.filter-option')?.dataset.filterTarget;
+    const currentValue = document.getElementById(targetId)?.value || '';
+    group.querySelectorAll('.filter-option').forEach((button) => {
+      const active = (button.dataset.filterValue || '') === currentValue;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+  });
+}
+
+function handleActiveFilterButtonClick(button){
+  const targetId = button.dataset.filterTarget;
+  const target = document.getElementById(targetId);
+  if(!target) return;
+  const nextValue = button.dataset.filterValue || '';
+  target.value = target.value === nextValue ? '' : nextValue;
+  syncActiveFilterButtons();
+  renderActive();
 }
 
 function switchView(name, direction = ''){
@@ -1342,6 +1380,13 @@ function ensureSoldPriceField(){
   return wrap;
 }
 
+function setSoldPriceInvalid(invalid){
+  const input = document.getElementById('sold_price');
+  if(!input) return;
+  input.classList.toggle('field-invalid', Boolean(invalid));
+  input.setAttribute('aria-invalid', String(Boolean(invalid)));
+}
+
 function toggleSoldPriceField(){
   const statusEl = document.getElementById('status');
   const wrap = document.getElementById('soldPriceWrap');
@@ -1350,6 +1395,7 @@ function toggleSoldPriceField(){
   if(statusEl.value !== 'sold'){
     const input = document.getElementById('sold_price');
     if(input) input.value = '';
+    setSoldPriceInvalid(false);
   }
 }
 
@@ -1627,6 +1673,12 @@ function openEditModal(id, mode = 'full'){
 
   toggleSoldPriceField();
 
+  const soldInput = document.getElementById('sold_price');
+  if(soldInput && !soldInput.dataset.boundSoldPriceInvalid){
+    soldInput.addEventListener('input', () => setSoldPriceInvalid(false));
+    soldInput.dataset.boundSoldPriceInvalid = '1';
+  }
+
   const statusEl = document.getElementById('status');
   if(statusEl && !statusEl.dataset.boundSoldPrice){
     statusEl.addEventListener('change', toggleSoldPriceField);
@@ -1795,12 +1847,16 @@ async function saveLaptop(event){
         return;
       }
 
-      if(currentItem && !(await confirmReceiptBeforeSold(currentItem.status, payload.status))){
+      if(payload.status === 'sold' && (!payload.sold_price || Number(payload.sold_price) <= 0)){
+        setSoldPriceInvalid(true);
+        setModalSaveMessage('Заповни Ціну продажу.');
+        document.getElementById('sold_price')?.focus();
         return;
       }
 
-      if(payload.status === 'sold' && (!payload.sold_price || Number(payload.sold_price) <= 0)){
-        setModalSaveMessage('Введи ціну продажу перед статусом Продано.');
+      setSoldPriceInvalid(false);
+
+      if(currentItem && !(await confirmReceiptBeforeSold(currentItem.status, payload.status))){
         return;
       }
 
@@ -2130,6 +2186,12 @@ function bindUI(){
     clearLocationFiltersButton.dataset.bound = '1';
   }
 
+  const clearActiveFiltersButton = document.getElementById('clearActiveFilters');
+  if(clearActiveFiltersButton && !clearActiveFiltersButton.dataset.bound){
+    clearActiveFiltersButton.addEventListener('click', clearActiveFilters);
+    clearActiveFiltersButton.dataset.bound = '1';
+  }
+
   document.addEventListener('input', (event) => {
     if(event.target?.id !== 'serial_number') return;
     const input = event.target;
@@ -2151,6 +2213,11 @@ function bindUI(){
   });
   window.addEventListener('click', (event) => {
     if(event.target.id === 'addModal') closeAddModal();
+  });
+
+  document.addEventListener('click', (event) => {
+    const filterButton = event.target.closest?.('.filter-option');
+    if(filterButton) handleActiveFilterButtonClick(filterButton);
   });
 
   document.addEventListener('change', (event) => {
