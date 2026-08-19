@@ -298,7 +298,28 @@ function updateDashboardDeliveryNoteValue(value){
   const valueEl = document.getElementById('dashboardDeliveryNoteValue');
   if(!valueEl) return;
   const list = Array.isArray(value) ? value.filter(Boolean) : parseDashboardDeliverySelection(value);
-  valueEl.textContent = list.length ? list.join(', ') : '-';
+  valueEl.innerHTML = list.length
+    ? list.map((number) => `<button class="dashboard-note-link" type="button" data-laptop-number="${safe(number)}" title="Відкрити ноутбук №${safe(number)} в Активних">${safe(number)}</button>`).join('')
+    : '-';
+}
+
+function openDashboardDeliveryLaptop(number){
+  const item = laptops.find((laptop) => normalizeStatus(laptop.status) !== 'sold' && String(laptop.number || '').trim() === String(number || '').trim());
+  if(!item) return;
+
+  switchView('active');
+  resetFilters();
+  renderActive();
+
+  requestAnimationFrame(() => {
+    const card = document.querySelector(`#activeCards [data-laptop-id="${CSS.escape(String(item.id))}"]`);
+    if(!card) return;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.classList.remove('active-card-highlight');
+    void card.offsetWidth;
+    card.classList.add('active-card-highlight');
+    window.setTimeout(() => card.classList.remove('active-card-highlight'), 3000);
+  });
 }
 
 function parseDashboardDeliverySelection(value){
@@ -1108,6 +1129,7 @@ function cardTemplate(item, soldMode){
   const soldDate = soldDateLabel(item.sold_at);
   const trackingTail = getTrackingTail(item.tracking_number);
   const hasDelivery = toNum(item.delivery_cost) > 0;
+  const isInRepair = normalizeLocationState(item.location_state) === 'Ремонт';
   const ebayLink = sanitizeExternalUrl(item.ebay_link);
   const olxLink = sanitizeExternalUrl(item.olx_link);
   const telegramLink = sanitizeExternalUrl(item.telegram_link);
@@ -1143,7 +1165,7 @@ function cardTemplate(item, soldMode){
   }
 
   return `
-    <div class="item">
+    <div class="item" data-laptop-id="${safe(item.id)}">
       <div class="active-card-body">
         <div class="active-card-heading">
           <div class="item-title">${safe(item.number || 'Без номера')}</div>
@@ -1151,6 +1173,7 @@ function cardTemplate(item, soldMode){
           <button class="edit-mini active-card-edit" onclick="openEditModal('${item.id}')" title="Редагувати">✏️</button>
           ${trackingTail ? `<div class="tracking-badge" title="Трекінг номер">📦 ${safe(trackingTail)}</div>` : ''}
           ${hasDelivery ? `<div class="delivery-indicator" title="Доставка: ${safe(money(item.delivery_cost))}" aria-label="Є доставка">🚚</div>` : ''}
+          ${isInRepair ? '<div class="repair-indicator" title="Ноутбук у ремонті" aria-label="Ноутбук у ремонті">🔨</div>' : ''}
         </div>
         <div class="active-card-side">
           <span class="cost-badge active-card-price">💰 ${money(calcCost(item))}</span>
@@ -1216,7 +1239,7 @@ function renderLocation(){
   if(!wrap) return;
 
   wrap.innerHTML = data.length ? data.map((item) => `
-    <div class="item">
+    <div class="item" data-laptop-id="${safe(item.id)}">
       <div class="location-card">
         <div class="location-card-header">
           <div class="location-card-meta">
@@ -1339,6 +1362,13 @@ function openAddModal(){
   if(locationOnly) locationOnly.remove();
   ensureAddModelTypeFields();
   selectModelType('');
+  const numberField = document.getElementById('number');
+  const activeNumbers = laptops
+    .filter((item) => normalizeStatus(item.status) !== 'sold')
+    .map((item) => String(item.number || '').trim())
+    .filter((number) => /^\d+$/.test(number))
+    .map(Number);
+  if(numberField && activeNumbers.length) numberField.value = String(Math.max(...activeNumbers) + 1);
   showAddModal();
 }
 
@@ -2218,6 +2248,11 @@ function bindUI(){
   document.addEventListener('click', (event) => {
     const filterButton = event.target.closest?.('.filter-option');
     if(filterButton) handleActiveFilterButtonClick(filterButton);
+  });
+
+  document.addEventListener('click', (event) => {
+    const laptopLink = event.target.closest?.('.dashboard-note-link');
+    if(laptopLink) openDashboardDeliveryLaptop(laptopLink.dataset.laptopNumber);
   });
 
   document.addEventListener('change', (event) => {
