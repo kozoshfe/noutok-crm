@@ -16,7 +16,8 @@ let logoTapTimer = null;
 let dashboardDeliveryNoteValue = [];
 let isSavingLaptop = false;
 let lockedScrollY = 0;
-const APP_VERSION = '20260817-reset-filters-on-tabs-1';
+// Змінюй номер тут під час кожного оновлення застосунку.
+const APP_VERSION = '1.11.2';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -180,7 +181,7 @@ function showAppShell(){
   const auth = document.getElementById('authScreen');
   const app = document.getElementById('appShell');
   if(auth) auth.style.display = 'none';
-  if(app) app.style.display = 'block';
+  if(app) app.style.display = 'flex';
 }
 
 function showAuthScreen(){
@@ -996,6 +997,11 @@ function handleActiveFilterButtonClick(button){
   renderActive();
 }
 
+function updateAppFooterVisibility(viewName){
+  const footer = document.querySelector('.app-footer');
+  if(footer) footer.hidden = viewName !== 'dashboard';
+}
+
 function switchView(name, direction = ''){
   const nextView = document.getElementById('view-' + name);
   const currentView = document.querySelector('.view.active');
@@ -1013,6 +1019,7 @@ function switchView(name, direction = ''){
   }
   document.querySelectorAll('.nav-btn').forEach((btn) => btn.classList.remove('active'));
   document.querySelector(`.nav-btn[data-view="${name}"]`)?.classList.add('active');
+  updateAppFooterVisibility(name);
   // A swipe should move only the tab content. Resetting the page scroll here
   // makes the whole mobile viewport jump while the transition is running.
   if(!direction) window.scrollTo({ top: 0, behavior: 'auto' });
@@ -1255,6 +1262,57 @@ function renderLocation(){
   `).join('') : `<div class="empty">${locationF || locationStateF ? 'Немає ноутбуків по вибраних фільтрах' : 'Немає ноутбуків зі статусом "Отримано"'}</div>`;
 }
 
+function salesChartTemplate(grouped){
+  const now = new Date();
+  const months = Array.from({ length: 12 }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - 11 + index, 1);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    return {
+      count: grouped[key]?.count || 0,
+      label: date.toLocaleDateString('uk-UA', { month: 'short' }).replace('.', '')
+    };
+  });
+  const maxCount = Math.max(...months.map((month) => month.count), 1);
+  const width = 720;
+  const height = 254;
+  const left = 54;
+  const right = 18;
+  const top = 22;
+  const bottom = 48;
+  const plotWidth = width - left - right;
+  const plotHeight = height - top - bottom;
+  const point = (month, index) => ({
+    x: left + (plotWidth / (months.length - 1)) * index,
+    y: top + plotHeight - (month.count / maxCount) * plotHeight
+  });
+  const points = months.map(point);
+  const line = points.map((item, index) => `${index ? 'L' : 'M'} ${item.x.toFixed(1)} ${item.y.toFixed(1)}`).join(' ');
+  const area = `${line} L ${points.at(-1).x.toFixed(1)} ${(top + plotHeight).toFixed(1)} L ${points[0].x.toFixed(1)} ${(top + plotHeight).toFixed(1)} Z`;
+  const gridValues = Array.from(new Set([0, Math.ceil(maxCount / 2), maxCount]));
+
+  return `
+    <section class="sales-chart" aria-labelledby="salesChartTitle">
+      <div class="sales-chart-header">
+        <h2 id="salesChartTitle">Продажі за 12 місяців</h2>
+      </div>
+      <svg class="sales-chart-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Графік кількості проданих ноутбуків за останні 12 місяців">
+        <defs>
+          <linearGradient id="salesChartArea" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="#4f8cff" stop-opacity=".38" />
+            <stop offset="100%" stop-color="#4f8cff" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+        ${gridValues.map((value) => {
+          const y = top + plotHeight - (value / maxCount) * plotHeight;
+          return `<g><line class="sales-chart-grid" x1="${left}" x2="${width - right}" y1="${y}" y2="${y}" /><text class="sales-chart-y-label" x="${left - 10}" y="${y + 4}">${value}</text></g>`;
+        }).join('')}
+        <path class="sales-chart-area" d="${area}" />
+        <path class="sales-chart-line" d="${line}" />
+        ${points.map((item, index) => `<g><circle class="sales-chart-point" cx="${item.x}" cy="${item.y}" r="5" /><text class="sales-chart-value" x="${item.x}" y="${item.y - 12}">${months[index].count}</text>${index % 2 === 0 || index === months.length - 1 ? `<text class="sales-chart-x-label" x="${item.x}" y="${height - 16}">${safe(months[index].label)}</text>` : ''}</g>`).join('')}
+      </svg>
+    </section>`;
+}
+
 function renderMonths(){
   const sold = laptops.filter((x) => normalizeStatus(x.status) === 'sold' && x.sold_at);
   const wrap = document.getElementById('monthsWrap');
@@ -1272,7 +1330,7 @@ function renderMonths(){
   });
 
   const keys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
-  wrap.innerHTML = keys.map((key) => `
+  wrap.innerHTML = salesChartTemplate(grouped) + keys.map((key) => `
     <div class="month-card">
       <div class="muted">Місяць</div>
       <div class="month-title">${safe(monthName(key))}</div>
@@ -2116,6 +2174,9 @@ function subscribeRealtime(){
 
 async function init(){
   if(!ensureAppVersion()) return;
+  const versionEl = document.getElementById('appVersion');
+  if(versionEl) versionEl.textContent = `Версія ${APP_VERSION}`;
+  updateAppFooterVisibility('dashboard');
   loadTheme();
   syncDisplayModeClass();
   updateNetwork();
