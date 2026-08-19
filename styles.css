@@ -363,8 +363,7 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
   white-space:nowrap;
   flex:0 0 auto;
 }
-.delivery-indicator,
-.repair-indicator{
+.delivery-indicator{
   display:inline-flex;
   align-items:center;
   justify-content:center;
@@ -614,6 +613,41 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
   color:#8fa4c5;
   padding-left:2px;
 }
+.filter-button-group{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.filter-option{
+  min-height:46px;
+  min-width:0;
+  flex:1 1 auto;
+  padding:0 13px;
+  border-radius:14px;
+  background:linear-gradient(180deg,#0a1427,#09111f);
+  border:1px solid rgba(255,255,255,.08);
+  color:#d9e5ff;
+  font-size:14px;
+  font-weight:850;
+  line-height:1;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
+}
+.filter-option.active{
+  background:linear-gradient(180deg,rgba(67,103,172,.98),rgba(33,68,142,.98));
+  border-color:rgba(129,169,245,.42);
+  color:#fff;
+  box-shadow:0 10px 20px rgba(27,71,160,.18), inset 0 1px 0 rgba(255,255,255,.08);
+}
+.active-filters-clear{
+  grid-column:1 / -1;
+  min-height:46px;
+  border-radius:14px;
+  background:rgba(63,124,255,.08);
+  border:1px solid rgba(122,150,212,.14);
+  color:#9db8ff;
+  font-size:14px;
+  font-weight:850;
+}
 .select-wrap{
   position:relative;
 }
@@ -747,6 +781,10 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
   min-width:0;
   width:100%;
 }
+.model-type-actions.invalid .model-type-btn{
+  border-color:rgba(255,93,93,.72) !important;
+  box-shadow:0 0 0 3px rgba(255,93,93,.14), inset 0 1px 0 rgba(255,255,255,.04);
+}
 .model-type-btn.active{
   background:linear-gradient(180deg,rgba(67,103,172,.98),rgba(33,68,142,.98)) !important;
   border-color:rgba(129,169,245,.42) !important;
@@ -781,6 +819,61 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
   color:#f8fbff !important;
   box-shadow:0 16px 28px rgba(28,77,174,.28), inset 0 1px 0 rgba(255,255,255,.18);
 }
+.confirm-overlay{
+  position:fixed;
+  inset:0;
+  z-index:220;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:22px;
+  background:rgba(2,8,20,.62);
+  backdrop-filter:blur(14px);
+}
+.confirm-card{
+  width:min(420px,100%);
+  padding:22px;
+  border-radius:28px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(92,135,255,.18), transparent 30%),
+    linear-gradient(180deg,#0b1934,#071328);
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 28px 70px rgba(0,0,0,.38);
+}
+.confirm-icon{
+  width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  border-radius:16px;
+  background:rgba(64,124,255,.18);
+  color:#9fbcff;
+  border:1px solid rgba(126,164,255,.22);
+  font-size:24px;
+  font-weight:900;
+}
+.confirm-card h3{
+  margin:18px 0 22px;
+  color:#f5f8ff;
+  font-size:28px;
+  line-height:1.05;
+  letter-spacing:0;
+}
+.confirm-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.confirm-btn{
+  min-height:54px;
+  border-radius:18px !important;
+  font-size:17px;
+}
+.confirm-no{
+  background:linear-gradient(180deg,rgba(27,42,74,.98),rgba(16,29,54,.98)) !important;
+  color:#dfe8ff !important;
+  border:1px solid rgba(122,150,212,.18) !important;
+}
 .modal input,
 .modal select,
 .modal textarea{
@@ -793,6 +886,10 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
 .modal input::placeholder,
 .modal textarea::placeholder{
   color:#8da0c0;
+}
+.modal input.field-invalid{
+  border-color:rgba(255,93,93,.72);
+  box-shadow:0 0 0 3px rgba(255,93,93,.14), inset 0 1px 0 rgba(255,255,255,.03);
 }
 .pill{display:inline-flex;gap:8px;align-items:center;background:#0a1427;padding:10px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.06)}
 .location-filter-panel{padding:24px}
@@ -1022,6 +1119,23 @@ body[data-theme="light"] .form-field label{
 body[data-theme="light"] .filter-label{
   color:#7283a5;
 }
+body[data-theme="light"] .filter-option{
+  background:linear-gradient(180deg,#fbfdff,#f0f5fd);
+  border-color:rgba(110,136,189,.14);
+  color:#28406b;
+  box-shadow:0 8px 18px rgba(117,136,173,.08), inset 0 1px 0 rgba(255,255,255,.9);
+}
+body[data-theme="light"] .filter-option.active{
+  background:linear-gradient(180deg,#5a87ff,#3466e3);
+  border-color:rgba(65,101,221,.28);
+  color:#f9fbff;
+  box-shadow:0 14px 24px rgba(68,102,198,.18), inset 0 1px 0 rgba(255,255,255,.16);
+}
+body[data-theme="light"] .active-filters-clear{
+  background:rgba(69,107,255,.08);
+  border-color:rgba(110,136,189,.12);
+  color:#4266dd;
+}
 body[data-theme="light"] .select-wrap::after{
   border-right-color:#52688f;
   border-bottom-color:#52688f;
@@ -1077,6 +1191,30 @@ body[data-theme="light"] .modal-submit{
   background:linear-gradient(180deg,#5a87ff,#3466e3) !important;
   color:#f9fbff !important;
   box-shadow:0 16px 28px rgba(68,102,198,.2), inset 0 1px 0 rgba(255,255,255,.16);
+}
+body[data-theme="light"] .confirm-overlay{
+  background:rgba(116,134,172,.28);
+}
+body[data-theme="light"] .confirm-card{
+  background:
+    radial-gradient(circle at 0% 0%, rgba(116,145,255,.14), transparent 30%),
+    linear-gradient(180deg,rgba(255,255,255,.98),rgba(241,246,255,.96));
+  border-color:rgba(110,136,189,.14);
+  box-shadow:0 28px 70px rgba(116,133,170,.22);
+}
+body[data-theme="light"] .confirm-card h3{
+  color:#18284d;
+}
+body[data-theme="light"] .confirm-icon{
+  background:rgba(69,107,255,.12);
+  color:#4266dd;
+  border-color:rgba(91,121,218,.18);
+}
+body[data-theme="light"] .confirm-no{
+  background:linear-gradient(180deg,#f9fbff,#edf2fb) !important;
+  border-color:rgba(110,136,189,.12) !important;
+  color:#28406b !important;
+  box-shadow:0 10px 24px rgba(116,133,170,.1), inset 0 1px 0 rgba(255,255,255,.9);
 }
 body[data-theme="light"] .test-tools{
   background:rgba(255,255,255,.72);
@@ -1429,8 +1567,7 @@ body:not([data-theme="light"]) #authScreen .auth-theme-toggle[aria-pressed="true
   }
   #activeCards .active-card-edit,
   #activeCards .item .tracking-badge,
-  #activeCards .item .delivery-indicator,
-  #activeCards .item .repair-indicator{
+  #activeCards .item .delivery-indicator{
     flex:0 0 auto !important;
   }
   #activeCards .active-card-side{
@@ -1448,8 +1585,7 @@ body:not([data-theme="light"]) #authScreen .auth-theme-toggle[aria-pressed="true
   #activeCards .item .ebay-btn,
   #activeCards .item .olx-badge,
   #activeCards .item .tracking-badge,
-  #activeCards .item .delivery-indicator,
-  #activeCards .item .repair-indicator{
+  #activeCards .item .delivery-indicator{
     display:inline-flex !important;
     align-items:center !important;
     justify-content:center !important;
@@ -1777,8 +1913,7 @@ body:not([data-theme="light"]) #authScreen .auth-theme-toggle[aria-pressed="true
   }
   body.standalone-mode #activeCards .item a,
   body.standalone-mode #activeCards .item .tracking-badge,
-  body.standalone-mode #activeCards .item .delivery-indicator,
-  body.standalone-mode #activeCards .item .repair-indicator{
+  body.standalone-mode #activeCards .item .delivery-indicator{
     min-height:30px !important;
     height:30px !important;
     padding:0 7px !important;

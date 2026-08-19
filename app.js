@@ -16,7 +16,7 @@ let logoTapTimer = null;
 let dashboardDeliveryNoteValue = [];
 let isSavingLaptop = false;
 let lockedScrollY = 0;
-const APP_VERSION = '20260520-modal-scroll-1';
+const APP_VERSION = '20260817-reset-filters-on-tabs-1';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -897,7 +897,10 @@ function resetFilters(){
   if(filterLocation) filterLocation.value = '';
   if(filterLocationState) filterLocationState.value = '';
   setActiveFiltersOpen(false);
+  syncActiveFilterButtons();
   updateActiveFiltersToggle();
+  renderActive();
+  renderLocation();
 }
 
 function clearLocationFilters(){
@@ -906,6 +909,19 @@ function clearLocationFilters(){
   if(location) location.value = '';
   if(state) state.value = '';
   renderLocation();
+}
+
+function clearActiveFilters(){
+  const filterStatus = document.getElementById('filterStatus');
+  const filterMarket = document.getElementById('filterMarket');
+  const filterModelType = document.getElementById('filterModelType');
+  const filterCostSort = document.getElementById('filterCostSort');
+  if(filterStatus) filterStatus.value = '';
+  if(filterMarket) filterMarket.value = '';
+  if(filterModelType) filterModelType.value = '';
+  if(filterCostSort) filterCostSort.value = '';
+  syncActiveFilterButtons();
+  renderActive();
 }
 
 function getActiveFiltersCount(){
@@ -935,6 +951,28 @@ function updateActiveFiltersToggle(){
   if(!countEl) return;
   countEl.textContent = String(count);
   countEl.hidden = count === 0;
+}
+
+function syncActiveFilterButtons(){
+  document.querySelectorAll('.filter-button-group').forEach((group) => {
+    const targetId = group.querySelector('.filter-option')?.dataset.filterTarget;
+    const currentValue = document.getElementById(targetId)?.value || '';
+    group.querySelectorAll('.filter-option').forEach((button) => {
+      const active = (button.dataset.filterValue || '') === currentValue;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+  });
+}
+
+function handleActiveFilterButtonClick(button){
+  const targetId = button.dataset.filterTarget;
+  const target = document.getElementById(targetId);
+  if(!target) return;
+  const nextValue = button.dataset.filterValue || '';
+  target.value = target.value === nextValue ? '' : nextValue;
+  syncActiveFilterButtons();
+  renderActive();
 }
 
 function switchView(name, direction = ''){
@@ -1034,11 +1072,13 @@ function renderStats(){
   const profitTotal = sold.reduce((s, x) => s + calcProfit(x), 0);
   const soldRevenue = sold.reduce((s, x) => s + toNum(x.sold_price), 0);
   const totalCost = active.reduce((s, x) => s + calcCost(x), 0);
+  const activeZbookCount = active.filter((x) => (x.model_type || x.charger_type) === 'Zbook').length;
+  const activeElitebookCount = active.filter((x) => (x.model_type || x.charger_type) === 'Elitebook').length;
 
   document.getElementById('statActiveBig').textContent = active.length;
   document.getElementById('statSoldMonthBig').textContent = soldMonth.length;
   document.getElementById('statProfitMonthBig').textContent = money(profitMonth);
-  document.getElementById('statProfitTotalBig').textContent = money(profitTotal);
+  document.getElementById('statProfitTotalBig').textContent = `${activeZbookCount} / ${activeElitebookCount}`;
   const statCostTotalBig = document.getElementById('statCostTotalBig');
   if(statCostTotalBig) statCostTotalBig.textContent = money(totalCost);
   const statSoldOverallBig = document.getElementById('statSoldOverallBig');
@@ -1068,7 +1108,6 @@ function cardTemplate(item, soldMode){
   const soldDate = soldDateLabel(item.sold_at);
   const trackingTail = getTrackingTail(item.tracking_number);
   const hasDelivery = toNum(item.delivery_cost) > 0;
-  const isInRepair = normalizeLocationState(item.location_state) === 'Ремонт';
   const ebayLink = sanitizeExternalUrl(item.ebay_link);
   const olxLink = sanitizeExternalUrl(item.olx_link);
   const telegramLink = sanitizeExternalUrl(item.telegram_link);
@@ -1112,7 +1151,6 @@ function cardTemplate(item, soldMode){
           <button class="edit-mini active-card-edit" onclick="openEditModal('${item.id}')" title="Редагувати">✏️</button>
           ${trackingTail ? `<div class="tracking-badge" title="Трекінг номер">📦 ${safe(trackingTail)}</div>` : ''}
           ${hasDelivery ? `<div class="delivery-indicator" title="Доставка: ${safe(money(item.delivery_cost))}" aria-label="Є доставка">🚚</div>` : ''}
-          ${isInRepair ? `<div class="repair-indicator" title="Ноутбук у ремонті" aria-label="Ноутбук у ремонті">🔨</div>` : ''}
         </div>
         <div class="active-card-side">
           <span class="cost-badge active-card-price">💰 ${money(calcCost(item))}</span>
@@ -1299,6 +1337,8 @@ function openAddModal(){
   if(extra) extra.remove();
   const locationOnly = document.getElementById('locationOnlyFields');
   if(locationOnly) locationOnly.remove();
+  ensureAddModelTypeFields();
+  selectModelType('');
   showAddModal();
 }
 
@@ -1340,6 +1380,13 @@ function ensureSoldPriceField(){
   return wrap;
 }
 
+function setSoldPriceInvalid(invalid){
+  const input = document.getElementById('sold_price');
+  if(!input) return;
+  input.classList.toggle('field-invalid', Boolean(invalid));
+  input.setAttribute('aria-invalid', String(Boolean(invalid)));
+}
+
 function toggleSoldPriceField(){
   const statusEl = document.getElementById('status');
   const wrap = document.getElementById('soldPriceWrap');
@@ -1348,6 +1395,7 @@ function toggleSoldPriceField(){
   if(statusEl.value !== 'sold'){
     const input = document.getElementById('sold_price');
     if(input) input.value = '';
+    setSoldPriceInvalid(false);
   }
 }
 
@@ -1433,10 +1481,83 @@ function getSelectedModelType(){
   return document.querySelector('.model-type-btn.active')?.dataset.type || '';
 }
 
+function setModelTypeInvalid(invalid){
+  const wrap = document.querySelector('.model-type-actions');
+  if(wrap) wrap.classList.toggle('invalid', Boolean(invalid));
+  document.querySelectorAll('.model-type-btn').forEach((btn) => {
+    btn.setAttribute('aria-invalid', String(Boolean(invalid)));
+  });
+}
+
 function selectModelType(type){
   document.querySelectorAll('.model-type-btn').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.type === type);
   });
+  setModelTypeInvalid(false);
+}
+
+function showReceiptConfirmDialog(){
+  return new Promise((resolve) => {
+    const existing = document.getElementById('receiptConfirmOverlay');
+    if(existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'receiptConfirmOverlay';
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-card" role="dialog" aria-modal="true" aria-labelledby="receiptConfirmTitle">
+        <div class="confirm-icon">✓</div>
+        <h3 id="receiptConfirmTitle">Чек видано?</h3>
+        <div class="confirm-actions">
+          <button class="ghost confirm-btn confirm-no" type="button">Ні</button>
+          <button class="primary confirm-btn confirm-yes" type="button">Так</button>
+        </div>
+      </div>`;
+
+    const finish = (value) => {
+      overlay.remove();
+      resolve(value);
+    };
+
+    overlay.querySelector('.confirm-no')?.addEventListener('click', () => finish(false));
+    overlay.querySelector('.confirm-yes')?.addEventListener('click', () => finish(true));
+    overlay.addEventListener('click', (event) => {
+      if(event.target === overlay) finish(false);
+    });
+    overlay.addEventListener('keydown', (event) => {
+      if(event.key === 'Escape') finish(false);
+    });
+
+    document.body.appendChild(overlay);
+    window.setTimeout(() => overlay.querySelector('.confirm-yes')?.focus(), 0);
+  });
+}
+
+async function confirmReceiptBeforeSold(currentStatus, nextStatus){
+  if(normalizeStatus(currentStatus) === 'sold' || normalizeStatus(nextStatus) !== 'sold') return true;
+  return showReceiptConfirmDialog();
+}
+
+function ensureAddModelTypeFields(){
+  const actions = document.querySelector('#laptopForm .row-actions');
+  if(!actions || document.getElementById('editOnlyFields')) return;
+
+  const extra = document.createElement('div');
+  extra.id = 'editOnlyFields';
+  extra.dataset.mode = 'add';
+  extra.className = 'span-3';
+  extra.innerHTML = `
+    <div class="form-grid" style="margin-top:12px">
+      <div class="span-3 model-type-field">
+        <label>Модель ноутбука</label>
+        <div class="model-type-actions" aria-label="Модель ноутбука">
+          <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Elitebook" onclick="selectModelType('Elitebook')">Elitebook</button>
+          <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Zbook" onclick="selectModelType('Zbook')">Zbook</button>
+        </div>
+        <input id="charger_cost" type="hidden" value="" />
+      </div>
+    </div>`;
+  actions.parentNode.insertBefore(extra, actions);
 }
 
 function openEditModal(id, mode = 'full'){
@@ -1477,6 +1598,10 @@ function openEditModal(id, mode = 'full'){
   document.getElementById('ebay_link').value = item.ebay_link || '';
 
   let extra = document.getElementById('editOnlyFields');
+  if(extra?.dataset.mode === 'add'){
+    extra.remove();
+    extra = null;
+  }
   if(!extra){
     const actions = document.querySelector('#laptopForm .row-actions');
     extra = document.createElement('div');
@@ -1547,6 +1672,12 @@ function openEditModal(id, mode = 'full'){
   }
 
   toggleSoldPriceField();
+
+  const soldInput = document.getElementById('sold_price');
+  if(soldInput && !soldInput.dataset.boundSoldPriceInvalid){
+    soldInput.addEventListener('input', () => setSoldPriceInvalid(false));
+    soldInput.dataset.boundSoldPriceInvalid = '1';
+  }
 
   const statusEl = document.getElementById('status');
   if(statusEl && !statusEl.dataset.boundSoldPrice){
@@ -1696,6 +1827,13 @@ async function saveLaptop(event){
       return;
     }
 
+    if(document.getElementById('charger_cost') && !payload.model_type){
+      setModelTypeInvalid(true);
+      setModalSaveMessage('Вибери модель ноутбука: Elitebook або Zbook.');
+      document.querySelector('.model-type-btn')?.focus();
+      return;
+    }
+
     if(targetEditId){
       const currentItem = laptops.find((x) => x.id === targetEditId);
       const allowed = {
@@ -1710,7 +1848,15 @@ async function saveLaptop(event){
       }
 
       if(payload.status === 'sold' && (!payload.sold_price || Number(payload.sold_price) <= 0)){
-        setModalSaveMessage('Введи ціну продажу перед статусом Продано.');
+        setSoldPriceInvalid(true);
+        setModalSaveMessage('Заповни Ціну продажу.');
+        document.getElementById('sold_price')?.focus();
+        return;
+      }
+
+      setSoldPriceInvalid(false);
+
+      if(currentItem && !(await confirmReceiptBeforeSold(currentItem.status, payload.status))){
         return;
       }
 
@@ -1849,6 +1995,10 @@ async function quickStatus(id, status){
 
   if(!allowed[item.status]?.includes(status)){
     alert('Недозволена зміна статусу');
+    return;
+  }
+
+  if(!(await confirmReceiptBeforeSold(item.status, status))){
     return;
   }
 
@@ -2036,6 +2186,12 @@ function bindUI(){
     clearLocationFiltersButton.dataset.bound = '1';
   }
 
+  const clearActiveFiltersButton = document.getElementById('clearActiveFilters');
+  if(clearActiveFiltersButton && !clearActiveFiltersButton.dataset.bound){
+    clearActiveFiltersButton.addEventListener('click', clearActiveFilters);
+    clearActiveFiltersButton.dataset.bound = '1';
+  }
+
   document.addEventListener('input', (event) => {
     if(event.target?.id !== 'serial_number') return;
     const input = event.target;
@@ -2057,6 +2213,11 @@ function bindUI(){
   });
   window.addEventListener('click', (event) => {
     if(event.target.id === 'addModal') closeAddModal();
+  });
+
+  document.addEventListener('click', (event) => {
+    const filterButton = event.target.closest?.('.filter-option');
+    if(filterButton) handleActiveFilterButtonClick(filterButton);
   });
 
   document.addEventListener('change', (event) => {
