@@ -20,7 +20,7 @@ let stockParts = {};
 let isSavingLaptop = false;
 let lockedScrollY = 0;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.10';
+const APP_VERSION = '1.11.11';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -194,9 +194,9 @@ function closeStockReminder(){
   document.getElementById('stockReminderModal')?.classList.remove('show');
 }
 
-function showDailyStockReminder(){
+function showDailyStockReminder(force = false){
   const today = new Date().toLocaleDateString('en-CA');
-  if(localStorage.getItem(STOCK_REMINDER_DATE_KEY) === today) return;
+  if(!force && localStorage.getItem(STOCK_REMINDER_DATE_KEY) === today) return;
 
   const emptyParts = stockPartDefinitions.filter((part) => !stockParts[part.key]);
   if(!emptyParts.length) return;
@@ -221,18 +221,24 @@ function isZbook(item){
 
 async function deductZbookStock(){
   stockParts = normalizeStockParts(stockParts);
+  const becameEmpty = stockParts.charger150 > 0 && stockParts.charger150 === 1
+    || stockParts.powerCables > 0 && stockParts.powerCables === 1;
   stockParts.charger150 = Math.max(0, stockParts.charger150 - 1);
   stockParts.powerCables = Math.max(0, stockParts.powerCables - 1);
   await saveStockParts();
   renderStockParts();
+  return becameEmpty;
 }
 
 async function deductElitebookStock(){
   stockParts = normalizeStockParts(stockParts);
+  const becameEmpty = stockParts.charger65 > 0 && stockParts.charger65 === 1
+    || stockParts.powerCables > 0 && stockParts.powerCables === 1;
   stockParts.charger65 = Math.max(0, stockParts.charger65 - 1);
   stockParts.powerCables = Math.max(0, stockParts.powerCables - 1);
   await saveStockParts();
   renderStockParts();
+  return becameEmpty;
 }
 
 function handleVersionTap(){
@@ -2120,8 +2126,12 @@ async function saveLaptop(event){
       hasSupabaseConnection = true;
       updateNetwork();
       applyLaptopToState({ ...(currentItem || {}), ...savedPayload, id: targetEditId });
-      if(shouldDeductZbookStock) await deductZbookStock();
-      if(shouldDeductElitebookStock) await deductElitebookStock();
+      const stockBecameEmpty = shouldDeductZbookStock
+        ? await deductZbookStock()
+        : shouldDeductElitebookStock
+          ? await deductElitebookStock()
+          : false;
+      if(stockBecameEmpty) showDailyStockReminder(true);
       closeAddModal();
       resetForm();
       resetSaveButton(saveBtn, saveWatchdog);
@@ -2250,12 +2260,14 @@ async function quickStatus(id, status){
   updateNetwork();
   if(response.data) applyLaptopToState(response.data);
   if(status === 'sold' && item.status !== 'sold' && isZbook(item)){
-    await deductZbookStock();
+    const stockBecameEmpty = await deductZbookStock();
     setBanner('Продано. Зі складу списано блок 150W і кабель живлення.');
+    if(stockBecameEmpty) showDailyStockReminder(true);
   }
   if(status === 'sold' && item.status !== 'sold' && (item.model_type || item.charger_type) === 'Elitebook'){
-    await deductElitebookStock();
+    const stockBecameEmpty = await deductElitebookStock();
     setBanner('Продано. Зі складу списано блок 65W і кабель живлення.');
+    if(stockBecameEmpty) showDailyStockReminder(true);
   }
   refreshLaptopsInBackground();
 }
