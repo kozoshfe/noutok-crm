@@ -21,7 +21,7 @@ let stockParts = {};
 let isSavingLaptop = false;
 let lockedScrollY = 0;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.40';
+const APP_VERSION = '1.11.42';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -467,6 +467,21 @@ function updateDashboardDeliveryNoteValue(value){
   valueEl.innerHTML = list.length
     ? list.map((number) => `<button class="dashboard-note-link" type="button" data-laptop-number="${safe(number)}" title="Відкрити ноутбук №${safe(number)} в Активних">${safe(number)}</button>`).join('')
     : '-';
+
+  updateDashboardDeliveryTotal();
+}
+
+function updateDashboardDeliveryTotal(){
+  const totalEl = document.getElementById('dashboardDeliveryTotal');
+  if(!totalEl) return;
+
+  const laptopsWithoutDelivery = laptops.filter((item) =>
+    normalizeStatus(item.status) === 'in_transit' && toNum(item.delivery_cost) === 0
+  ).length;
+  const total = laptopsWithoutDelivery * 900;
+
+  totalEl.textContent = `${new Intl.NumberFormat('uk-UA').format(total)} грн`;
+  totalEl.title = `${laptopsWithoutDelivery} × 900 грн`;
 }
 
 function openDashboardDeliveryLaptop(number){

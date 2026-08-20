@@ -1,7 +1,7 @@
 {
   "name": "Ноуток СРМ",
   "short_name": "Ноуток",
-  "start_url": "./?appv=1.11.40",
+  "start_url": "./?appv=1.11.42",
   "scope": "./",
   "display": "standalone",
   "background_color": "#061126",
