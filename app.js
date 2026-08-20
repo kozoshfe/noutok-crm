@@ -21,7 +21,7 @@ let stockParts = {};
 let isSavingLaptop = false;
 let lockedScrollY = 0;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.35';
+const APP_VERSION = '1.11.38';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -1671,6 +1671,11 @@ function setChargerCostInvalid(invalid){
   if(!input) return;
   input.classList.toggle('field-invalid', Boolean(invalid));
   input.setAttribute('aria-invalid', String(Boolean(invalid)));
+  const options = document.getElementById('chargerCostOptions');
+  options?.classList.toggle('invalid', Boolean(invalid));
+  options?.querySelectorAll('.part-cost-option').forEach((button) => {
+    button.setAttribute('aria-invalid', String(Boolean(invalid)));
+  });
 }
 
 function setAdditionalPartCostInvalid(id, invalid){
@@ -1678,16 +1683,70 @@ function setAdditionalPartCostInvalid(id, invalid){
   if(!input) return;
   input.classList.toggle('field-invalid', Boolean(invalid));
   input.setAttribute('aria-invalid', String(Boolean(invalid)));
+  const options = document.getElementById(`${id}Options`);
+  options?.classList.toggle('invalid', Boolean(invalid));
+  options?.querySelectorAll('.part-cost-option').forEach((button) => {
+    button.setAttribute('aria-invalid', String(Boolean(invalid)));
+  });
+}
+
+function syncPartCostOptions(id){
+  const input = document.getElementById(id);
+  const optionsId = id === 'charger_cost' ? 'chargerCostOptions' : `${id}Options`;
+  const options = document.getElementById(optionsId);
+  if(!input || !options) return;
+  const value = input.value.trim();
+  options.querySelectorAll('.part-cost-option').forEach((button) => {
+    const active = value !== '' && Number(button.dataset.cost) === Number(value);
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+}
+
+function selectPartCost(id, value){
+  const input = document.getElementById(id);
+  if(!input) return;
+  input.value = String(value);
+  syncPartCostOptions(id);
+  if(id === 'charger_cost') setChargerCostInvalid(false);
+  else setAdditionalPartCostInvalid(id, false);
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function focusPartCostOptions(id){
+  const optionsId = id === 'charger_cost' ? 'chargerCostOptions' : `${id}Options`;
+  document.querySelector(`#${optionsId} .part-cost-option`)?.focus();
+}
+
+function isSerialReady(serialInput){
+  if(!serialInput) return false;
+  const length = serialInput.value.trim().length;
+  return length >= 3 || (serialInput.dataset.hadSerial === '1' && length > 0);
+}
+
+function updateReceivedPartFieldsVisibility(){
+  const serialInput = document.getElementById('serial_number');
+  if(!serialInput) return;
+  const hasSerial = isSerialReady(serialInput);
+  const isFirstSerialEntry = hasSerial && serialInput.dataset.hadSerial !== '1';
+  ['chargerField', 'ssdField', 'ramField'].forEach((fieldId) => {
+    const field = document.getElementById(fieldId);
+    if(!field) return;
+    field.hidden = !hasSerial;
+    if(isFirstSerialEntry) field.classList.remove('completed-field');
+  });
 }
 
 function updateChargerCostRequirement(){
-  const serial = document.getElementById('serial_number')?.value.trim();
+  const serialInput = document.getElementById('serial_number');
   const label = document.getElementById('chargerCostLabel');
   const input = document.getElementById('charger_cost');
   if(!label || !input) return;
-  const required = Boolean(serial);
+  const required = isSerialReady(serialInput);
   label.textContent = required ? 'Зарядний, ₴ *' : 'Зарядний, ₴';
   input.required = required;
+  updateReceivedPartFieldsVisibility();
   if(!required) setChargerCostInvalid(false);
 }
 
@@ -1698,12 +1757,13 @@ function updateAdditionalPartsRequirement(){
   const ssdLabel = document.getElementById('ssdCostLabel');
   const ramLabel = document.getElementById('ramCostLabel');
   if(!serial || !ssd || !ram || !ssdLabel || !ramLabel) return;
-  const required = Boolean(serial.value.trim());
+  const required = isSerialReady(serial);
   ssd.required = required;
   ram.required = required;
-  ssdLabel.innerHTML = `SSD, ₴${required ? ' *' : ''}<span class="part-cost-hint">800 — 256 GB · 1600 — 512 GB</span>`;
-  ramLabel.innerHTML = `RAM, ₴${required ? ' *' : ''}<span class="part-cost-hint">800 — 8 GB · 1600 — 16 GB</span>`;
+  ssdLabel.textContent = required ? 'SSD, ₴ *' : 'SSD, ₴';
+  ramLabel.textContent = required ? 'RAM, ₴ *' : 'RAM, ₴';
   if(required) setAdditionalCostsVisibility(true);
+  updateReceivedPartFieldsVisibility();
   if(!required){
     setAdditionalPartCostInvalid('ssd', false);
     setAdditionalPartCostInvalid('ram', false);
@@ -1943,14 +2003,38 @@ function openEditModal(id, mode = 'full'){
           <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Zbook" onclick="selectModelType('Zbook')">Zbook</button>
         </div>
         <div id="serialField"><label>Серійний номер</label><input id="serial_number" /></div>
-        <div id="chargerField"><label id="chargerCostLabel">Зарядний, ₴</label><input id="charger_cost" type="number" min="0" step="0.01" /></div>
+        <div id="chargerField" hidden>
+          <label id="chargerCostLabel">Зарядний, ₴</label>
+          <div id="chargerCostOptions" class="part-cost-options" role="group" aria-label="Вартість зарядного">
+            <button class="part-cost-option" type="button" data-cost="0" onclick="selectPartCost('charger_cost', 0)"><b>0</b><small>у комплекті</small></button>
+            <button class="part-cost-option" type="button" data-cost="400" onclick="selectPartCost('charger_cost', 400)"><b>400 ₴</b><small>зарядний</small></button>
+            <button class="part-cost-option" type="button" data-cost="900" onclick="selectPartCost('charger_cost', 900)"><b>900 ₴</b><small>зарядний</small></button>
+          </div>
+          <input id="charger_cost" type="hidden" value="" />
+        </div>
         <div id="additionalCostsFields" class="span-3 additional-costs-fields">
           <div class="form-grid additional-costs-grid">
             <div id="dutyField"><label>Мито, ₴</label><input id="duty_cost" type="number" min="0" step="0.01" /></div>
             <div class="completed-field"><label>Реклама OLX, ₴</label><input id="olx_ad_cost" type="number" min="0" step="0.01" value="300" readonly /></div>
             <div class="completed-field"><label>Гравіювання, ₴</label><input id="engraving_cost" type="number" min="0" step="0.01" value="200" readonly /></div>
-            <div id="ssdField"><label id="ssdCostLabel" class="part-cost-label">SSD, ₴<span class="part-cost-hint">800 — 256 GB · 1600 — 512 GB</span></label><input id="ssd" type="number" min="0" step="0.01" /></div>
-            <div id="ramField"><label id="ramCostLabel" class="part-cost-label">RAM, ₴<span class="part-cost-hint">800 — 8 GB · 1600 — 16 GB</span></label><input id="ram" type="number" min="0" step="0.01" /></div>
+            <div id="ssdField" hidden>
+              <label id="ssdCostLabel">SSD, ₴</label>
+              <div id="ssdOptions" class="part-cost-options" role="group" aria-label="Встановлений SSD">
+                <button class="part-cost-option" type="button" data-cost="0" onclick="selectPartCost('ssd', 0)"><b>0</b><small>не ставили</small></button>
+                <button class="part-cost-option" type="button" data-cost="800" onclick="selectPartCost('ssd', 800)"><b>256 GB</b><small>800 ₴</small></button>
+                <button class="part-cost-option" type="button" data-cost="1600" onclick="selectPartCost('ssd', 1600)"><b>512 GB</b><small>1600 ₴</small></button>
+              </div>
+              <input id="ssd" type="hidden" value="" />
+            </div>
+            <div id="ramField" hidden>
+              <label id="ramCostLabel">RAM, ₴</label>
+              <div id="ramOptions" class="part-cost-options" role="group" aria-label="Встановлена оперативна пам’ять">
+                <button class="part-cost-option" type="button" data-cost="0" onclick="selectPartCost('ram', 0)"><b>0</b><small>не ставили</small></button>
+                <button class="part-cost-option" type="button" data-cost="800" onclick="selectPartCost('ram', 800)"><b>8 GB</b><small>800 ₴</small></button>
+                <button class="part-cost-option" type="button" data-cost="1600" onclick="selectPartCost('ram', 1600)"><b>16 GB</b><small>1600 ₴</small></button>
+              </div>
+              <input id="ram" type="hidden" value="" />
+            </div>
           </div>
         </div>
         <div><label>Статус</label>
@@ -1986,6 +2070,7 @@ function openEditModal(id, mode = 'full'){
   document.getElementById('delivery_cost').value = item.delivery_cost || '';
   selectModelType(item.model_type || item.charger_type || '');
   document.getElementById('charger_cost').value = item.charger_cost ?? '';
+  syncPartCostOptions('charger_cost');
   document.getElementById('chargerField')?.classList.toggle('completed-field', item.charger_cost !== null && item.charger_cost !== undefined && item.charger_cost !== '');
   updateChargerCostRequirement();
   const hasSerialNumber = Boolean(item.serial_number);
@@ -1998,6 +2083,8 @@ function openEditModal(id, mode = 'full'){
   document.getElementById('engraving_cost').value = 200;
   document.getElementById('ssd').value = ssdValue;
   document.getElementById('ram').value = ramValue;
+  syncPartCostOptions('ssd');
+  syncPartCostOptions('ram');
   document.getElementById('ssdField')?.classList.toggle('completed-field', ssdValue !== '');
   document.getElementById('ramField')?.classList.toggle('completed-field', ramValue !== '');
   updateAdditionalPartsRequirement();
@@ -2200,11 +2287,18 @@ async function saveLaptop(event){
       return;
     }
 
+    const serialNumberInput = document.getElementById('serial_number');
+    if(serialNumberInput && serialNumberInput.dataset.hadSerial !== '1' && payload.serial_number && payload.serial_number.length < 3){
+      setModalSaveMessage('Введи щонайменше 3 символи серійного номера.');
+      serialNumberInput.focus();
+      return;
+    }
+
     const chargerCostInput = document.getElementById('charger_cost');
     if(payload.serial_number && chargerCostInput && chargerCostInput.value.trim() === ''){
       setChargerCostInvalid(true);
       setModalSaveMessage('Після введення серійного номера заповни поле «Зарядний». Вкажи 0, якщо зарядний прийшов разом із ноутбуком.');
-      chargerCostInput.focus();
+      focusPartCostOptions('charger_cost');
       return;
     }
     setChargerCostInvalid(false);
@@ -2215,7 +2309,7 @@ async function saveLaptop(event){
       setAdditionalPartCostInvalid('ssd', ssdCostInput?.value.trim() === '');
       setAdditionalPartCostInvalid('ram', ramCostInput?.value.trim() === '');
       setModalSaveMessage('Після введення серійного номера заповни поля SSD і RAM. Вкажи 0, якщо запчастину не встановлювали.');
-      (ssdCostInput?.value.trim() === '' ? ssdCostInput : ramCostInput)?.focus();
+      focusPartCostOptions(ssdCostInput?.value.trim() === '' ? 'ssd' : 'ram');
       return;
     }
     setAdditionalPartCostInvalid('ssd', false);
@@ -2694,7 +2788,9 @@ function bindUI(){
     input.value = normalizeSerialNumber(input.value);
     if(start !== null && end !== null) input.setSelectionRange(start, end);
     const status = document.getElementById('status');
-    if(input.value.trim() && status?.value !== 'sold') applyStatusOptions('received');
+    const serialReady = isSerialReady(input);
+    if(serialReady && status?.value !== 'sold') applyStatusOptions('received');
+    else if(!serialReady && input.dataset.hadSerial !== '1' && status?.value !== 'sold') applyStatusOptions('in_transit');
     updateChargerCostRequirement();
     updateAdditionalPartsRequirement();
   });
