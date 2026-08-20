@@ -21,7 +21,7 @@ let stockParts = {};
 let isSavingLaptop = false;
 let lockedScrollY = 0;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.15';
+const APP_VERSION = '1.11.16';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -287,6 +287,31 @@ async function addReceivedChargerToStock(modelType){
   if(modelType === 'Elitebook') stockParts.charger65 += 1;
   await saveStockParts();
   renderStockParts();
+}
+
+async function deductReceivedPartsStock(ssdCost, ramCost){
+  stockParts = normalizeStockParts(stockParts);
+  const deductions = [];
+  let becameEmpty = false;
+  if(Number(ssdCost) === 800){
+    becameEmpty ||= stockParts.ssd256 === 1;
+    stockParts.ssd256 = Math.max(0, stockParts.ssd256 - 1);
+    deductions.push('ССД 256 GB');
+  }
+  if(Number(ramCost) === 800){
+    becameEmpty ||= stockParts.ram8 === 1;
+    stockParts.ram8 = Math.max(0, stockParts.ram8 - 1);
+    deductions.push('Оперативна пам’ять 8 GB');
+  }
+  if(Number(ramCost) === 1600){
+    becameEmpty ||= stockParts.ram16 === 1;
+    stockParts.ram16 = Math.max(0, stockParts.ram16 - 1);
+    deductions.push('Оперативна пам’ять 16 GB');
+  }
+  if(!deductions.length) return { deductions, becameEmpty };
+  await saveStockParts();
+  renderStockParts();
+  return { deductions, becameEmpty };
 }
 
 function handleVersionTap(){
@@ -1663,15 +1688,41 @@ function setChargerCostInvalid(invalid){
   input.setAttribute('aria-invalid', String(Boolean(invalid)));
 }
 
+function setAdditionalPartCostInvalid(id, invalid){
+  const input = document.getElementById(id);
+  if(!input) return;
+  input.classList.toggle('field-invalid', Boolean(invalid));
+  input.setAttribute('aria-invalid', String(Boolean(invalid)));
+}
+
 function updateChargerCostRequirement(){
   const serial = document.getElementById('serial_number')?.value.trim();
   const label = document.getElementById('chargerCostLabel');
   const input = document.getElementById('charger_cost');
   if(!label || !input) return;
-  const required = Boolean(serial);
+  const required = Boolean(serial) && document.getElementById('serial_number')?.dataset.hadSerial !== '1';
   label.textContent = required ? 'Зарядний, ₴ *' : 'Зарядний, ₴';
   input.required = required;
   if(!required) setChargerCostInvalid(false);
+}
+
+function updateAdditionalPartsRequirement(){
+  const serial = document.getElementById('serial_number');
+  const ssd = document.getElementById('ssd');
+  const ram = document.getElementById('ram');
+  const ssdLabel = document.getElementById('ssdCostLabel');
+  const ramLabel = document.getElementById('ramCostLabel');
+  if(!serial || !ssd || !ram || !ssdLabel || !ramLabel) return;
+  const required = Boolean(serial.value.trim()) && serial.dataset.hadSerial !== '1';
+  ssd.required = required;
+  ram.required = required;
+  ssdLabel.textContent = required ? 'SSD, ₴ *' : 'SSD, ₴';
+  ramLabel.textContent = required ? 'RAM, ₴ *' : 'RAM, ₴';
+  if(required) setAdditionalCostsVisibility(true);
+  if(!required){
+    setAdditionalPartCostInvalid('ssd', false);
+    setAdditionalPartCostInvalid('ram', false);
+  }
 }
 
 function toggleSoldPriceField(){
@@ -1910,8 +1961,8 @@ function openEditModal(id, mode = 'full'){
             <div><label>Мито, ₴</label><input id="duty_cost" type="number" min="0" step="0.01" /></div>
             <div><label>Реклама OLX, ₴</label><input id="olx_ad_cost" type="number" min="0" step="0.01" value="300" readonly /></div>
             <div><label>Гравіювання, ₴</label><input id="engraving_cost" type="number" min="0" step="0.01" value="200" readonly /></div>
-            <div><label>SSD, ₴</label><input id="ssd" type="number" min="0" step="0.01" /></div>
-            <div><label>RAM, ₴</label><input id="ram" type="number" min="0" step="0.01" /></div>
+            <div><label id="ssdCostLabel">SSD, ₴</label><input id="ssd" type="number" min="0" step="0.01" /></div>
+            <div><label id="ramCostLabel">RAM, ₴</label><input id="ram" type="number" min="0" step="0.01" /></div>
           </div>
         </div>
         <div><label>Статус</label>
@@ -1939,6 +1990,7 @@ function openEditModal(id, mode = 'full'){
 
   applyStatusOptions(item.status || 'in_transit');
   document.getElementById('serial_number').value = normalizeSerialNumber(item.serial_number);
+  document.getElementById('serial_number').dataset.hadSerial = item.serial_number ? '1' : '0';
   document.getElementById('delivery_cost').value = item.delivery_cost || '';
   selectModelType(item.model_type || item.charger_type || '');
   document.getElementById('charger_cost').value = item.charger_cost ?? '';
@@ -1948,6 +2000,7 @@ function openEditModal(id, mode = 'full'){
   document.getElementById('engraving_cost').value = 200;
   document.getElementById('ssd').value = item.ssd || '';
   document.getElementById('ram').value = item.ram || '';
+  updateAdditionalPartsRequirement();
   document.getElementById('tracking_number').value = item.tracking_number || '';
   document.getElementById('olx_link').value = item.olx_link || '';
   document.getElementById('telegram_link').value = item.telegram_link || '';
@@ -1972,6 +2025,14 @@ function openEditModal(id, mode = 'full'){
     chargerCostInput.addEventListener('input', () => setChargerCostInvalid(false));
     chargerCostInput.dataset.boundRequired = '1';
   }
+
+  ['ssd', 'ram'].forEach((id) => {
+    const input = document.getElementById(id);
+    if(input && !input.dataset.boundRequired){
+      input.addEventListener('input', () => setAdditionalPartCostInvalid(id, false));
+      input.dataset.boundRequired = '1';
+    }
+  });
 
   const statusEl = document.getElementById('status');
   if(statusEl && !statusEl.dataset.boundSoldPrice){
@@ -2137,6 +2198,20 @@ async function saveLaptop(event){
     }
     setChargerCostInvalid(false);
 
+    const currentItemBeforeSave = targetEditId ? laptops.find((x) => x.id === targetEditId) : null;
+    const isFirstSerialEntry = Boolean(currentItemBeforeSave && !String(currentItemBeforeSave.serial_number || '').trim() && payload.serial_number);
+    const ssdCostInput = document.getElementById('ssd');
+    const ramCostInput = document.getElementById('ram');
+    if(isFirstSerialEntry && (ssdCostInput?.value.trim() === '' || ramCostInput?.value.trim() === '')){
+      setAdditionalPartCostInvalid('ssd', ssdCostInput?.value.trim() === '');
+      setAdditionalPartCostInvalid('ram', ramCostInput?.value.trim() === '');
+      setModalSaveMessage('Після введення серійного номера заповни поля SSD і RAM. Вкажи 0, якщо запчастину не встановлювали.');
+      (ssdCostInput?.value.trim() === '' ? ssdCostInput : ramCostInput)?.focus();
+      return;
+    }
+    setAdditionalPartCostInvalid('ssd', false);
+    setAdditionalPartCostInvalid('ram', false);
+
     if(targetEditId){
       const currentItem = laptops.find((x) => x.id === targetEditId);
       const allowed = {
@@ -2196,6 +2271,7 @@ async function saveLaptop(event){
       const shouldDeductElitebookStock = soldNow && (soldModel.model_type || soldModel.charger_type) === 'Elitebook';
       const receivedChargerModel = soldModel.model_type || soldModel.charger_type;
       const shouldAddReceivedCharger = Boolean(currentItem && !String(currentItem.serial_number || '').trim() && payload.serial_number && Number(payload.charger_cost) === 0 && (receivedChargerModel === 'Zbook' || receivedChargerModel === 'Elitebook'));
+      const shouldDeductReceivedParts = Boolean(currentItem && !String(currentItem.serial_number || '').trim() && payload.serial_number);
       const { response, savedPayload, savedWithoutModelType } = await saveLaptopPatchToDatabase(targetEditId, payload, 'Save laptop direct');
       if(response.error){
         hasSupabaseConnection = false;
@@ -2217,13 +2293,19 @@ async function saveLaptop(event){
           : false;
       if(stockBecameEmpty) showDailyStockReminder(true);
       if(shouldAddReceivedCharger) await addReceivedChargerToStock(receivedChargerModel);
+      const receivedPartsResult = shouldDeductReceivedParts
+        ? await deductReceivedPartsStock(payload.ssd, payload.ram)
+        : { deductions: [], becameEmpty: false };
+      if(receivedPartsResult.becameEmpty) showDailyStockReminder(true);
       closeAddModal();
       resetForm();
       resetSaveButton(saveBtn, saveWatchdog);
       if(savedWithoutModelType){
         setBanner('Збережено в базу, але модель не записалась: додай колонку model_type у Supabase.', false);
       } else {
-        setBanner(shouldAddReceivedCharger
+        setBanner(receivedPartsResult.deductions.length
+          ? `Збережено. Зі складу списано: ${receivedPartsResult.deductions.join(', ')}.`
+          : shouldAddReceivedCharger
           ? `Збережено. На склад додано блок живлення ${receivedChargerModel === 'Zbook' ? '150W' : '65W'}.`
           : shouldDeductZbookStock
           ? 'Збережено. Зі складу списано блок 150W і кабель живлення.'
@@ -2596,6 +2678,7 @@ function bindUI(){
     const status = document.getElementById('status');
     if(input.value.trim() && status?.value !== 'sold') applyStatusOptions('received');
     updateChargerCostRequirement();
+    updateAdditionalPartsRequirement();
   });
 
   window.addEventListener('online', async () => {
