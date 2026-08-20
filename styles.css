@@ -179,6 +179,7 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
 .stock-part-icon{display:grid;place-items:center;width:38px;height:38px;flex:0 0 auto;border-radius:12px;background:rgba(91,140,255,.16);font-size:19px}
 .stock-part-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}.stock-part-copy b{font-size:14px}.stock-part-copy small{color:var(--muted)}
 .stock-part-input{width:64px;min-height:44px;padding:6px;text-align:center;font-weight:900;font-size:18px}
+.stock-part-input-locked{cursor:pointer;color:#dce7ff;background:#091426}
 .stock-reminder-card{width:min(520px,100%)}
 .stock-reminder-copy{margin:0 0 12px;color:var(--muted)}
 .stock-reminder-list{display:grid;gap:9px;margin:0 0 20px;padding:0;list-style:none}

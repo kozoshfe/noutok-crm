@@ -4,6 +4,7 @@ const SUPABASE_URL = 'https://qzcapeempzzdhicsweqz.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_nXxnpG6C_RO9mVqcYEt1mg_Z9Z-dpDr';
 const TABLE = 'laptops';
 const SETTINGS_TABLE = 'app_settings';
+const STOCK_TABLE = 'stock_inventory';
 
 let supabaseClient = null;
 let laptops = [];
@@ -20,7 +21,7 @@ let stockParts = {};
 let isSavingLaptop = false;
 let lockedScrollY = 0;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.11';
+const APP_VERSION = '1.11.15';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -165,6 +166,32 @@ function normalizeStockParts(value){
   }, {});
 }
 
+function stockPartsFromDatabase(row){
+  return normalizeStockParts({
+    ssd256: row?.ssd_256,
+    ssd512: row?.ssd_512,
+    ram8: row?.ram_8,
+    ram16: row?.ram_16,
+    charger65: row?.charger_65w,
+    charger150: row?.charger_150w,
+    powerCables: row?.power_cables
+  });
+}
+
+function stockPartsToDatabase(){
+  const normalized = normalizeStockParts(stockParts);
+  return {
+    id: 1,
+    ssd_256: normalized.ssd256,
+    ssd_512: normalized.ssd512,
+    ram_8: normalized.ram8,
+    ram_16: normalized.ram16,
+    charger_65w: normalized.charger65,
+    charger_150w: normalized.charger150,
+    power_cables: normalized.powerCables
+  };
+}
+
 function renderStockParts(){
   const wrap = document.getElementById('stockParts');
   if(!wrap) return;
@@ -173,7 +200,7 @@ function renderStockParts(){
     <label class="stock-part-card" for="stock-${part.key}">
       <span class="stock-part-icon" aria-hidden="true">${part.icon}</span>
       <span class="stock-part-copy"><b>${part.label}</b><small>шт. на складі</small></span>
-      <input id="stock-${part.key}" class="stock-part-input" type="number" min="0" step="1" inputmode="numeric" value="${stockParts[part.key]}" aria-label="${safe(part.label)}: кількість на складі" data-stock-key="${part.key}" />
+      <input id="stock-${part.key}" class="stock-part-input stock-part-input-locked" type="number" min="0" step="1" inputmode="numeric" value="${stockParts[part.key]}" aria-label="${safe(part.label)}: кількість на складі. Натисни двічі для редагування" data-stock-key="${part.key}" readonly />
     </label>
   `).join('');
 }
@@ -181,6 +208,14 @@ function renderStockParts(){
 async function loadStockParts(){
   let value = localStorage.getItem(STOCK_PARTS_KEY) || '';
   if(supabaseClient){
+    const { data: stockRow, error: stockError } = await supabaseClient.from(STOCK_TABLE).select('*').eq('id', 1).maybeSingle();
+    if(!stockError && stockRow){
+      stockParts = stockPartsFromDatabase(stockRow);
+      localStorage.setItem(STOCK_PARTS_KEY, JSON.stringify(stockParts));
+      renderStockParts();
+      return;
+    }
+
     const { data, error } = await supabaseClient.from(SETTINGS_TABLE).select('value').eq('key', STOCK_PARTS_SETTING_KEY).maybeSingle();
     if(!error && data?.value) value = data.value;
   }
@@ -212,7 +247,12 @@ async function saveStockParts(){
   stockParts = normalizeStockParts(stockParts);
   const value = JSON.stringify(stockParts);
   localStorage.setItem(STOCK_PARTS_KEY, value);
-  if(supabaseClient) await supabaseClient.from(SETTINGS_TABLE).upsert({ key: STOCK_PARTS_SETTING_KEY, value }, { onConflict: 'key' });
+  if(!supabaseClient) return;
+
+  const { error: stockError } = await supabaseClient.from(STOCK_TABLE).upsert(stockPartsToDatabase(), { onConflict: 'id' });
+  if(!stockError) return;
+
+  await supabaseClient.from(SETTINGS_TABLE).upsert({ key: STOCK_PARTS_SETTING_KEY, value }, { onConflict: 'key' });
 }
 
 function isZbook(item){
@@ -239,6 +279,14 @@ async function deductElitebookStock(){
   await saveStockParts();
   renderStockParts();
   return becameEmpty;
+}
+
+async function addReceivedChargerToStock(modelType){
+  stockParts = normalizeStockParts(stockParts);
+  if(modelType === 'Zbook') stockParts.charger150 += 1;
+  if(modelType === 'Elitebook') stockParts.charger65 += 1;
+  await saveStockParts();
+  renderStockParts();
 }
 
 function handleVersionTap(){
@@ -1608,6 +1656,24 @@ function setSoldPriceInvalid(invalid){
   input.setAttribute('aria-invalid', String(Boolean(invalid)));
 }
 
+function setChargerCostInvalid(invalid){
+  const input = document.getElementById('charger_cost');
+  if(!input) return;
+  input.classList.toggle('field-invalid', Boolean(invalid));
+  input.setAttribute('aria-invalid', String(Boolean(invalid)));
+}
+
+function updateChargerCostRequirement(){
+  const serial = document.getElementById('serial_number')?.value.trim();
+  const label = document.getElementById('chargerCostLabel');
+  const input = document.getElementById('charger_cost');
+  if(!label || !input) return;
+  const required = Boolean(serial);
+  label.textContent = required ? 'Зарядний, ₴ *' : 'Зарядний, ₴';
+  input.required = required;
+  if(!required) setChargerCostInvalid(false);
+}
+
 function toggleSoldPriceField(){
   const statusEl = document.getElementById('status');
   const wrap = document.getElementById('soldPriceWrap');
@@ -1835,7 +1901,7 @@ function openEditModal(id, mode = 'full'){
           <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Elitebook" onclick="selectModelType('Elitebook')">Elitebook</button>
           <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Zbook" onclick="selectModelType('Zbook')">Zbook</button>
         </div>
-        <div><label>Зарядний, ₴</label><input id="charger_cost" type="number" min="0" step="0.01" /></div>
+        <div><label id="chargerCostLabel">Зарядний, ₴</label><input id="charger_cost" type="number" min="0" step="0.01" /></div>
         <div class="span-3 additional-costs-toggle-row">
           <button id="additionalCostsToggle" class="ghost inline-field-btn additional-costs-toggle" type="button" aria-expanded="false">Додаткові витрати</button>
         </div>
@@ -1875,7 +1941,8 @@ function openEditModal(id, mode = 'full'){
   document.getElementById('serial_number').value = normalizeSerialNumber(item.serial_number);
   document.getElementById('delivery_cost').value = item.delivery_cost || '';
   selectModelType(item.model_type || item.charger_type || '');
-  document.getElementById('charger_cost').value = item.charger_cost || '';
+  document.getElementById('charger_cost').value = item.charger_cost ?? '';
+  updateChargerCostRequirement();
   document.getElementById('duty_cost').value = item.duty_cost || '';
   document.getElementById('olx_ad_cost').value = 300;
   document.getElementById('engraving_cost').value = 200;
@@ -1898,6 +1965,12 @@ function openEditModal(id, mode = 'full'){
   if(soldInput && !soldInput.dataset.boundSoldPriceInvalid){
     soldInput.addEventListener('input', () => setSoldPriceInvalid(false));
     soldInput.dataset.boundSoldPriceInvalid = '1';
+  }
+
+  const chargerCostInput = document.getElementById('charger_cost');
+  if(chargerCostInput && !chargerCostInput.dataset.boundRequired){
+    chargerCostInput.addEventListener('input', () => setChargerCostInvalid(false));
+    chargerCostInput.dataset.boundRequired = '1';
   }
 
   const statusEl = document.getElementById('status');
@@ -2055,6 +2128,15 @@ async function saveLaptop(event){
       return;
     }
 
+    const chargerCostInput = document.getElementById('charger_cost');
+    if(payload.serial_number && chargerCostInput && chargerCostInput.value.trim() === ''){
+      setChargerCostInvalid(true);
+      setModalSaveMessage('Після введення серійного номера заповни поле «Зарядний». Вкажи 0, якщо зарядний прийшов разом із ноутбуком.');
+      chargerCostInput.focus();
+      return;
+    }
+    setChargerCostInvalid(false);
+
     if(targetEditId){
       const currentItem = laptops.find((x) => x.id === targetEditId);
       const allowed = {
@@ -2112,6 +2194,8 @@ async function saveLaptop(event){
       const soldModel = { ...currentItem, ...payload };
       const shouldDeductZbookStock = soldNow && isZbook(soldModel);
       const shouldDeductElitebookStock = soldNow && (soldModel.model_type || soldModel.charger_type) === 'Elitebook';
+      const receivedChargerModel = soldModel.model_type || soldModel.charger_type;
+      const shouldAddReceivedCharger = Boolean(currentItem && !String(currentItem.serial_number || '').trim() && payload.serial_number && Number(payload.charger_cost) === 0 && (receivedChargerModel === 'Zbook' || receivedChargerModel === 'Elitebook'));
       const { response, savedPayload, savedWithoutModelType } = await saveLaptopPatchToDatabase(targetEditId, payload, 'Save laptop direct');
       if(response.error){
         hasSupabaseConnection = false;
@@ -2132,13 +2216,16 @@ async function saveLaptop(event){
           ? await deductElitebookStock()
           : false;
       if(stockBecameEmpty) showDailyStockReminder(true);
+      if(shouldAddReceivedCharger) await addReceivedChargerToStock(receivedChargerModel);
       closeAddModal();
       resetForm();
       resetSaveButton(saveBtn, saveWatchdog);
       if(savedWithoutModelType){
         setBanner('Збережено в базу, але модель не записалась: додай колонку model_type у Supabase.', false);
       } else {
-        setBanner(shouldDeductZbookStock
+        setBanner(shouldAddReceivedCharger
+          ? `Збережено. На склад додано блок живлення ${receivedChargerModel === 'Zbook' ? '150W' : '65W'}.`
+          : shouldDeductZbookStock
           ? 'Збережено. Зі складу списано блок 150W і кабель живлення.'
           : shouldDeductElitebookStock
             ? 'Збережено. Зі складу списано блок 65W і кабель живлення.'
@@ -2405,12 +2492,36 @@ function bindUI(){
 
   const stockPartsWrap = document.getElementById('stockParts');
   if(stockPartsWrap && !stockPartsWrap.dataset.bound){
+    stockPartsWrap.addEventListener('click', (event) => {
+      const input = event.target;
+      if(!(input instanceof HTMLInputElement) || !input.dataset.stockKey || !input.readOnly) return;
+      const now = Date.now();
+      const previousTap = Number(input.dataset.lastTap || 0);
+      input.dataset.lastTap = String(now);
+      if(now - previousTap > 550) return;
+
+      input.readOnly = false;
+      input.classList.remove('stock-part-input-locked');
+      input.removeAttribute('data-last-tap');
+      input.focus();
+      input.select();
+    });
+
+    stockPartsWrap.addEventListener('focusout', (event) => {
+      const input = event.target;
+      if(!(input instanceof HTMLInputElement) || !input.dataset.stockKey) return;
+      input.readOnly = true;
+      input.classList.add('stock-part-input-locked');
+    });
+
     stockPartsWrap.addEventListener('change', async (event) => {
       const input = event.target;
       if(!(input instanceof HTMLInputElement) || !input.dataset.stockKey) return;
       stockParts[input.dataset.stockKey] = Math.max(0, Math.floor(Number(input.value) || 0));
       input.value = String(stockParts[input.dataset.stockKey]);
       await saveStockParts();
+      input.readOnly = true;
+      input.classList.add('stock-part-input-locked');
     });
     stockPartsWrap.dataset.bound = '1';
   }
@@ -2482,6 +2593,9 @@ function bindUI(){
     const end = input.selectionEnd;
     input.value = normalizeSerialNumber(input.value);
     if(start !== null && end !== null) input.setSelectionRange(start, end);
+    const status = document.getElementById('status');
+    if(input.value.trim() && status?.value !== 'sold') applyStatusOptions('received');
+    updateChargerCostRequirement();
   });
 
   window.addEventListener('online', async () => {
