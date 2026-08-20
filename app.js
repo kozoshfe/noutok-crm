@@ -21,7 +21,7 @@ let stockParts = {};
 let isSavingLaptop = false;
 let lockedScrollY = 0;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.42';
+const APP_VERSION = '1.11.43';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -34,6 +34,10 @@ const REQUEST_TIMEOUT_MS = 8000;
 const AUTH_TIMEOUT_MS = 3000;
 const SAVE_UI_TIMEOUT_MS = 10000;
 const HISTORICAL_SOLD_COUNT = 187;
+const DELIVERY_ESTIMATE_PER_LAPTOP = 900;
+const DUTY_EXCHANGE_RATE = 50;
+const DUTY_FREE_LIMIT_USD = 150;
+const DUTY_RATE = 0.3;
 let isSyncingPendingSaves = false;
 
 const statusLabels = {
@@ -473,15 +477,31 @@ function updateDashboardDeliveryNoteValue(value){
 
 function updateDashboardDeliveryTotal(){
   const totalEl = document.getElementById('dashboardDeliveryTotal');
-  if(!totalEl) return;
+  const dutyTotalEl = document.getElementById('dashboardDutyTotal');
+  if(!totalEl && !dutyTotalEl) return;
 
   const laptopsWithoutDelivery = laptops.filter((item) =>
     normalizeStatus(item.status) === 'in_transit' && toNum(item.delivery_cost) === 0
   ).length;
-  const total = laptopsWithoutDelivery * 900;
+  const total = laptopsWithoutDelivery * DELIVERY_ESTIMATE_PER_LAPTOP;
 
-  totalEl.textContent = `${new Intl.NumberFormat('uk-UA').format(total)} грн`;
-  totalEl.title = `${laptopsWithoutDelivery} × 900 грн`;
+  if(totalEl){
+    totalEl.textContent = `${new Intl.NumberFormat('uk-UA').format(total)} грн`;
+    totalEl.title = `${laptopsWithoutDelivery} × ${DELIVERY_ESTIMATE_PER_LAPTOP} грн`;
+  }
+
+  const dutyTotal = laptops.reduce((sum, item) => {
+    if(normalizeStatus(item.status) !== 'in_transit' || toNum(item.duty_cost) !== 0) return sum;
+
+    const ebayPriceUsd = toNum(item.ebay_price) / DUTY_EXCHANGE_RATE;
+    const taxableAmountUsd = Math.max(0, ebayPriceUsd - DUTY_FREE_LIMIT_USD);
+    return sum + taxableAmountUsd * DUTY_RATE * DUTY_EXCHANGE_RATE;
+  }, 0);
+
+  if(dutyTotalEl){
+    dutyTotalEl.textContent = `${new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 2 }).format(dutyTotal)} грн`;
+    dutyTotalEl.title = '30% від частини ціни понад $150 за курсом 50 грн/$';
+  }
 }
 
 function openDashboardDeliveryLaptop(number){
