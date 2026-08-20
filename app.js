@@ -21,7 +21,7 @@ let stockParts = {};
 let isSavingLaptop = false;
 let lockedScrollY = 0;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.38';
+const APP_VERSION = '1.11.40';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -1997,11 +1997,9 @@ function openEditModal(id, mode = 'full'){
     extra.innerHTML = `
       <button id="completedFieldsToggle" class="ghost completed-fields-toggle" type="button" aria-expanded="false">Заповнено ▾</button>
       <div class="form-grid" style="margin-top:12px">
-        <div class="completed-field"><label>Доставка, ₴</label><input id="delivery_cost" type="number" min="0" step="0.01" /></div>
-        <div class="span-3 model-type-actions completed-field" aria-label="Модель ноутбука">
-          <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Elitebook" onclick="selectModelType('Elitebook')">Elitebook</button>
-          <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Zbook" onclick="selectModelType('Zbook')">Zbook</button>
-        </div>
+        <div id="trackingField" class="span-2"><label>Трекінг номер</label><div style="display:flex;gap:8px;align-items:center"><input id="tracking_number" placeholder="Наприклад: 1234567890" /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('tracking_number')">Вставити</button></div></div>
+        <div id="deliveryField"><label>Доставка, ₴</label><input id="delivery_cost" type="number" min="0" step="0.01" /></div>
+        <div id="dutyField"><label>Мито, ₴</label><input id="duty_cost" type="number" min="0" step="0.01" /></div>
         <div id="serialField"><label>Серійний номер</label><input id="serial_number" /></div>
         <div id="chargerField" hidden>
           <label id="chargerCostLabel">Зарядний, ₴</label>
@@ -2012,42 +2010,40 @@ function openEditModal(id, mode = 'full'){
           </div>
           <input id="charger_cost" type="hidden" value="" />
         </div>
-        <div id="additionalCostsFields" class="span-3 additional-costs-fields">
-          <div class="form-grid additional-costs-grid">
-            <div id="dutyField"><label>Мито, ₴</label><input id="duty_cost" type="number" min="0" step="0.01" /></div>
-            <div class="completed-field"><label>Реклама OLX, ₴</label><input id="olx_ad_cost" type="number" min="0" step="0.01" value="300" readonly /></div>
-            <div class="completed-field"><label>Гравіювання, ₴</label><input id="engraving_cost" type="number" min="0" step="0.01" value="200" readonly /></div>
-            <div id="ssdField" hidden>
-              <label id="ssdCostLabel">SSD, ₴</label>
-              <div id="ssdOptions" class="part-cost-options" role="group" aria-label="Встановлений SSD">
-                <button class="part-cost-option" type="button" data-cost="0" onclick="selectPartCost('ssd', 0)"><b>0</b><small>не ставили</small></button>
-                <button class="part-cost-option" type="button" data-cost="800" onclick="selectPartCost('ssd', 800)"><b>256 GB</b><small>800 ₴</small></button>
-                <button class="part-cost-option" type="button" data-cost="1600" onclick="selectPartCost('ssd', 1600)"><b>512 GB</b><small>1600 ₴</small></button>
-              </div>
-              <input id="ssd" type="hidden" value="" />
-            </div>
-            <div id="ramField" hidden>
-              <label id="ramCostLabel">RAM, ₴</label>
-              <div id="ramOptions" class="part-cost-options" role="group" aria-label="Встановлена оперативна пам’ять">
-                <button class="part-cost-option" type="button" data-cost="0" onclick="selectPartCost('ram', 0)"><b>0</b><small>не ставили</small></button>
-                <button class="part-cost-option" type="button" data-cost="800" onclick="selectPartCost('ram', 800)"><b>8 GB</b><small>800 ₴</small></button>
-                <button class="part-cost-option" type="button" data-cost="1600" onclick="selectPartCost('ram', 1600)"><b>16 GB</b><small>1600 ₴</small></button>
-              </div>
-              <input id="ram" type="hidden" value="" />
-            </div>
+        <div id="ssdField" hidden>
+          <label id="ssdCostLabel">SSD, ₴</label>
+          <div id="ssdOptions" class="part-cost-options" role="group" aria-label="Встановлений SSD">
+            <button class="part-cost-option" type="button" data-cost="0" onclick="selectPartCost('ssd', 0)"><b>0</b><small>не ставили</small></button>
+            <button class="part-cost-option" type="button" data-cost="800" onclick="selectPartCost('ssd', 800)"><b>256 GB</b><small>800 ₴</small></button>
+            <button class="part-cost-option" type="button" data-cost="1600" onclick="selectPartCost('ssd', 1600)"><b>512 GB</b><small>1600 ₴</small></button>
           </div>
+          <input id="ssd" type="hidden" value="" />
         </div>
-        <div><label>Статус</label>
+        <div id="ramField" hidden>
+          <label id="ramCostLabel">RAM, ₴</label>
+          <div id="ramOptions" class="part-cost-options" role="group" aria-label="Встановлена оперативна пам’ять">
+            <button class="part-cost-option" type="button" data-cost="0" onclick="selectPartCost('ram', 0)"><b>0</b><small>не ставили</small></button>
+            <button class="part-cost-option" type="button" data-cost="800" onclick="selectPartCost('ram', 800)"><b>8 GB</b><small>800 ₴</small></button>
+            <button class="part-cost-option" type="button" data-cost="1600" onclick="selectPartCost('ram', 1600)"><b>16 GB</b><small>1600 ₴</small></button>
+          </div>
+          <input id="ram" type="hidden" value="" />
+        </div>
+        <div id="olxLinkField" class="span-2"><label>Посилання OLX</label><div style="display:flex;gap:8px;align-items:center"><input id="olx_link" placeholder="https://www.olx.ua/..." /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('olx_link')">Вставити</button></div></div>
+        <div id="telegramLinkField" class="span-2"><label>Посилання Telegram</label><div style="display:flex;gap:8px;align-items:center"><input id="telegram_link" placeholder="https://t.me/..." /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('telegram_link')">Вставити</button></div></div>
+        <div id="statusField"><label>Статус</label>
           <select id="status">
             <option value="in_transit">В дорозі</option>
             <option value="received">Отримав</option>
             <option value="sold">Продано</option>
           </select>
         </div>
+        <div class="span-3 model-type-actions completed-field" aria-label="Модель ноутбука">
+          <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Elitebook" onclick="selectModelType('Elitebook')">Elitebook</button>
+          <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Zbook" onclick="selectModelType('Zbook')">Zbook</button>
+        </div>
+        <div class="completed-field"><label>Реклама OLX, ₴</label><input id="olx_ad_cost" type="number" min="0" step="0.01" value="300" readonly /></div>
+        <div class="completed-field"><label>Гравіювання, ₴</label><input id="engraving_cost" type="number" min="0" step="0.01" value="200" readonly /></div>
         <div class="completed-field"><label>Собівартість, ₴</label><input id="cost_display" disabled /></div>
-        <div id="trackingField" class="span-2"><label>Трекінг номер</label><div style="display:flex;gap:8px;align-items:center"><input id="tracking_number" placeholder="Наприклад: 1234567890" /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('tracking_number')">Вставити</button></div></div>
-        <div id="olxLinkField" class="span-2"><label>Посилання OLX</label><div style="display:flex;gap:8px;align-items:center"><input id="olx_link" placeholder="https://www.olx.ua/..." /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('olx_link')">Вставити</button></div></div>
-        <div id="telegramLinkField" class="span-2"><label>Посилання Telegram</label><div style="display:flex;gap:8px;align-items:center"><input id="telegram_link" placeholder="https://t.me/..." /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('telegram_link')">Вставити</button></div></div>
       </div>`;
     actions.parentNode.insertBefore(extra, actions);
   }
@@ -2067,7 +2063,11 @@ function openEditModal(id, mode = 'full'){
   document.getElementById('serial_number').value = normalizeSerialNumber(item.serial_number);
   document.getElementById('serial_number').dataset.hadSerial = item.serial_number ? '1' : '0';
   document.getElementById('serialField')?.classList.toggle('completed-field', Boolean(item.serial_number));
-  document.getElementById('delivery_cost').value = item.delivery_cost || '';
+  const deliveryValue = item.delivery_cost === null || item.delivery_cost === undefined || item.delivery_cost === '' || Number(item.delivery_cost) === 0
+    ? ''
+    : item.delivery_cost;
+  document.getElementById('delivery_cost').value = deliveryValue;
+  document.getElementById('deliveryField')?.classList.toggle('completed-field', deliveryValue !== '');
   selectModelType(item.model_type || item.charger_type || '');
   document.getElementById('charger_cost').value = item.charger_cost ?? '';
   syncPartCostOptions('charger_cost');
