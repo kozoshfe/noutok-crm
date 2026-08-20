@@ -3,7 +3,7 @@
   "name": "Трекер завдань",
   "short_name": "Таски",
   "description": "Простий PWA трекер завдань з корзиною та голосовим введенням.",
-  "start_url": "./?appv=1.11.20",
+  "start_url": "./?appv=1.11.33",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f6f8f4",

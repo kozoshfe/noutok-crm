@@ -864,6 +864,8 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
   min-width:0;
   width:100%;
 }
+.completed-fields-toggle{width:100%;margin-top:12px}
+#laptopForm.completed-fields-collapsed .completed-field{display:none !important}
 .model-type-actions{
   display:grid;
   grid-template-columns:1fr 1fr;

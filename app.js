@@ -21,7 +21,7 @@ let stockParts = {};
 let isSavingLaptop = false;
 let lockedScrollY = 0;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.20';
+const APP_VERSION = '1.11.33';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -1612,6 +1612,7 @@ async function pasteIntoField(fieldId){
 function openAddModal(){
   currentEditId = null;
   currentEditMode = 'full';
+  document.getElementById('laptopForm')?.classList.remove('completed-fields-collapsed');
   setModalSaveMessage('');
   document.getElementById('modalTitle').textContent = 'Додати ноутбук';
   const delBtn = document.getElementById('deleteBtn');
@@ -1619,7 +1620,10 @@ function openAddModal(){
   document.getElementById('laptopForm').reset();
   document.getElementById('editId').value = '';
   const baseFields = document.getElementById('baseFields');
-  if(baseFields) baseFields.style.display = '';
+  if(baseFields){
+    baseFields.style.display = '';
+    baseFields.classList.remove('completed-field');
+  }
   const extra = document.getElementById('editOnlyFields');
   if(extra) extra.remove();
   const locationOnly = document.getElementById('locationOnlyFields');
@@ -1643,6 +1647,7 @@ function closeAddModal(){
 
 function resetForm(){
   document.getElementById('laptopForm').reset();
+  document.getElementById('laptopForm')?.classList.remove('completed-fields-collapsed');
   setModalSaveMessage('');
   const baseFields = document.getElementById('baseFields');
   if(baseFields){
@@ -1800,19 +1805,23 @@ function setBaseFieldsEnabled(enabled){
   });
 }
 
-function setAdditionalCostsVisibility(expanded){
+function setAdditionalCostsVisibility(){
   const wrap = document.getElementById('additionalCostsFields');
-  const toggle = document.getElementById('additionalCostsToggle');
-  if(!wrap || !toggle) return;
-  wrap.hidden = !expanded;
-  toggle.textContent = expanded ? 'Сховати додаткові витрати' : 'Додаткові витрати';
-  toggle.setAttribute('aria-expanded', String(expanded));
+  if(wrap) wrap.hidden = false;
 }
 
-function toggleAdditionalCosts(){
-  const wrap = document.getElementById('additionalCostsFields');
-  if(!wrap) return;
-  setAdditionalCostsVisibility(wrap.hidden);
+function setCompletedFieldsCollapsed(collapsed){
+  const form = document.getElementById('laptopForm');
+  const toggle = document.getElementById('completedFieldsToggle');
+  if(!form || !toggle) return;
+  form.classList.toggle('completed-fields-collapsed', collapsed);
+  toggle.textContent = collapsed ? 'Заповнено ▾' : 'Заповнено ▴';
+  toggle.setAttribute('aria-expanded', String(!collapsed));
+}
+
+function toggleCompletedFields(){
+  const form = document.getElementById('laptopForm');
+  if(form) setCompletedFieldsCollapsed(!form.classList.contains('completed-fields-collapsed'));
 }
 
 function getSelectedModelType(){
@@ -1946,23 +1955,22 @@ function openEditModal(id, mode = 'full'){
     extra.id = 'editOnlyFields';
     extra.className = 'span-3';
     extra.innerHTML = `
+      <button id="completedFieldsToggle" class="ghost completed-fields-toggle" type="button" aria-expanded="false">Заповнено ▾</button>
       <div class="form-grid" style="margin-top:12px">
-        <div><label>Доставка, ₴</label><input id="delivery_cost" type="number" min="0" step="0.01" /></div>
-        <div class="span-3 model-type-actions" aria-label="Модель ноутбука">
+        <div class="completed-field"><label>Доставка, ₴</label><input id="delivery_cost" type="number" min="0" step="0.01" /></div>
+        <div class="span-3 model-type-actions completed-field" aria-label="Модель ноутбука">
           <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Elitebook" onclick="selectModelType('Elitebook')">Elitebook</button>
           <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Zbook" onclick="selectModelType('Zbook')">Zbook</button>
         </div>
-        <div><label id="chargerCostLabel">Зарядний, ₴</label><input id="charger_cost" type="number" min="0" step="0.01" /></div>
-        <div class="span-3 additional-costs-toggle-row">
-          <button id="additionalCostsToggle" class="ghost inline-field-btn additional-costs-toggle" type="button" aria-expanded="false">Додаткові витрати</button>
-        </div>
-        <div id="additionalCostsFields" class="span-3 additional-costs-fields" hidden>
+        <div id="serialField"><label>Серійний номер</label><input id="serial_number" /></div>
+        <div id="chargerField"><label id="chargerCostLabel">Зарядний, ₴</label><input id="charger_cost" type="number" min="0" step="0.01" /></div>
+        <div id="additionalCostsFields" class="span-3 additional-costs-fields">
           <div class="form-grid additional-costs-grid">
-            <div><label>Мито, ₴</label><input id="duty_cost" type="number" min="0" step="0.01" /></div>
-            <div><label>Реклама OLX, ₴</label><input id="olx_ad_cost" type="number" min="0" step="0.01" value="300" readonly /></div>
-            <div><label>Гравіювання, ₴</label><input id="engraving_cost" type="number" min="0" step="0.01" value="200" readonly /></div>
-            <div><label id="ssdCostLabel">SSD, ₴</label><input id="ssd" type="number" min="0" step="0.01" /></div>
-            <div><label id="ramCostLabel">RAM, ₴</label><input id="ram" type="number" min="0" step="0.01" /></div>
+            <div id="dutyField"><label>Мито, ₴</label><input id="duty_cost" type="number" min="0" step="0.01" /></div>
+            <div class="completed-field"><label>Реклама OLX, ₴</label><input id="olx_ad_cost" type="number" min="0" step="0.01" value="300" readonly /></div>
+            <div class="completed-field"><label>Гравіювання, ₴</label><input id="engraving_cost" type="number" min="0" step="0.01" value="200" readonly /></div>
+            <div id="ssdField"><label id="ssdCostLabel">SSD, ₴</label><input id="ssd" type="number" min="0" step="0.01" /></div>
+            <div id="ramField"><label id="ramCostLabel">RAM, ₴</label><input id="ram" type="number" min="0" step="0.01" /></div>
           </div>
         </div>
         <div><label>Статус</label>
@@ -1972,38 +1980,53 @@ function openEditModal(id, mode = 'full'){
             <option value="sold">Продано</option>
           </select>
         </div>
-        <div><label>Серійний номер</label><input id="serial_number" /></div>
-        <div><label>Собівартість, ₴</label><input id="cost_display" disabled /></div>
-        <div class="span-2"><label>Трекінг номер</label><div style="display:flex;gap:8px;align-items:center"><input id="tracking_number" placeholder="Наприклад: 1234567890" /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('tracking_number')">Вставити</button></div></div>
-        <div class="span-2"><label>Посилання OLX</label><div style="display:flex;gap:8px;align-items:center"><input id="olx_link" placeholder="https://www.olx.ua/..." /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('olx_link')">Вставити</button></div></div>
-        <div class="span-2"><label>Посилання Telegram</label><div style="display:flex;gap:8px;align-items:center"><input id="telegram_link" placeholder="https://t.me/..." /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('telegram_link')">Вставити</button></div></div>
+        <div class="completed-field"><label>Собівартість, ₴</label><input id="cost_display" disabled /></div>
+        <div id="trackingField" class="span-2"><label>Трекінг номер</label><div style="display:flex;gap:8px;align-items:center"><input id="tracking_number" placeholder="Наприклад: 1234567890" /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('tracking_number')">Вставити</button></div></div>
+        <div id="olxLinkField" class="span-2"><label>Посилання OLX</label><div style="display:flex;gap:8px;align-items:center"><input id="olx_link" placeholder="https://www.olx.ua/..." /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('olx_link')">Вставити</button></div></div>
+        <div id="telegramLinkField" class="span-2"><label>Посилання Telegram</label><div style="display:flex;gap:8px;align-items:center"><input id="telegram_link" placeholder="https://t.me/..." /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('telegram_link')">Вставити</button></div></div>
       </div>`;
     actions.parentNode.insertBefore(extra, actions);
   }
 
-  const additionalCostsToggle = document.getElementById('additionalCostsToggle');
-  if(additionalCostsToggle && !additionalCostsToggle.dataset.bound){
-    additionalCostsToggle.addEventListener('click', toggleAdditionalCosts);
-    additionalCostsToggle.dataset.bound = '1';
+  const baseFields = document.getElementById('baseFields');
+  baseFields?.classList.add('completed-field');
+  const completedFieldsToggle = document.getElementById('completedFieldsToggle');
+  if(completedFieldsToggle && !completedFieldsToggle.dataset.bound){
+    completedFieldsToggle.addEventListener('click', toggleCompletedFields);
+    completedFieldsToggle.dataset.bound = '1';
   }
-  setAdditionalCostsVisibility(false);
+  setCompletedFieldsCollapsed(true);
+
+  setAdditionalCostsVisibility();
 
   applyStatusOptions(item.status || 'in_transit');
   document.getElementById('serial_number').value = normalizeSerialNumber(item.serial_number);
   document.getElementById('serial_number').dataset.hadSerial = item.serial_number ? '1' : '0';
+  document.getElementById('serialField')?.classList.toggle('completed-field', Boolean(item.serial_number));
   document.getElementById('delivery_cost').value = item.delivery_cost || '';
   selectModelType(item.model_type || item.charger_type || '');
   document.getElementById('charger_cost').value = item.charger_cost ?? '';
+  document.getElementById('chargerField')?.classList.toggle('completed-field', item.charger_cost !== null && item.charger_cost !== undefined && item.charger_cost !== '');
   updateChargerCostRequirement();
-  document.getElementById('duty_cost').value = item.duty_cost || '';
+  const hasSerialNumber = Boolean(item.serial_number);
+  const dutyValue = !hasSerialNumber && Number(item.duty_cost) === 0 ? '' : item.duty_cost ?? '';
+  const ssdValue = !hasSerialNumber && Number(item.ssd) === 0 ? '' : item.ssd ?? '';
+  const ramValue = !hasSerialNumber && Number(item.ram) === 0 ? '' : item.ram ?? '';
+  document.getElementById('duty_cost').value = dutyValue;
+  document.getElementById('dutyField')?.classList.toggle('completed-field', dutyValue !== '');
   document.getElementById('olx_ad_cost').value = 300;
   document.getElementById('engraving_cost').value = 200;
-  document.getElementById('ssd').value = item.ssd || '';
-  document.getElementById('ram').value = item.ram || '';
+  document.getElementById('ssd').value = ssdValue;
+  document.getElementById('ram').value = ramValue;
+  document.getElementById('ssdField')?.classList.toggle('completed-field', ssdValue !== '');
+  document.getElementById('ramField')?.classList.toggle('completed-field', ramValue !== '');
   updateAdditionalPartsRequirement();
   document.getElementById('tracking_number').value = item.tracking_number || '';
+  document.getElementById('trackingField')?.classList.toggle('completed-field', Boolean(item.tracking_number));
   document.getElementById('olx_link').value = item.olx_link || '';
   document.getElementById('telegram_link').value = item.telegram_link || '';
+  document.getElementById('olxLinkField')?.classList.toggle('completed-field', Boolean(item.olx_link));
+  document.getElementById('telegramLinkField')?.classList.toggle('completed-field', Boolean(item.telegram_link));
   document.getElementById('cost_display').value = calcCost(item);
 
   const wrap = ensureSoldPriceField();
@@ -2162,12 +2185,20 @@ async function saveLaptop(event){
       serial_number: document.getElementById('serial_number') ? normalizeSerialNumber(document.getElementById('serial_number').value) : '',
       delivery_cost: document.getElementById('delivery_cost') ? toNum(document.getElementById('delivery_cost').value) : 0,
       model_type: document.getElementById('charger_cost') ? (getSelectedModelType() || null) : null,
-      charger_cost: document.getElementById('charger_cost') ? toNum(document.getElementById('charger_cost').value) : 0,
-      duty_cost: document.getElementById('duty_cost') ? toNum(document.getElementById('duty_cost').value) : 0,
+      charger_cost: document.getElementById('charger_cost')
+        ? (document.getElementById('charger_cost').value.trim() === '' ? null : toNum(document.getElementById('charger_cost').value))
+        : 0,
+      duty_cost: document.getElementById('duty_cost')
+        ? (document.getElementById('duty_cost').value.trim() === '' ? null : toNum(document.getElementById('duty_cost').value))
+        : 0,
       olx_ad_cost: 300,
       engraving_cost: 200,
-      ssd: document.getElementById('ssd') ? toNum(document.getElementById('ssd').value) : 0,
-      ram: document.getElementById('ram') ? toNum(document.getElementById('ram').value) : 0,
+      ssd: document.getElementById('ssd')
+        ? (document.getElementById('ssd').value.trim() === '' ? null : toNum(document.getElementById('ssd').value))
+        : 0,
+      ram: document.getElementById('ram')
+        ? (document.getElementById('ram').value.trim() === '' ? null : toNum(document.getElementById('ram').value))
+        : 0,
       sold_price: (document.getElementById('status') && document.getElementById('status').value === 'sold' && document.getElementById('sold_price'))
         ? toNum(document.getElementById('sold_price').value)
         : 0,
