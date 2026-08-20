@@ -169,9 +169,26 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
   font-weight:700;
   letter-spacing:.02em;
 }
+.app-version-button{appearance:none;border:0;background:transparent;color:inherit;font:inherit;padding:0;cursor:pointer}
+.app-version-button:focus-visible{outline:2px solid #7da5ff;outline-offset:5px;border-radius:6px}
+.stock-panel{max-width:720px;margin:0 auto;padding:22px}
+.stock-head h2{margin:4px 0 0}
+.stock-note{margin:0 0 18px;color:var(--muted)}
+.stock-parts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.stock-part-card{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid rgba(122,150,212,.18);border-radius:18px;background:rgba(10,24,51,.72)}
+.stock-part-icon{display:grid;place-items:center;width:38px;height:38px;flex:0 0 auto;border-radius:12px;background:rgba(91,140,255,.16);font-size:19px}
+.stock-part-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}.stock-part-copy b{font-size:14px}.stock-part-copy small{color:var(--muted)}
+.stock-part-input{width:64px;min-height:44px;padding:6px;text-align:center;font-weight:900;font-size:18px}
+.stock-reminder-card{width:min(520px,100%)}
+.stock-reminder-copy{margin:0 0 12px;color:var(--muted)}
+.stock-reminder-list{display:grid;gap:9px;margin:0 0 20px;padding:0;list-style:none}
+.stock-reminder-list li{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid rgba(255,139,92,.25);border-radius:14px;background:rgba(255,139,92,.09);font-weight:800}
+.stock-reminder-list li span{font-size:18px}.stock-reminder-open{width:100%;min-height:52px}
 
 @media (max-width:768px){
   .app{touch-action:pan-y;overflow-x:clip}
+  .stock-parts{grid-template-columns:1fr}
+  .stock-panel{padding:16px}
   .view.active.view-slide-next{will-change:transform,opacity;animation:view-slide-in-next 180ms cubic-bezier(.22,.8,.28,1) both}
   .view.active.view-slide-prev{will-change:transform,opacity;animation:view-slide-in-prev 180ms cubic-bezier(.22,.8,.28,1) both}
 
@@ -752,16 +769,26 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
   border-radius:22px;
   background:linear-gradient(180deg,rgba(30,51,91,.38),rgba(12,25,49,.44));
 }
-.sales-chart-header{margin:0 2px 10px}
+.sales-chart-header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:0 2px 10px}
 .sales-chart-header h2{margin:0;font-size:18px;font-weight:900}
+.sales-chart-legend{display:flex;gap:12px;flex-wrap:wrap;color:#b9c9e6;font-size:12px;font-weight:700}
+.sales-chart-legend span{display:inline-flex;align-items:center;gap:5px}
+.sales-chart-legend b{color:#eef4ff}
+.sales-chart-legend-dot{display:inline-block;width:9px;height:9px;border-radius:50%}
+.sales-chart-legend-dot.zbook{background:#f6b94f}.sales-chart-legend-dot.elitebook{background:#5be0bf}
 .sales-chart-svg{display:block;width:100%;height:auto;overflow:visible}
 .sales-chart-grid{stroke:rgba(165,190,235,.16);stroke-width:1}
 .sales-chart-area{fill:url(#salesChartArea)}
 .sales-chart-line{fill:none;stroke:#69a0ff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 .sales-chart-point{fill:#a8c7ff;stroke:#183b78;stroke-width:3}
+.sales-chart-model-line{fill:none;stroke-width:2.25;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5 4}
+.sales-chart-zbook-line{stroke:#f6b94f}.sales-chart-elitebook-line{stroke:#5be0bf}
+.sales-chart-model-point{stroke:#0c1b36;stroke-width:1.5}.sales-chart-zbook-point{fill:#f6b94f}.sales-chart-elitebook-point{fill:#5be0bf}
 .sales-chart-value,.sales-chart-y-label,.sales-chart-x-label{fill:#cfddf7;font-family:inherit;font-size:12px;font-weight:800;text-anchor:middle}
 .sales-chart-y-label{text-anchor:end;fill:#9db0cf;font-size:11px;font-weight:700}
 .sales-chart-x-label{fill:#9db0cf;font-size:11px;font-weight:700}
+.month-model-breakdown{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;color:#b9c9e6;font-size:13px}
+.month-model-breakdown span:first-child b{color:#f6b94f}.month-model-breakdown span:last-child b{color:#5be0bf}
 .modal-wrap{
   position:fixed;
   inset:0;

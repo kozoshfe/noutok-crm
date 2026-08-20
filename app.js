@@ -13,15 +13,21 @@ let realtimeChannel = null;
 let hasSupabaseConnection = false;
 let logoTapCount = 0;
 let logoTapTimer = null;
+let versionTapCount = 0;
+let versionTapTimer = null;
 let dashboardDeliveryNoteValue = [];
+let stockParts = {};
 let isSavingLaptop = false;
 let lockedScrollY = 0;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.2';
+const APP_VERSION = '1.11.8';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
 const DASHBOARD_DELIVERY_NOTE_SETTING_KEY = 'dashboard_delivery_note';
+const STOCK_PARTS_KEY = 'notebook-crm-stock-parts';
+const STOCK_PARTS_SETTING_KEY = 'stock_parts';
+const STOCK_REMINDER_DATE_KEY = 'notebook-crm-stock-reminder-date';
 const PENDING_SAVE_QUEUE_KEY = 'notebook-crm-pending-save-queue';
 const REQUEST_TIMEOUT_MS = 8000;
 const AUTH_TIMEOUT_MS = 3000;
@@ -139,6 +145,106 @@ function handleLogoTap(){
     logoTapCount = 0;
     logoTapTimer = null;
   }, 700);
+}
+
+const stockPartDefinitions = [
+  { key: 'ssd256', label: 'ССД 256 GB', icon: '💾' },
+  { key: 'ssd512', label: 'ССД 512 GB', icon: '💾' },
+  { key: 'ram8', label: 'Оперативна пам’ять 8 GB', icon: '🧠' },
+  { key: 'ram16', label: 'Оперативна пам’ять 16 GB', icon: '🧠' },
+  { key: 'charger65', label: 'Блоки живлення 65W', icon: '🔌' },
+  { key: 'charger150', label: 'Блоки живлення 150W', icon: '⚡' },
+  { key: 'powerCables', label: 'Кабелі живлення', icon: '🔗' }
+];
+
+function normalizeStockParts(value){
+  const source = value && typeof value === 'object' ? value : {};
+  return stockPartDefinitions.reduce((result, part) => {
+    result[part.key] = Math.max(0, Math.floor(Number(source[part.key]) || 0));
+    return result;
+  }, {});
+}
+
+function renderStockParts(){
+  const wrap = document.getElementById('stockParts');
+  if(!wrap) return;
+  stockParts = normalizeStockParts(stockParts);
+  wrap.innerHTML = stockPartDefinitions.map((part) => `
+    <label class="stock-part-card" for="stock-${part.key}">
+      <span class="stock-part-icon" aria-hidden="true">${part.icon}</span>
+      <span class="stock-part-copy"><b>${part.label}</b><small>шт. на складі</small></span>
+      <input id="stock-${part.key}" class="stock-part-input" type="number" min="0" step="1" inputmode="numeric" value="${stockParts[part.key]}" aria-label="${safe(part.label)}: кількість на складі" data-stock-key="${part.key}" />
+    </label>
+  `).join('');
+}
+
+async function loadStockParts(){
+  let value = localStorage.getItem(STOCK_PARTS_KEY) || '';
+  if(supabaseClient){
+    const { data, error } = await supabaseClient.from(SETTINGS_TABLE).select('value').eq('key', STOCK_PARTS_SETTING_KEY).maybeSingle();
+    if(!error && data?.value) value = data.value;
+  }
+  try{ stockParts = normalizeStockParts(JSON.parse(value || '{}')); }
+  catch(error){ stockParts = normalizeStockParts({}); }
+  localStorage.setItem(STOCK_PARTS_KEY, JSON.stringify(stockParts));
+  renderStockParts();
+}
+
+function closeStockReminder(){
+  document.getElementById('stockReminderModal')?.classList.remove('show');
+}
+
+function showDailyStockReminder(){
+  const today = new Date().toLocaleDateString('en-CA');
+  if(localStorage.getItem(STOCK_REMINDER_DATE_KEY) === today) return;
+
+  const emptyParts = stockPartDefinitions.filter((part) => !stockParts[part.key]);
+  if(!emptyParts.length) return;
+
+  const list = document.getElementById('stockReminderList');
+  if(!list) return;
+  list.innerHTML = emptyParts.map((part) => `<li><span>${part.icon}</span>${safe(part.label)}</li>`).join('');
+  localStorage.setItem(STOCK_REMINDER_DATE_KEY, today);
+  document.getElementById('stockReminderModal')?.classList.add('show');
+}
+
+async function saveStockParts(){
+  stockParts = normalizeStockParts(stockParts);
+  const value = JSON.stringify(stockParts);
+  localStorage.setItem(STOCK_PARTS_KEY, value);
+  if(supabaseClient) await supabaseClient.from(SETTINGS_TABLE).upsert({ key: STOCK_PARTS_SETTING_KEY, value }, { onConflict: 'key' });
+}
+
+function isZbook(item){
+  return (item?.model_type || item?.charger_type) === 'Zbook';
+}
+
+async function deductZbookStock(){
+  stockParts = normalizeStockParts(stockParts);
+  stockParts.charger150 = Math.max(0, stockParts.charger150 - 1);
+  stockParts.powerCables = Math.max(0, stockParts.powerCables - 1);
+  await saveStockParts();
+  renderStockParts();
+}
+
+async function deductElitebookStock(){
+  stockParts = normalizeStockParts(stockParts);
+  stockParts.charger65 = Math.max(0, stockParts.charger65 - 1);
+  stockParts.powerCables = Math.max(0, stockParts.powerCables - 1);
+  await saveStockParts();
+  renderStockParts();
+}
+
+function handleVersionTap(){
+  if(versionTapTimer) clearTimeout(versionTapTimer);
+  versionTapCount += 1;
+  if(versionTapCount >= 3){
+    versionTapCount = 0;
+    versionTapTimer = null;
+    switchView('stock');
+    return;
+  }
+  versionTapTimer = setTimeout(() => { versionTapCount = 0; versionTapTimer = null; }, 700);
 }
 
 function ensureAppVersion(){
@@ -445,6 +551,8 @@ async function handleAuthSession(session){
     const msg = document.getElementById('simpleLoginMsg');
     if(msg) msg.textContent = '';
     await loadDashboardDeliveryNote();
+    await loadStockParts();
+    showDailyStockReminder();
     if(!authBootstrapped){
       await loadLaptops();
       subscribeRealtime();
@@ -1269,6 +1377,8 @@ function salesChartTemplate(grouped){
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     return {
       count: grouped[key]?.count || 0,
+      zbook: grouped[key]?.zbook || 0,
+      elitebook: grouped[key]?.elitebook || 0,
       label: date.toLocaleDateString('uk-UA', { month: 'short' }).replace('.', '')
     };
   });
@@ -1281,19 +1391,30 @@ function salesChartTemplate(grouped){
   const bottom = 48;
   const plotWidth = width - left - right;
   const plotHeight = height - top - bottom;
-  const point = (month, index) => ({
+  const point = (value, index) => ({
     x: left + (plotWidth / (months.length - 1)) * index,
-    y: top + plotHeight - (month.count / maxCount) * plotHeight
+    y: top + plotHeight - (value / maxCount) * plotHeight
   });
-  const points = months.map(point);
-  const line = points.map((item, index) => `${index ? 'L' : 'M'} ${item.x.toFixed(1)} ${item.y.toFixed(1)}`).join(' ');
+  const points = months.map((month, index) => point(month.count, index));
+  const zbookPoints = months.map((month, index) => point(month.zbook, index));
+  const elitebookPoints = months.map((month, index) => point(month.elitebook, index));
+  const pathFor = (chartPoints) => chartPoints.map((item, index) => `${index ? 'L' : 'M'} ${item.x.toFixed(1)} ${item.y.toFixed(1)}`).join(' ');
+  const line = pathFor(points);
+  const zbookLine = pathFor(zbookPoints);
+  const elitebookLine = pathFor(elitebookPoints);
   const area = `${line} L ${points.at(-1).x.toFixed(1)} ${(top + plotHeight).toFixed(1)} L ${points[0].x.toFixed(1)} ${(top + plotHeight).toFixed(1)} Z`;
   const gridValues = Array.from(new Set([0, Math.ceil(maxCount / 2), maxCount]));
+  const zbookTotal = months.reduce((sum, month) => sum + month.zbook, 0);
+  const elitebookTotal = months.reduce((sum, month) => sum + month.elitebook, 0);
 
   return `
     <section class="sales-chart" aria-labelledby="salesChartTitle">
       <div class="sales-chart-header">
         <h2 id="salesChartTitle">Продажі за 12 місяців</h2>
+        <div class="sales-chart-legend" aria-label="Легенда графіка">
+          <span><i class="sales-chart-legend-dot zbook"></i>Zbook <b>${zbookTotal}</b></span>
+          <span><i class="sales-chart-legend-dot elitebook"></i>Elitebook <b>${elitebookTotal}</b></span>
+        </div>
       </div>
       <svg class="sales-chart-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Графік кількості проданих ноутбуків за останні 12 місяців">
         <defs>
@@ -1308,7 +1429,9 @@ function salesChartTemplate(grouped){
         }).join('')}
         <path class="sales-chart-area" d="${area}" />
         <path class="sales-chart-line" d="${line}" />
-        ${points.map((item, index) => `<g><circle class="sales-chart-point" cx="${item.x}" cy="${item.y}" r="5" /><text class="sales-chart-value" x="${item.x}" y="${item.y - 12}">${months[index].count}</text>${index % 2 === 0 || index === months.length - 1 ? `<text class="sales-chart-x-label" x="${item.x}" y="${height - 16}">${safe(months[index].label)}</text>` : ''}</g>`).join('')}
+        <path class="sales-chart-model-line sales-chart-zbook-line" d="${zbookLine}" />
+        <path class="sales-chart-model-line sales-chart-elitebook-line" d="${elitebookLine}" />
+        ${points.map((item, index) => `<g><circle class="sales-chart-point" cx="${item.x}" cy="${item.y}" r="5" /><text class="sales-chart-value" x="${item.x}" y="${item.y - 12}">${months[index].count}</text><circle class="sales-chart-model-point sales-chart-zbook-point" cx="${zbookPoints[index].x}" cy="${zbookPoints[index].y}" r="3.5"><title>Zbook: ${months[index].zbook}</title></circle><circle class="sales-chart-model-point sales-chart-elitebook-point" cx="${elitebookPoints[index].x}" cy="${elitebookPoints[index].y}" r="3.5"><title>Elitebook: ${months[index].elitebook}</title></circle>${index % 2 === 0 || index === months.length - 1 ? `<text class="sales-chart-x-label" x="${item.x}" y="${height - 16}">${safe(months[index].label)}</text>` : ''}</g>`).join('')}
       </svg>
     </section>`;
 }
@@ -1324,9 +1447,12 @@ function renderMonths(){
   const grouped = {};
   sold.forEach((item) => {
     const key = monthKey(item.sold_at);
-    if(!grouped[key]) grouped[key] = { count: 0, profit: 0 };
+    if(!grouped[key]) grouped[key] = { count: 0, profit: 0, zbook: 0, elitebook: 0 };
     grouped[key].count += 1;
     grouped[key].profit += calcProfit(item);
+    const modelType = item.model_type || item.charger_type;
+    if(modelType === 'Zbook') grouped[key].zbook += 1;
+    if(modelType === 'Elitebook') grouped[key].elitebook += 1;
   });
 
   const keys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
@@ -1335,6 +1461,7 @@ function renderMonths(){
       <div class="muted">Місяць</div>
       <div class="month-title">${safe(monthName(key))}</div>
       <div style="margin-top:10px">Продано ноутбуків: <b>${grouped[key].count}</b></div>
+      <div class="month-model-breakdown"><span>Zbook: <b>${grouped[key].zbook}</b></span><span>Elitebook: <b>${grouped[key].elitebook}</b></span></div>
       <div style="margin-top:8px">Чистий заробіток: <b>${money(grouped[key].profit)}</b></div>
     </div>
   `).join('');
@@ -1975,6 +2102,10 @@ async function saveLaptop(event){
 
     if(targetEditId){
       const currentItem = laptops.find((x) => x.id === targetEditId);
+      const soldNow = Boolean(currentItem && currentItem.status !== 'sold' && payload.status === 'sold');
+      const soldModel = { ...currentItem, ...payload };
+      const shouldDeductZbookStock = soldNow && isZbook(soldModel);
+      const shouldDeductElitebookStock = soldNow && (soldModel.model_type || soldModel.charger_type) === 'Elitebook';
       const { response, savedPayload, savedWithoutModelType } = await saveLaptopPatchToDatabase(targetEditId, payload, 'Save laptop direct');
       if(response.error){
         hasSupabaseConnection = false;
@@ -1989,13 +2120,19 @@ async function saveLaptop(event){
       hasSupabaseConnection = true;
       updateNetwork();
       applyLaptopToState({ ...(currentItem || {}), ...savedPayload, id: targetEditId });
+      if(shouldDeductZbookStock) await deductZbookStock();
+      if(shouldDeductElitebookStock) await deductElitebookStock();
       closeAddModal();
       resetForm();
       resetSaveButton(saveBtn, saveWatchdog);
       if(savedWithoutModelType){
         setBanner('Збережено в базу, але модель не записалась: додай колонку model_type у Supabase.', false);
       } else {
-        setBanner('Збережено в базу.');
+        setBanner(shouldDeductZbookStock
+          ? 'Збережено. Зі складу списано блок 150W і кабель живлення.'
+          : shouldDeductElitebookStock
+            ? 'Збережено. Зі складу списано блок 65W і кабель живлення.'
+            : 'Збережено в базу.');
         refreshLaptopsInBackground();
       }
       return;
@@ -2112,6 +2249,14 @@ async function quickStatus(id, status){
   hasSupabaseConnection = true;
   updateNetwork();
   if(response.data) applyLaptopToState(response.data);
+  if(status === 'sold' && item.status !== 'sold' && isZbook(item)){
+    await deductZbookStock();
+    setBanner('Продано. Зі складу списано блок 150W і кабель живлення.');
+  }
+  if(status === 'sold' && item.status !== 'sold' && (item.model_type || item.charger_type) === 'Elitebook'){
+    await deductElitebookStock();
+    setBanner('Продано. Зі складу списано блок 65W і кабель живлення.');
+  }
   refreshLaptopsInBackground();
 }
 
@@ -2221,6 +2366,45 @@ function bindUI(){
   if(logo && !logo.dataset.boundTestTools){
     logo.addEventListener('click', handleLogoTap);
     logo.dataset.boundTestTools = '1';
+  }
+
+  const appVersion = document.getElementById('appVersion');
+  if(appVersion && !appVersion.dataset.boundStock){
+    appVersion.addEventListener('click', handleVersionTap);
+    appVersion.dataset.boundStock = '1';
+  }
+
+  const stockCloseBtn = document.getElementById('stockCloseBtn');
+  if(stockCloseBtn && !stockCloseBtn.dataset.bound){
+    stockCloseBtn.addEventListener('click', () => switchView('dashboard'));
+    stockCloseBtn.dataset.bound = '1';
+  }
+
+  const stockReminderClose = document.getElementById('stockReminderClose');
+  if(stockReminderClose && !stockReminderClose.dataset.bound){
+    stockReminderClose.addEventListener('click', closeStockReminder);
+    stockReminderClose.dataset.bound = '1';
+  }
+
+  const stockReminderOpenStock = document.getElementById('stockReminderOpenStock');
+  if(stockReminderOpenStock && !stockReminderOpenStock.dataset.bound){
+    stockReminderOpenStock.addEventListener('click', () => {
+      closeStockReminder();
+      switchView('stock');
+    });
+    stockReminderOpenStock.dataset.bound = '1';
+  }
+
+  const stockPartsWrap = document.getElementById('stockParts');
+  if(stockPartsWrap && !stockPartsWrap.dataset.bound){
+    stockPartsWrap.addEventListener('change', async (event) => {
+      const input = event.target;
+      if(!(input instanceof HTMLInputElement) || !input.dataset.stockKey) return;
+      stockParts[input.dataset.stockKey] = Math.max(0, Math.floor(Number(input.value) || 0));
+      input.value = String(stockParts[input.dataset.stockKey]);
+      await saveStockParts();
+    });
+    stockPartsWrap.dataset.bound = '1';
   }
 
   const purgeBtn = document.getElementById('purgeTestLaptopsBtn');
