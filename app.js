@@ -21,7 +21,7 @@ let stockParts = {};
 let isSavingLaptop = false;
 let lockedScrollY = 0;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.16';
+const APP_VERSION = '1.11.18';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -1700,7 +1700,7 @@ function updateChargerCostRequirement(){
   const label = document.getElementById('chargerCostLabel');
   const input = document.getElementById('charger_cost');
   if(!label || !input) return;
-  const required = Boolean(serial) && document.getElementById('serial_number')?.dataset.hadSerial !== '1';
+  const required = Boolean(serial);
   label.textContent = required ? 'Зарядний, ₴ *' : 'Зарядний, ₴';
   input.required = required;
   if(!required) setChargerCostInvalid(false);
@@ -1713,7 +1713,7 @@ function updateAdditionalPartsRequirement(){
   const ssdLabel = document.getElementById('ssdCostLabel');
   const ramLabel = document.getElementById('ramCostLabel');
   if(!serial || !ssd || !ram || !ssdLabel || !ramLabel) return;
-  const required = Boolean(serial.value.trim()) && serial.dataset.hadSerial !== '1';
+  const required = Boolean(serial.value.trim());
   ssd.required = required;
   ram.required = required;
   ssdLabel.textContent = required ? 'SSD, ₴ *' : 'SSD, ₴';
@@ -2198,11 +2198,9 @@ async function saveLaptop(event){
     }
     setChargerCostInvalid(false);
 
-    const currentItemBeforeSave = targetEditId ? laptops.find((x) => x.id === targetEditId) : null;
-    const isFirstSerialEntry = Boolean(currentItemBeforeSave && !String(currentItemBeforeSave.serial_number || '').trim() && payload.serial_number);
     const ssdCostInput = document.getElementById('ssd');
     const ramCostInput = document.getElementById('ram');
-    if(isFirstSerialEntry && (ssdCostInput?.value.trim() === '' || ramCostInput?.value.trim() === '')){
+    if(payload.serial_number && (ssdCostInput?.value.trim() === '' || ramCostInput?.value.trim() === '')){
       setAdditionalPartCostInvalid('ssd', ssdCostInput?.value.trim() === '');
       setAdditionalPartCostInvalid('ram', ramCostInput?.value.trim() === '');
       setModalSaveMessage('Після введення серійного номера заповни поля SSD і RAM. Вкажи 0, якщо запчастину не встановлювали.');
@@ -2270,7 +2268,16 @@ async function saveLaptop(event){
       const shouldDeductZbookStock = soldNow && isZbook(soldModel);
       const shouldDeductElitebookStock = soldNow && (soldModel.model_type || soldModel.charger_type) === 'Elitebook';
       const receivedChargerModel = soldModel.model_type || soldModel.charger_type;
-      const shouldAddReceivedCharger = Boolean(currentItem && !String(currentItem.serial_number || '').trim() && payload.serial_number && Number(payload.charger_cost) === 0 && (receivedChargerModel === 'Zbook' || receivedChargerModel === 'Elitebook'));
+      const isFirstSerialEntry = Boolean(currentItem && !String(currentItem.serial_number || '').trim() && payload.serial_number);
+      const chargerWasNotFree = currentItem && (currentItem.charger_cost === null || currentItem.charger_cost === undefined || currentItem.charger_cost === '' || Number(currentItem.charger_cost) !== 0);
+      const hasExplicitZeroCharger = document.getElementById('charger_cost')?.value.trim() === '0';
+      const shouldAddReceivedCharger = Boolean(
+        currentItem
+        && payload.serial_number
+        && hasExplicitZeroCharger
+        && (isFirstSerialEntry || chargerWasNotFree)
+        && (receivedChargerModel === 'Zbook' || receivedChargerModel === 'Elitebook')
+      );
       const shouldDeductReceivedParts = Boolean(currentItem && !String(currentItem.serial_number || '').trim() && payload.serial_number);
       const { response, savedPayload, savedWithoutModelType } = await saveLaptopPatchToDatabase(targetEditId, payload, 'Save laptop direct');
       if(response.error){
