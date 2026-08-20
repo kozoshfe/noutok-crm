@@ -258,6 +258,15 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
   border:1px solid rgba(255,255,255,.06);
 }
 .dashboard-note-copy .k{font-size:13px;color:var(--muted)}
+.dashboard-note-copy .k span{
+  display:inline;
+  margin-left:4px;
+  color:var(--text);
+  font-size:16px;
+  font-weight:900;
+}
+.dashboard-duty-card .k + .k{margin-top:10px}
+.dashboard-duty-card{margin-top:10px}
 .dashboard-note-display{
   display:flex;
   align-items:center;

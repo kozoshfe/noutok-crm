@@ -21,7 +21,7 @@ let stockParts = {};
 let isSavingLaptop = false;
 let lockedScrollY = 0;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.43';
+const APP_VERSION = '1.11.48';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
