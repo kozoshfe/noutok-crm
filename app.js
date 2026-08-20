@@ -21,7 +21,7 @@ let stockParts = {};
 let isSavingLaptop = false;
 let lockedScrollY = 0;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.18';
+const APP_VERSION = '1.11.19';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -1993,7 +1993,7 @@ function openEditModal(id, mode = 'full'){
   document.getElementById('serial_number').dataset.hadSerial = item.serial_number ? '1' : '0';
   document.getElementById('delivery_cost').value = item.delivery_cost || '';
   selectModelType(item.model_type || item.charger_type || '');
-  document.getElementById('charger_cost').value = item.charger_cost ?? '';
+  document.getElementById('charger_cost').value = item.charger_cost || '';
   updateChargerCostRequirement();
   document.getElementById('duty_cost').value = item.duty_cost || '';
   document.getElementById('olx_ad_cost').value = 300;
