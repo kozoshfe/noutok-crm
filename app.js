@@ -20,7 +20,7 @@ let stockParts = {};
 let isSavingLaptop = false;
 let lockedScrollY = 0;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.8';
+const APP_VERSION = '1.11.10';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -2374,18 +2374,6 @@ function bindUI(){
     appVersion.dataset.boundStock = '1';
   }
 
-  const stockCloseBtn = document.getElementById('stockCloseBtn');
-  if(stockCloseBtn && !stockCloseBtn.dataset.bound){
-    stockCloseBtn.addEventListener('click', () => switchView('dashboard'));
-    stockCloseBtn.dataset.bound = '1';
-  }
-
-  const stockReminderClose = document.getElementById('stockReminderClose');
-  if(stockReminderClose && !stockReminderClose.dataset.bound){
-    stockReminderClose.addEventListener('click', closeStockReminder);
-    stockReminderClose.dataset.bound = '1';
-  }
-
   const stockReminderOpenStock = document.getElementById('stockReminderOpenStock');
   if(stockReminderOpenStock && !stockReminderOpenStock.dataset.bound){
     stockReminderOpenStock.addEventListener('click', () => {
@@ -2393,6 +2381,14 @@ function bindUI(){
       switchView('stock');
     });
     stockReminderOpenStock.dataset.bound = '1';
+  }
+
+  const stockReminderModal = document.getElementById('stockReminderModal');
+  if(stockReminderModal && !stockReminderModal.dataset.bound){
+    stockReminderModal.addEventListener('click', (event) => {
+      if(event.target === stockReminderModal) closeStockReminder();
+    });
+    stockReminderModal.dataset.bound = '1';
   }
 
   const stockPartsWrap = document.getElementById('stockParts');
