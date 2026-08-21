@@ -18,15 +18,17 @@ let versionTapCount = 0;
 let versionTapTimer = null;
 let dashboardDeliveryNoteValue = [];
 let stockParts = {};
+let stockPrices = {};
 let isSavingLaptop = false;
 let lockedScrollY = 0;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.48';
+const APP_VERSION = '1.11.52';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
 const DASHBOARD_DELIVERY_NOTE_SETTING_KEY = 'dashboard_delivery_note';
 const STOCK_PARTS_KEY = 'notebook-crm-stock-parts';
+const STOCK_PRICES_KEY = 'notebook-crm-stock-prices';
 const STOCK_PARTS_SETTING_KEY = 'stock_parts';
 const STOCK_REMINDER_DATE_KEY = 'notebook-crm-stock-reminder-date';
 const PENDING_SAVE_QUEUE_KEY = 'notebook-crm-pending-save-queue';
@@ -35,8 +37,7 @@ const AUTH_TIMEOUT_MS = 3000;
 const SAVE_UI_TIMEOUT_MS = 10000;
 const HISTORICAL_SOLD_COUNT = 187;
 const DELIVERY_ESTIMATE_PER_LAPTOP = 900;
-const DUTY_EXCHANGE_RATE = 50;
-const DUTY_FREE_LIMIT_USD = 150;
+const DUTY_FREE_LIMIT_EUR = 150;
 const DUTY_RATE = 0.3;
 let isSyncingPendingSaves = false;
 
@@ -162,8 +163,19 @@ const stockPartDefinitions = [
   { key: 'powerCables', label: 'Кабелі живлення', icon: '🔗' }
 ];
 
+const stockPriceDefinitions = [
+  ...stockPartDefinitions.filter((part) => part.key !== 'powerCables').map((part) => ({ ...part, description: 'ціна, грн', unit: 'грн' })),
+  { key: 'olxAd', label: 'Реклама OLX', icon: '📣', description: 'вартість реклами', unit: 'грн', min: 0 },
+  { key: 'engraving', label: 'Гравіювання', icon: '✍️', description: 'вартість гравіювання', unit: 'грн', min: 0 },
+  { key: 'euroRate', label: 'Курс євро для мита', icon: '💶', description: 'курс, гривень за €', unit: 'грн/€' }
+];
+
 function normalizeStockParts(value){
   return window.StockLogic.normalizeStockParts(value);
+}
+
+function normalizeStockPrices(value){
+  return window.StockLogic.normalizeStockPrices(value);
 }
 
 function stockPartsFromDatabase(row){
@@ -178,8 +190,23 @@ function stockPartsFromDatabase(row){
   });
 }
 
+function stockPricesFromDatabase(row){
+  return normalizeStockPrices({
+    ssd256: row?.price_ssd_256,
+    ssd512: row?.price_ssd_512,
+    ram8: row?.price_ram_8,
+    ram16: row?.price_ram_16,
+    charger65: row?.price_charger_65w,
+    charger150: row?.price_charger_150w,
+    olxAd: row?.price_olx_ad,
+    engraving: row?.price_engraving,
+    euroRate: row?.duty_euro_rate
+  });
+}
+
 function stockPartsToDatabase(){
   const normalized = normalizeStockParts(stockParts);
+  const normalizedPrices = normalizeStockPrices(stockPrices);
   return {
     id: 1,
     ssd_256: normalized.ssd256,
@@ -188,7 +215,16 @@ function stockPartsToDatabase(){
     ram_16: normalized.ram16,
     charger_65w: normalized.charger65,
     charger_150w: normalized.charger150,
-    power_cables: normalized.powerCables
+    power_cables: normalized.powerCables,
+    price_ssd_256: normalizedPrices.ssd256,
+    price_ssd_512: normalizedPrices.ssd512,
+    price_ram_8: normalizedPrices.ram8,
+    price_ram_16: normalizedPrices.ram16,
+    price_charger_65w: normalizedPrices.charger65,
+    price_charger_150w: normalizedPrices.charger150,
+    price_olx_ad: normalizedPrices.olxAd,
+    price_engraving: normalizedPrices.engraving,
+    duty_euro_rate: normalizedPrices.euroRate
   };
 }
 
@@ -205,14 +241,92 @@ function renderStockParts(){
   `).join('');
 }
 
+function formatStockPrice(value){
+  return new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 2 }).format(Number(value || 0));
+}
+
+function getStockPrice(key){
+  return normalizeStockPrices(stockPrices)[key];
+}
+
+function partCostOptionTemplate(fieldId, cost, label, description, partKey = ''){
+  const normalizedCost = Number(cost);
+  return `<button class="part-cost-option" type="button" data-cost="${normalizedCost}" ${partKey ? `data-stock-part="${partKey}"` : ''} onclick="selectPartCost('${fieldId}', ${normalizedCost})"><b>${safe(label)}</b><small>${safe(description)}</small></button>`;
+}
+
+function chargerCostOptionsTemplate(){
+  const charger65 = getStockPrice('charger65');
+  const charger150 = getStockPrice('charger150');
+  return [
+    partCostOptionTemplate('charger_cost', 0, '0', 'у комплекті'),
+    partCostOptionTemplate('charger_cost', charger65, '65W', `${formatStockPrice(charger65)} ₴`, 'charger65'),
+    partCostOptionTemplate('charger_cost', charger150, '150W', `${formatStockPrice(charger150)} ₴`, 'charger150')
+  ].join('');
+}
+
+function ssdCostOptionsTemplate(){
+  const ssd256 = getStockPrice('ssd256');
+  const ssd512 = getStockPrice('ssd512');
+  return [
+    partCostOptionTemplate('ssd', 0, '0', 'не ставили'),
+    partCostOptionTemplate('ssd', ssd256, '256 GB', `${formatStockPrice(ssd256)} ₴`, 'ssd256'),
+    partCostOptionTemplate('ssd', ssd512, '512 GB', `${formatStockPrice(ssd512)} ₴`, 'ssd512')
+  ].join('');
+}
+
+function ramCostOptionsTemplate(){
+  const ram8 = getStockPrice('ram8');
+  const ram16 = getStockPrice('ram16');
+  return [
+    partCostOptionTemplate('ram', 0, '0', 'не ставили'),
+    partCostOptionTemplate('ram', ram8, '8 GB', `${formatStockPrice(ram8)} ₴`, 'ram8'),
+    partCostOptionTemplate('ram', ram16, '16 GB', `${formatStockPrice(ram16)} ₴`, 'ram16')
+  ].join('');
+}
+
+function renderStockPrices(){
+  const wrap = document.getElementById('stockPrices');
+  if(!wrap) return;
+  stockPrices = normalizeStockPrices(stockPrices);
+  wrap.innerHTML = stockPriceDefinitions.map((part) => `
+    <label class="stock-price-card" for="stock-price-${part.key}">
+      <span class="stock-part-icon" aria-hidden="true">${part.icon}</span>
+      <span class="stock-part-copy"><b>${part.label}</b><small>${part.description}</small></span>
+      <span class="stock-price-input-wrap">
+        <input id="stock-price-${part.key}" class="stock-price-input" type="number" min="${part.min ?? 1}" step="0.01" inputmode="decimal" value="${stockPrices[part.key]}" data-stock-price-key="${part.key}" aria-label="${safe(part.label)}: ціна" />
+        <span>${part.unit}</span>
+      </span>
+    </label>
+  `).join('');
+}
+
+function switchStockTab(name){
+  const selectedName = name === 'prices' ? 'prices' : 'inventory';
+  document.querySelectorAll('[data-stock-tab]').forEach((button) => {
+    const selected = button.dataset.stockTab === selectedName;
+    button.classList.toggle('active', selected);
+    button.setAttribute('aria-selected', String(selected));
+    button.tabIndex = selected ? 0 : -1;
+  });
+
+  const inventoryPanel = document.getElementById('stockInventoryPanel');
+  const pricesPanel = document.getElementById('stockPricesPanel');
+  if(inventoryPanel) inventoryPanel.hidden = selectedName !== 'inventory';
+  if(pricesPanel) pricesPanel.hidden = selectedName !== 'prices';
+}
+
 async function loadStockParts(){
   let value = localStorage.getItem(STOCK_PARTS_KEY) || '';
+  let priceValue = localStorage.getItem(STOCK_PRICES_KEY) || '';
   if(supabaseClient){
     const { data: stockRow, error: stockError } = await supabaseClient.from(STOCK_TABLE).select('*').eq('id', 1).maybeSingle();
     if(!stockError && stockRow){
       stockParts = stockPartsFromDatabase(stockRow);
+      stockPrices = stockPricesFromDatabase(stockRow);
       localStorage.setItem(STOCK_PARTS_KEY, JSON.stringify(stockParts));
+      localStorage.setItem(STOCK_PRICES_KEY, JSON.stringify(stockPrices));
       renderStockParts();
+      renderStockPrices();
       return;
     }
 
@@ -221,8 +335,12 @@ async function loadStockParts(){
   }
   try{ stockParts = normalizeStockParts(JSON.parse(value || '{}')); }
   catch(error){ stockParts = normalizeStockParts({}); }
+  try{ stockPrices = normalizeStockPrices(JSON.parse(priceValue || '{}')); }
+  catch(error){ stockPrices = normalizeStockPrices({}); }
   localStorage.setItem(STOCK_PARTS_KEY, JSON.stringify(stockParts));
+  localStorage.setItem(STOCK_PRICES_KEY, JSON.stringify(stockPrices));
   renderStockParts();
+  renderStockPrices();
 }
 
 function closeStockReminder(){
@@ -245,8 +363,10 @@ function showDailyStockReminder(force = false){
 
 async function saveStockParts(){
   stockParts = normalizeStockParts(stockParts);
+  stockPrices = normalizeStockPrices(stockPrices);
   const value = JSON.stringify(stockParts);
   localStorage.setItem(STOCK_PARTS_KEY, value);
+  localStorage.setItem(STOCK_PRICES_KEY, JSON.stringify(stockPrices));
   if(!supabaseClient) return;
 
   const { error: stockError } = await supabaseClient.from(STOCK_TABLE).upsert(stockPartsToDatabase(), { onConflict: 'id' });
@@ -283,7 +403,7 @@ async function addReceivedChargerToStock(modelType){
 }
 
 async function deductReceivedPartsStock(ssdCost, ramCost){
-  const result = window.StockLogic.deductPartsForReceipt(ssdCost, ramCost, stockParts);
+  const result = window.StockLogic.deductPartsForReceipt(ssdCost, ramCost, stockParts, stockPrices);
   const labels = {
     ssd256: 'ССД 256 GB',
     ssd512: 'ССД 512 GB',
@@ -493,14 +613,16 @@ function updateDashboardDeliveryTotal(){
   const dutyTotal = laptops.reduce((sum, item) => {
     if(normalizeStatus(item.status) !== 'in_transit' || toNum(item.duty_cost) !== 0) return sum;
 
-    const ebayPriceUsd = toNum(item.ebay_price) / DUTY_EXCHANGE_RATE;
-    const taxableAmountUsd = Math.max(0, ebayPriceUsd - DUTY_FREE_LIMIT_USD);
-    return sum + taxableAmountUsd * DUTY_RATE * DUTY_EXCHANGE_RATE;
+    const euroRate = getStockPrice('euroRate');
+    const ebayPriceEur = toNum(item.ebay_price) / euroRate;
+    const taxableAmountEur = Math.max(0, ebayPriceEur - DUTY_FREE_LIMIT_EUR);
+    return sum + taxableAmountEur * DUTY_RATE * euroRate;
   }, 0);
 
   if(dutyTotalEl){
+    const euroRate = getStockPrice('euroRate');
     dutyTotalEl.textContent = `${new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 2 }).format(dutyTotal)} грн`;
-    dutyTotalEl.title = '30% від частини ціни понад $150 за курсом 50 грн/$';
+    dutyTotalEl.title = `30% від частини ціни понад €150 за курсом ${formatStockPrice(euroRate)} грн/€`;
   }
 }
 
@@ -1221,6 +1343,7 @@ function switchView(name, direction = ''){
   }
   document.querySelectorAll('.nav-btn').forEach((btn) => btn.classList.remove('active'));
   document.querySelector(`.nav-btn[data-view="${name}"]`)?.classList.add('active');
+  if(name === 'stock') switchStockTab('inventory');
   updateAppFooterVisibility(name);
   // A swipe should move only the tab content. Resetting the page scroll here
   // makes the whole mobile viewport jump while the transition is running.
@@ -2039,27 +2162,21 @@ function openEditModal(id, mode = 'full'){
         <div id="chargerField" hidden>
           <label id="chargerCostLabel">Зарядний, ₴</label>
           <div id="chargerCostOptions" class="part-cost-options" role="group" aria-label="Вартість зарядного">
-            <button class="part-cost-option" type="button" data-cost="0" onclick="selectPartCost('charger_cost', 0)"><b>0</b><small>у комплекті</small></button>
-            <button class="part-cost-option" type="button" data-cost="400" onclick="selectPartCost('charger_cost', 400)"><b>400 ₴</b><small>зарядний</small></button>
-            <button class="part-cost-option" type="button" data-cost="900" onclick="selectPartCost('charger_cost', 900)"><b>900 ₴</b><small>зарядний</small></button>
+            ${chargerCostOptionsTemplate()}
           </div>
           <input id="charger_cost" type="hidden" value="" />
         </div>
         <div id="ssdField" hidden>
           <label id="ssdCostLabel">SSD, ₴</label>
           <div id="ssdOptions" class="part-cost-options" role="group" aria-label="Встановлений SSD">
-            <button class="part-cost-option" type="button" data-cost="0" onclick="selectPartCost('ssd', 0)"><b>0</b><small>не ставили</small></button>
-            <button class="part-cost-option" type="button" data-cost="800" onclick="selectPartCost('ssd', 800)"><b>256 GB</b><small>800 ₴</small></button>
-            <button class="part-cost-option" type="button" data-cost="1600" onclick="selectPartCost('ssd', 1600)"><b>512 GB</b><small>1600 ₴</small></button>
+            ${ssdCostOptionsTemplate()}
           </div>
           <input id="ssd" type="hidden" value="" />
         </div>
         <div id="ramField" hidden>
           <label id="ramCostLabel">RAM, ₴</label>
           <div id="ramOptions" class="part-cost-options" role="group" aria-label="Встановлена оперативна пам’ять">
-            <button class="part-cost-option" type="button" data-cost="0" onclick="selectPartCost('ram', 0)"><b>0</b><small>не ставили</small></button>
-            <button class="part-cost-option" type="button" data-cost="800" onclick="selectPartCost('ram', 800)"><b>8 GB</b><small>800 ₴</small></button>
-            <button class="part-cost-option" type="button" data-cost="1600" onclick="selectPartCost('ram', 1600)"><b>16 GB</b><small>1600 ₴</small></button>
+            ${ramCostOptionsTemplate()}
           </div>
           <input id="ram" type="hidden" value="" />
         </div>
@@ -2076,8 +2193,8 @@ function openEditModal(id, mode = 'full'){
           <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Elitebook" onclick="selectModelType('Elitebook')">Elitebook</button>
           <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Zbook" onclick="selectModelType('Zbook')">Zbook</button>
         </div>
-        <div class="completed-field"><label>Реклама OLX, ₴</label><input id="olx_ad_cost" type="number" min="0" step="0.01" value="300" readonly /></div>
-        <div class="completed-field"><label>Гравіювання, ₴</label><input id="engraving_cost" type="number" min="0" step="0.01" value="200" readonly /></div>
+        <div class="completed-field"><label>Реклама OLX, ₴</label><input id="olx_ad_cost" type="number" min="0" step="0.01" readonly /></div>
+        <div class="completed-field"><label>Гравіювання, ₴</label><input id="engraving_cost" type="number" min="0" step="0.01" readonly /></div>
         <div class="completed-field"><label>Собівартість, ₴</label><input id="cost_display" disabled /></div>
       </div>`;
     actions.parentNode.insertBefore(extra, actions);
@@ -2114,8 +2231,8 @@ function openEditModal(id, mode = 'full'){
   const ramValue = !hasSerialNumber && Number(item.ram) === 0 ? '' : item.ram ?? '';
   document.getElementById('duty_cost').value = dutyValue;
   document.getElementById('dutyField')?.classList.toggle('completed-field', dutyValue !== '');
-  document.getElementById('olx_ad_cost').value = 300;
-  document.getElementById('engraving_cost').value = 200;
+  document.getElementById('olx_ad_cost').value = item.olx_ad_cost ?? getStockPrice('olxAd');
+  document.getElementById('engraving_cost').value = item.engraving_cost ?? getStockPrice('engraving');
   document.getElementById('ssd').value = ssdValue;
   document.getElementById('ram').value = ramValue;
   syncPartCostOptions('ssd');
@@ -2293,8 +2410,12 @@ async function saveLaptop(event){
       duty_cost: document.getElementById('duty_cost')
         ? (document.getElementById('duty_cost').value.trim() === '' ? null : toNum(document.getElementById('duty_cost').value))
         : 0,
-      olx_ad_cost: 300,
-      engraving_cost: 200,
+      olx_ad_cost: document.getElementById('olx_ad_cost')
+        ? toNum(document.getElementById('olx_ad_cost').value)
+        : getStockPrice('olxAd'),
+      engraving_cost: document.getElementById('engraving_cost')
+        ? toNum(document.getElementById('engraving_cost').value)
+        : getStockPrice('engraving'),
       ssd: document.getElementById('ssd')
         ? (document.getElementById('ssd').value.trim() === '' ? null : toNum(document.getElementById('ssd').value))
         : 0,
@@ -2711,6 +2832,16 @@ function bindUI(){
     stockReminderOpenStock.dataset.bound = '1';
   }
 
+  const stockTabs = document.querySelector('.stock-tabs');
+  if(stockTabs && !stockTabs.dataset.bound){
+    stockTabs.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-stock-tab]');
+      if(!button) return;
+      switchStockTab(button.dataset.stockTab);
+    });
+    stockTabs.dataset.bound = '1';
+  }
+
   const stockReminderModal = document.getElementById('stockReminderModal');
   if(stockReminderModal && !stockReminderModal.dataset.bound){
     stockReminderModal.addEventListener('click', (event) => {
@@ -2753,6 +2884,28 @@ function bindUI(){
       input.classList.add('stock-part-input-locked');
     });
     stockPartsWrap.dataset.bound = '1';
+  }
+
+  const stockPricesWrap = document.getElementById('stockPrices');
+  if(stockPricesWrap && !stockPricesWrap.dataset.bound){
+    stockPricesWrap.addEventListener('change', async (event) => {
+      const input = event.target;
+      if(!(input instanceof HTMLInputElement) || !input.dataset.stockPriceKey) return;
+
+      const nextValue = Number(input.value);
+      const allowsZero = input.dataset.stockPriceKey === 'olxAd' || input.dataset.stockPriceKey === 'engraving';
+      if(!Number.isFinite(nextValue) || (allowsZero ? nextValue < 0 : nextValue <= 0)){
+        input.value = String(getStockPrice(input.dataset.stockPriceKey));
+        setBanner(allowsZero ? 'Ціна не може бути від’ємною.' : 'Ціна має бути більшою за 0.', false);
+        return;
+      }
+
+      stockPrices[input.dataset.stockPriceKey] = Math.round(nextValue * 100) / 100;
+      input.value = String(stockPrices[input.dataset.stockPriceKey]);
+      await saveStockParts();
+      clearBanner();
+    });
+    stockPricesWrap.dataset.bound = '1';
   }
 
   const purgeBtn = document.getElementById('purgeTestLaptopsBtn');

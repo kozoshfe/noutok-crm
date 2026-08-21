@@ -172,6 +172,16 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
 .app-version-button{appearance:none;border:0;background:transparent;color:inherit;font:inherit;padding:0;cursor:pointer}
 .app-version-button:focus-visible{outline:2px solid #7da5ff;outline-offset:5px;border-radius:6px}
 .stock-panel{max-width:720px;margin:0 auto;padding:22px}
+.stock-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:18px;padding:7px;border:1px solid rgba(122,150,212,.18);border-radius:22px;background:rgba(7,18,42,.72)}
+.stock-tab{min-height:48px;border-radius:16px;background:transparent;color:var(--muted);font-size:16px;font-weight:900}
+.stock-tab.active{background:linear-gradient(180deg,rgba(58,78,126,.94),rgba(37,55,94,.94));color:#f7f9ff;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 8px 18px rgba(2,10,28,.2)}
+.stock-tab:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+.stock-tab-panel[hidden]{display:none}
+.stock-prices-panel{min-height:320px}
+.stock-prices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.stock-price-card{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid rgba(122,150,212,.18);border-radius:18px;background:rgba(10,24,51,.72)}
+.stock-price-input-wrap{display:flex;align-items:center;gap:7px;flex:0 0 auto;color:var(--muted);font-size:12px;font-weight:800}
+.stock-price-input{width:94px;min-height:44px;padding:6px 8px;text-align:right;font-size:17px;font-weight:900}
 .stock-head h2{margin:4px 0 0}
 .stock-note{margin:0 0 18px;color:var(--muted)}
 .stock-parts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
@@ -189,6 +199,7 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
 @media (max-width:768px){
   .app{touch-action:pan-y;overflow-x:clip}
   .stock-parts{grid-template-columns:1fr}
+  .stock-prices{grid-template-columns:1fr}
   .stock-panel{padding:16px}
   .view.active.view-slide-next{will-change:transform,opacity;animation:view-slide-in-next 180ms cubic-bezier(.22,.8,.28,1) both}
   .view.active.view-slide-prev{will-change:transform,opacity;animation:view-slide-in-prev 180ms cubic-bezier(.22,.8,.28,1) both}
@@ -1219,6 +1230,9 @@ body[data-theme="light"] .month-card{
   border-color:rgba(110,136,189,.1);
   box-shadow:0 16px 32px rgba(103,125,169,.08), inset 0 1px 0 rgba(255,255,255,.86);
 }
+body[data-theme="light"] .stock-tabs{background:rgba(223,232,249,.76);border-color:rgba(87,112,164,.18)}
+body[data-theme="light"] .stock-tab{color:#62728f}
+body[data-theme="light"] .stock-tab.active{background:linear-gradient(180deg,#7287b5,#5e73a1);color:#fff}
 body[data-theme="light"] .sales-chart{
   background:linear-gradient(180deg,rgba(235,242,255,.96),rgba(247,250,255,.9));
   border-color:rgba(110,136,189,.14);

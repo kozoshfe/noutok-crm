@@ -4,11 +4,35 @@
   else root.StockLogic = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function(){
   const partKeys = ['ssd256', 'ssd512', 'ram8', 'ram16', 'charger65', 'charger150', 'powerCables'];
+  const priceKeys = ['ssd256', 'ssd512', 'ram8', 'ram16', 'charger65', 'charger150', 'olxAd', 'engraving', 'euroRate'];
+  const defaultStockPrices = Object.freeze({
+    ssd256: 800,
+    ssd512: 1600,
+    ram8: 800,
+    ram16: 1600,
+    charger65: 400,
+    charger150: 900,
+    olxAd: 300,
+    engraving: 200,
+    euroRate: 50
+  });
 
   function normalizeStockParts(value){
     const source = value && typeof value === 'object' ? value : {};
     return partKeys.reduce((result, key) => {
       result[key] = Math.max(0, Math.floor(Number(source[key]) || 0));
+      return result;
+    }, {});
+  }
+
+  function normalizeStockPrices(value){
+    const source = value && typeof value === 'object' ? value : {};
+    return priceKeys.reduce((result, key) => {
+      const amount = Number(source[key]);
+      const allowsZero = key === 'olxAd' || key === 'engraving';
+      result[key] = Number.isFinite(amount) && (allowsZero ? amount >= 0 : amount > 0)
+        ? Math.round(amount * 100) / 100
+        : defaultStockPrices[key];
       return result;
     }, {});
   }
@@ -42,14 +66,15 @@
     return updateStock(stock, {});
   }
 
-  function deductPartsForReceipt(ssdCost, ramCost, stock){
+  function deductPartsForReceipt(ssdCost, ramCost, stock, prices){
+    const normalizedPrices = normalizeStockPrices(prices);
     const changes = {};
-    if(Number(ssdCost) === 800) changes.ssd256 = -1;
-    if(Number(ssdCost) === 1600) changes.ssd512 = -1;
-    if(Number(ramCost) === 800) changes.ram8 = -1;
-    if(Number(ramCost) === 1600) changes.ram16 = -1;
+    if(Number(ssdCost) === normalizedPrices.ssd256) changes.ssd256 = -1;
+    else if(Number(ssdCost) === normalizedPrices.ssd512) changes.ssd512 = -1;
+    if(Number(ramCost) === normalizedPrices.ram8) changes.ram8 = -1;
+    else if(Number(ramCost) === normalizedPrices.ram16) changes.ram16 = -1;
     return updateStock(stock, changes);
   }
 
-  return { normalizeStockParts, deductForSale, addChargerForReceipt, deductPartsForReceipt };
+  return { defaultStockPrices, normalizeStockParts, normalizeStockPrices, deductForSale, addChargerForReceipt, deductPartsForReceipt };
 });
