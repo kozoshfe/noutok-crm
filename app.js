@@ -21,8 +21,12 @@ let stockParts = {};
 let stockPrices = {};
 let isSavingLaptop = false;
 let lockedScrollY = 0;
+let quickLocationStateSavingId = null;
+let quickLocationSavingId = null;
+let pendingLocationStateUndo = null;
+let locationStateToastTimer = null;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.60';
+const APP_VERSION = '1.11.64';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -39,6 +43,7 @@ const HISTORICAL_SOLD_COUNT = 187;
 const DELIVERY_ESTIMATE_PER_LAPTOP = 900;
 const DUTY_FREE_LIMIT_EUR = 150;
 const DUTY_RATE = 0.3;
+const DEFAULT_LOCATION = 'Кладовка низ';
 let isSyncingPendingSaves = false;
 
 const statusLabels = {
@@ -65,6 +70,10 @@ function normalizeLocation(location){
   return map[value] || value;
 }
 
+function getEffectiveLocation(item){
+  return normalizeLocation(item?.location) || DEFAULT_LOCATION;
+}
+
 function normalizeLocationState(state){
   const value = String(state || '').trim();
   if(value === 'На гравіювання' || value === 'Гравіювання' || value === 'engraving') return 'Гравіювання';
@@ -88,6 +97,29 @@ const repairTypeIcons = {
   'USB': '🔌',
   'Камера': '📷'
 };
+
+const locationStateOptions = [
+  { value: 'На чистку', label: 'На чистку', icon: '🧹', className: 'cleaning' },
+  { value: 'Гравіювання', label: 'Гравіювання', icon: '✍️', className: 'engraving' },
+  { value: 'Ремонт', label: 'Ремонт', icon: '🔧', className: 'repair' },
+  { value: 'На фото', label: 'На фото', icon: '📷', className: 'photo' },
+  { value: '', label: 'Без стану', icon: '○', className: 'empty' }
+];
+
+const locationOptions = [
+  { value: 'Кладовка низ', label: 'Кладовка низ', icon: '⬇️' },
+  { value: 'Кладовка верх', label: 'Кладовка верх', icon: '⬆️' },
+  { value: 'Кухня', label: 'Кухня', icon: '🍽️' },
+  { value: 'Спальня низ', label: 'Спальня низ', icon: '🛏️' },
+  { value: 'Спальня верх', label: 'Спальня верх', icon: '🛏️' },
+  { value: 'Нічого', label: 'Нічого', icon: '○' }
+];
+
+function getLocationStateOption(state){
+  const normalized = normalizeLocationState(state);
+  return locationStateOptions.find((option) => option.value === normalized)
+    || locationStateOptions[locationStateOptions.length - 1];
+}
 
 function repairTypeIconsTemplate(state){
   return getRepairType(state).split(', ').filter(Boolean).map((type) => {
@@ -1598,11 +1630,357 @@ function renderSold(){
     : '<div class="empty">Ще немає проданих ноутбуків</div>';
 }
 
+function locationTriggerTemplate(item){
+  const currentLocation = getEffectiveLocation(item);
+  return `
+    <button
+      class="location-card-badge location-state-trigger location-trigger"
+      type="button"
+      data-location-trigger
+      data-laptop-id="${safe(item.id)}"
+      aria-label="Змінити локацію. Зараз: ${safe(currentLocation)}"
+      title="Змінити локацію"
+    ><span>${safe(currentLocation)}</span><span class="location-state-trigger-arrow" aria-hidden="true">›</span></button>`;
+}
+
+function locationPickerTemplate(item){
+  const currentLocation = getEffectiveLocation(item);
+  return `
+    <div id="quickLocationPickerOverlay" class="location-state-picker-overlay" data-laptop-id="${safe(item.id)}">
+      <section id="quickLocationPicker" class="location-state-picker quick-location-picker" role="dialog" aria-modal="true" aria-labelledby="quickLocationPickerTitle">
+        <div class="location-state-picker-head">
+          <div>
+            <div class="location-state-picker-kicker">Ноутбук ${safe(item.number || 'без номера')}</div>
+            <h3 id="quickLocationPickerTitle">Змінити локацію</h3>
+          </div>
+          <button class="location-state-picker-close" type="button" data-location-picker-close aria-label="Закрити">×</button>
+        </div>
+        <div class="location-state-choice-grid" role="group" aria-label="Нова локація">
+          ${locationOptions.map((option) => `
+            <button
+              class="location-state-choice quick-location-choice ${option.value === currentLocation ? 'active' : ''}"
+              type="button"
+              data-location-option
+              data-location-value="${safe(option.value)}"
+              aria-pressed="${option.value === currentLocation}"
+            ><span class="location-state-choice-icon" aria-hidden="true">${option.icon}</span><span>${safe(option.label)}</span></button>`).join('')}
+        </div>
+        <div id="quickLocationPickerMessage" class="location-state-picker-message" aria-live="polite" hidden></div>
+      </section>
+    </div>`;
+}
+
+function openQuickLocationPicker(id){
+  if(quickLocationSavingId !== null) return;
+  const item = laptops.find((laptop) => String(laptop.id) === String(id));
+  if(!item) return;
+  document.getElementById('quickLocationPickerOverlay')?.remove();
+  document.body.insertAdjacentHTML('beforeend', locationPickerTemplate(item));
+  lockBodyScroll();
+  window.setTimeout(() => document.querySelector('#quickLocationPicker .quick-location-choice.active, #quickLocationPicker .quick-location-choice')?.focus(), 0);
+}
+
+function closeQuickLocationPicker(force = false){
+  if(quickLocationSavingId !== null && !force) return;
+  document.getElementById('quickLocationPickerOverlay')?.remove();
+  unlockBodyScroll();
+}
+
+function setQuickLocationPickerMessage(text){
+  const message = document.getElementById('quickLocationPickerMessage');
+  if(!message) return;
+  message.textContent = text || '';
+  message.hidden = !text;
+}
+
+function setQuickLocationPickerSaving(saving){
+  const picker = document.getElementById('quickLocationPicker');
+  if(!picker) return;
+  picker.classList.toggle('saving', Boolean(saving));
+  picker.querySelectorAll('button').forEach((button) => { button.disabled = Boolean(saving); });
+  if(saving) setQuickLocationPickerMessage('Зберігаю…');
+}
+
+async function persistQuickLocation(id, nextValue, options = {}){
+  const item = laptops.find((laptop) => String(laptop.id) === String(id));
+  if(!item || quickLocationSavingId !== null) return false;
+  const previousValue = getEffectiveLocation(item);
+  const normalizedNextValue = normalizeLocation(nextValue) || DEFAULT_LOCATION;
+  if(previousValue === normalizedNextValue){
+    if(options.closePicker !== false) closeQuickLocationPicker(true);
+    return true;
+  }
+
+  quickLocationSavingId = item.id;
+  setQuickLocationPickerSaving(true);
+  try{
+    const payload = { location: normalizedNextValue };
+    const { response, savedPayload } = await saveLaptopPatchToDatabase(item.id, payload, 'Quick location');
+    if(response.error){
+      hasSupabaseConnection = false;
+      updateNetwork();
+      const message = `Не вдалося змінити локацію: ${errorSummary(response.error)}`;
+      setQuickLocationPickerMessage(message);
+      setBanner(message, false);
+      if(options.closePicker === false) showLocationStateToast(message);
+      return false;
+    }
+
+    hasSupabaseConnection = true;
+    updateNetwork();
+    if(options.closePicker !== false) closeQuickLocationPicker(true);
+    applyLaptopToState({ ...item, ...savedPayload, id: item.id });
+    if(options.showUndo === false){
+      showLocationStateToast(options.successMessage || 'Попередню локацію повернуто.');
+    } else {
+      showLocationStateToast('Локацію змінено.', { field: 'location', id: item.id, previousValue, nextValue: normalizedNextValue });
+    }
+    refreshLaptopsInBackground();
+    return true;
+  }catch(error){
+    hasSupabaseConnection = false;
+    updateNetwork();
+    const message = `Не вдалося змінити локацію: ${errorSummary(error)}`;
+    setQuickLocationPickerMessage(message);
+    setBanner(message, false);
+    if(options.closePicker === false) showLocationStateToast(message);
+    return false;
+  }finally{
+    quickLocationSavingId = null;
+    setQuickLocationPickerSaving(false);
+  }
+}
+
+function locationStateTriggerTemplate(item){
+  const option = getLocationStateOption(item.location_state);
+  const hasState = Boolean(option.value);
+  const currentLabel = hasState ? option.label : 'Без стану';
+  const actionLabel = hasState ? `Змінити стан. Зараз: ${currentLabel}` : 'Додати стан';
+  return `
+    <button
+      class="location-card-badge location-state-trigger location-state-trigger-${safe(option.className)} ${hasState ? '' : 'location-state-trigger-compact'}"
+      type="button"
+      data-location-state-trigger
+      data-laptop-id="${safe(item.id)}"
+      aria-label="${safe(actionLabel)}"
+      title="${safe(actionLabel)}"
+    >${hasState
+      ? `<span aria-hidden="true">${option.icon}</span><span>${safe(currentLabel)}</span><span class="location-state-trigger-arrow" aria-hidden="true">›</span>`
+      : '<span class="location-state-trigger-plus" aria-hidden="true">＋</span>'}</button>`;
+}
+
+function locationStatePickerTemplate(item){
+  const currentState = normalizeLocationState(item.location_state);
+  const selectedRepairTypes = new Set(getRepairType(item.location_state).split(', ').filter(Boolean));
+  const repairTypes = Object.keys(repairTypeIcons);
+  return `
+    <div id="locationStatePickerOverlay" class="location-state-picker-overlay" data-laptop-id="${safe(item.id)}">
+      <section id="locationStatePicker" class="location-state-picker" role="dialog" aria-modal="true" aria-labelledby="locationStatePickerTitle">
+        <div class="location-state-picker-head">
+          <div>
+            <div class="location-state-picker-kicker">Ноутбук ${safe(item.number || 'без номера')}</div>
+            <h3 id="locationStatePickerTitle">Змінити стан</h3>
+          </div>
+          <button class="location-state-picker-close" type="button" data-location-state-close aria-label="Закрити">×</button>
+        </div>
+        <div class="location-state-choice-grid" role="group" aria-label="Новий стан">
+          ${locationStateOptions.map((option) => `
+            <button
+              class="location-state-choice location-state-choice-${safe(option.className)} ${option.value === currentState ? 'active' : ''}"
+              type="button"
+              data-location-state-option
+              data-state-value="${safe(option.value)}"
+              aria-pressed="${option.value === currentState}"
+            ><span class="location-state-choice-icon" aria-hidden="true">${option.icon}</span><span>${safe(option.label)}</span></button>`).join('')}
+        </div>
+        <div id="quickRepairTypes" class="quick-repair-types" ${currentState === 'Ремонт' ? '' : 'hidden'}>
+          <div class="quick-repair-title">Що ремонтувати?</div>
+          <div class="quick-repair-grid" role="group" aria-label="Що ремонтувати">
+            ${repairTypes.map((type) => `
+              <button
+                class="quick-repair-option ${selectedRepairTypes.has(type) ? 'active' : ''}"
+                type="button"
+                data-quick-repair-type="${safe(type)}"
+                aria-pressed="${selectedRepairTypes.has(type)}"
+              ><span aria-hidden="true">${repairTypeIcons[type]}</span><span>${safe(type)}</span></button>`).join('')}
+          </div>
+          <button class="quick-repair-save" type="button" data-quick-repair-save>Зберегти ремонт</button>
+        </div>
+        <div id="locationStatePickerMessage" class="location-state-picker-message" aria-live="polite" hidden></div>
+      </section>
+    </div>`;
+}
+
+function openLocationStatePicker(id){
+  if(quickLocationStateSavingId !== null) return;
+  const item = laptops.find((laptop) => String(laptop.id) === String(id));
+  if(!item) return;
+
+  document.getElementById('locationStatePickerOverlay')?.remove();
+  document.body.insertAdjacentHTML('beforeend', locationStatePickerTemplate(item));
+  lockBodyScroll();
+  window.setTimeout(() => {
+    const picker = document.getElementById('locationStatePicker');
+    picker?.querySelector('.location-state-choice.active, .location-state-choice')?.focus();
+  }, 0);
+}
+
+function closeLocationStatePicker(force = false){
+  if(quickLocationStateSavingId !== null && !force) return;
+  document.getElementById('locationStatePickerOverlay')?.remove();
+  unlockBodyScroll();
+}
+
+function setLocationStatePickerMessage(text){
+  const message = document.getElementById('locationStatePickerMessage');
+  if(!message) return;
+  message.textContent = text || '';
+  message.hidden = !text;
+}
+
+function setLocationStatePickerSaving(saving){
+  const picker = document.getElementById('locationStatePicker');
+  if(!picker) return;
+  picker.classList.toggle('saving', Boolean(saving));
+  picker.querySelectorAll('button').forEach((button) => { button.disabled = Boolean(saving); });
+  if(saving) setLocationStatePickerMessage('Зберігаю…');
+}
+
+function showLocationStateToast(message, undoChange = null){
+  const toast = document.getElementById('locationStateToast');
+  if(!toast) return;
+  if(locationStateToastTimer) window.clearTimeout(locationStateToastTimer);
+  pendingLocationStateUndo = undoChange;
+  const copy = toast.querySelector('.location-state-toast-copy');
+  const undoButton = toast.querySelector('[data-location-state-undo]');
+  if(copy) copy.textContent = message;
+  if(undoButton){
+    undoButton.hidden = !undoChange;
+    undoButton.disabled = false;
+  }
+  toast.hidden = false;
+  requestAnimationFrame(() => toast.classList.add('show'));
+  locationStateToastTimer = window.setTimeout(hideLocationStateToast, undoChange ? 6500 : 3000);
+}
+
+function hideLocationStateToast(){
+  const toast = document.getElementById('locationStateToast');
+  if(locationStateToastTimer) window.clearTimeout(locationStateToastTimer);
+  locationStateToastTimer = null;
+  pendingLocationStateUndo = null;
+  if(!toast) return;
+  toast.classList.remove('show');
+  toast.hidden = true;
+}
+
+async function persistQuickLocationState(id, nextValue, options = {}){
+  const item = laptops.find((laptop) => String(laptop.id) === String(id));
+  if(!item || quickLocationStateSavingId !== null) return false;
+
+  const previousValue = normalizeLocationStateValue(item.location_state) || null;
+  const normalizedNextValue = normalizeLocationStateValue(nextValue) || null;
+  if(previousValue === normalizedNextValue){
+    if(options.closePicker !== false) closeLocationStatePicker(true);
+    return true;
+  }
+
+  quickLocationStateSavingId = item.id;
+  setLocationStatePickerSaving(true);
+  try{
+    const payload = { location_state: normalizedNextValue };
+    const { response, savedPayload } = await saveLaptopPatchToDatabase(item.id, payload, 'Quick location state');
+    if(response.error){
+      hasSupabaseConnection = false;
+      updateNetwork();
+      const message = `Не вдалося змінити стан: ${errorSummary(response.error)}`;
+      setLocationStatePickerMessage(message);
+      setBanner(message, false);
+      if(options.closePicker === false) showLocationStateToast(message);
+      return false;
+    }
+
+    hasSupabaseConnection = true;
+    updateNetwork();
+    if(options.closePicker !== false) closeLocationStatePicker(true);
+    applyLaptopToState({ ...item, ...savedPayload, id: item.id });
+    if(options.showUndo === false){
+      showLocationStateToast(options.successMessage || 'Попередній стан повернуто.');
+    } else {
+      showLocationStateToast('Стан змінено.', {
+        field: 'location_state',
+        id: item.id,
+        previousValue,
+        nextValue: normalizedNextValue
+      });
+    }
+    refreshLaptopsInBackground();
+    return true;
+  }catch(error){
+    hasSupabaseConnection = false;
+    updateNetwork();
+    const message = `Не вдалося змінити стан: ${errorSummary(error)}`;
+    setLocationStatePickerMessage(message);
+    setBanner(message, false);
+    if(options.closePicker === false) showLocationStateToast(message);
+    return false;
+  }finally{
+    quickLocationStateSavingId = null;
+    setLocationStatePickerSaving(false);
+  }
+}
+
+function chooseQuickLocationState(button){
+  const overlay = document.getElementById('locationStatePickerOverlay');
+  if(!overlay) return;
+  const nextState = button.dataset.stateValue || '';
+  overlay.querySelectorAll('[data-location-state-option]').forEach((optionButton) => {
+    const active = optionButton === button;
+    optionButton.classList.toggle('active', active);
+    optionButton.setAttribute('aria-pressed', String(active));
+  });
+
+  const repairTypes = document.getElementById('quickRepairTypes');
+  if(nextState === 'Ремонт'){
+    if(repairTypes) repairTypes.hidden = false;
+    repairTypes?.querySelector('.quick-repair-option')?.focus();
+    return;
+  }
+  if(repairTypes) repairTypes.hidden = true;
+  persistQuickLocationState(overlay.dataset.laptopId, nextState);
+}
+
+function toggleQuickRepairType(button){
+  const active = !button.classList.contains('active');
+  button.classList.toggle('active', active);
+  button.setAttribute('aria-pressed', String(active));
+}
+
+function saveQuickRepairState(){
+  const overlay = document.getElementById('locationStatePickerOverlay');
+  if(!overlay) return;
+  const repairTypes = [...overlay.querySelectorAll('[data-quick-repair-type].active')]
+    .map((button) => button.dataset.quickRepairType)
+    .filter(Boolean);
+  const nextState = repairTypes.length ? `Ремонт: ${repairTypes.join(', ')}` : 'Ремонт';
+  persistQuickLocationState(overlay.dataset.laptopId, nextState);
+}
+
+async function undoQuickLocationState(){
+  const change = pendingLocationStateUndo;
+  if(!change || quickLocationStateSavingId !== null || quickLocationSavingId !== null) return;
+  const undoButton = document.querySelector('#locationStateToast [data-location-state-undo]');
+  if(undoButton) undoButton.disabled = true;
+  pendingLocationStateUndo = null;
+  const options = { closePicker: false, showUndo: false, successMessage: 'Зміну скасовано.' };
+  if(change.field === 'location') await persistQuickLocation(change.id, change.previousValue, options);
+  else await persistQuickLocationState(change.id, change.previousValue, options);
+}
+
 function renderLocation(){
   const locationF = document.getElementById('filterLocation')?.value;
   const locationStateF = document.getElementById('filterLocationState')?.value;
   let data = laptops.filter((x) => normalizeStatus(x.status) === 'received');
-  if(locationF) data = data.filter((x) => normalizeLocation(x.location) === locationF);
+  if(locationF) data = data.filter((x) => getEffectiveLocation(x) === locationF);
   if(locationStateF) data = data.filter((x) => normalizeLocationState(x.location_state) === locationStateF);
   const wrap = document.getElementById('locationCards');
   const countEl = document.getElementById('locationCount');
@@ -1615,11 +1993,10 @@ function renderLocation(){
         <div class="location-card-header">
           <div class="location-card-meta">
             <div class="location-card-title">${safe(item.number || 'Без номера')}</div>
-            ${item.location && normalizeLocationState(item.location_state) !== 'Ремонт' ? `<div class="location-card-badge">${safe(normalizeLocation(item.location))}</div>` : ''}
-            ${item.location_state && normalizeLocationState(item.location_state) !== 'Ремонт' ? `<div class="location-card-badge ${getLocationStateBadgeClass(item.location_state)}">${safe(normalizeLocationState(item.location_state))}</div>` : ''}
+            ${normalizeLocationState(item.location_state) !== 'Ремонт' ? locationTriggerTemplate(item) : ''}
+            ${locationStateTriggerTemplate(item)}
             ${getRepairType(item.location_state) ? `<div class="repair-type-icons">${repairTypeIconsTemplate(item.location_state)}</div>` : ''}
           </div>
-          <button class="edit-mini location-card-edit" onclick="openEditModal('${item.id}', 'location')" title="Редагувати локацію">✏️</button>
         </div>
       </div>
     </div>
@@ -2165,7 +2542,7 @@ function openEditModal(id, mode = 'full'){
     if(extraFields) extraFields.remove();
     ensureLocationOnlyFields();
     const locationInput = document.getElementById('location');
-    if(locationInput) locationInput.value = item.location || 'Кладовка верх';
+    if(locationInput) locationInput.value = getEffectiveLocation(item);
     const locationStateInput = document.getElementById('location_state');
     if(locationStateInput) locationStateInput.value = normalizeLocationState(item.location_state);
     const repairTypes = getRepairType(item.location_state).split(', ').filter(Boolean);
@@ -2410,7 +2787,7 @@ async function saveLaptop(event){
       const locationState = normalizeLocationState(document.getElementById('location_state')?.value);
       const repairType = [...document.querySelectorAll('input[name="repair_type"]:checked')].map((input) => input.value).join(', ');
       const payload = {
-        location: document.getElementById('location')?.value || 'Кладовка верх',
+        location: document.getElementById('location')?.value || DEFAULT_LOCATION,
         location_state: locationState === 'Ремонт' && repairType ? `Ремонт: ${repairType}` : locationState || null
       };
       const { response, savedPayload } = await saveLaptopPatchToDatabase(targetEditId, payload, 'Save laptop location');
@@ -2543,6 +2920,7 @@ async function saveLaptop(event){
 
       if(payload.status === 'received' && currentItem && currentItem.status !== 'received'){
         payload.location_state = 'На чистку';
+        payload.location = getEffectiveLocation(currentItem);
       } else if(payload.status === 'in_transit'){
         payload.location_state = null;
       }
@@ -2715,7 +3093,10 @@ async function quickStatus(id, status){
   }
 
   const payload = { status };
-  if(status === 'received' && item.status !== 'received') payload.location_state = 'На чистку';
+  if(status === 'received' && item.status !== 'received'){
+    payload.location_state = 'На чистку';
+    payload.location = getEffectiveLocation(item);
+  }
   if(status === 'in_transit') payload.location_state = null;
   payload.sold_at = status === 'sold' ? new Date().toISOString() : null;
 
@@ -3045,6 +3426,67 @@ function bindUI(){
   document.addEventListener('click', (event) => {
     const laptopLink = event.target.closest?.('.dashboard-note-link, .dashboard-olx-link');
     if(laptopLink) openDashboardDeliveryLaptop(laptopLink.dataset.laptopNumber);
+  });
+
+  document.addEventListener('click', (event) => {
+    const locationTrigger = event.target.closest?.('[data-location-trigger]');
+    if(locationTrigger){
+      openQuickLocationPicker(locationTrigger.dataset.laptopId);
+      return;
+    }
+
+    if(event.target.closest?.('[data-location-picker-close]')){
+      closeQuickLocationPicker();
+      return;
+    }
+
+    const locationOption = event.target.closest?.('[data-location-option]');
+    if(locationOption){
+      const overlay = document.getElementById('quickLocationPickerOverlay');
+      if(overlay) persistQuickLocation(overlay.dataset.laptopId, locationOption.dataset.locationValue);
+      return;
+    }
+
+    const stateTrigger = event.target.closest?.('[data-location-state-trigger]');
+    if(stateTrigger){
+      openLocationStatePicker(stateTrigger.dataset.laptopId);
+      return;
+    }
+
+    if(event.target.closest?.('[data-location-state-close]')){
+      closeLocationStatePicker();
+      return;
+    }
+
+    const stateOption = event.target.closest?.('[data-location-state-option]');
+    if(stateOption){
+      chooseQuickLocationState(stateOption);
+      return;
+    }
+
+    const repairType = event.target.closest?.('[data-quick-repair-type]');
+    if(repairType){
+      toggleQuickRepairType(repairType);
+      return;
+    }
+
+    if(event.target.closest?.('[data-quick-repair-save]')){
+      saveQuickRepairState();
+      return;
+    }
+
+    if(event.target.closest?.('[data-location-state-undo]')){
+      undoQuickLocationState();
+      return;
+    }
+
+    if(event.target.id === 'locationStatePickerOverlay') closeLocationStatePicker();
+    if(event.target.id === 'quickLocationPickerOverlay') closeQuickLocationPicker();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if(event.key === 'Escape' && document.getElementById('locationStatePickerOverlay')) closeLocationStatePicker();
+    if(event.key === 'Escape' && document.getElementById('quickLocationPickerOverlay')) closeQuickLocationPicker();
   });
 
   document.addEventListener('change', (event) => {
