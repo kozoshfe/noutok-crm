@@ -264,6 +264,15 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
   gap:10px;
 }
 .dashboard-estimate-card{min-width:0}
+.dashboard-action-grid{
+  margin-top:14px;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+.dashboard-action-grid[hidden]{display:none !important}
+.dashboard-action-grid-single{grid-template-columns:minmax(0,1fr)}
+.dashboard-action-grid .dashboard-note-card{min-width:0;margin-top:0}
 .dashboard-note-card{
   margin-top:14px;
   display:flex;
@@ -2144,6 +2153,22 @@ body:not([data-theme="light"]) #authScreen .auth-theme-toggle[aria-pressed="true
     max-width:34px !important;
     padding:0 !important;
   }
+  #locationCards .repair-type-icons{
+    flex:1 1 116px !important;
+    flex-wrap:nowrap !important;
+    min-width:0 !important;
+    gap:4px !important;
+  }
+  #locationCards .repair-type-icon{
+    box-sizing:border-box !important;
+    flex:1 1 28px !important;
+    width:28px !important;
+    min-width:16px !important;
+    max-width:28px !important;
+    height:28px !important;
+    border-radius:8px !important;
+    font-size:14px !important;
+  }
   .location-state-picker-overlay{
     align-items:flex-end;
     padding:0;
@@ -2172,6 +2197,27 @@ body:not([data-theme="light"]) #authScreen .auth-theme-toggle[aria-pressed="true
     gap:10px;
   }
   .location-state-toast-copy{white-space:normal;line-height:1.25}
+
+  .dashboard-action-grid{gap:10px}
+  .dashboard-action-grid:not(.dashboard-action-grid-single) .dashboard-note-card{
+    gap:12px;
+    padding:14px 12px;
+  }
+  .dashboard-action-grid:not(.dashboard-action-grid-single) .dashboard-note-copy .k{
+    font-size:12px;
+    line-height:1.25;
+  }
+  .dashboard-action-grid:not(.dashboard-action-grid-single) .dashboard-note-value{
+    gap:5px;
+    font-size:24px;
+  }
+  .dashboard-action-grid:not(.dashboard-action-grid-single) .dashboard-note-link,
+  .dashboard-action-grid:not(.dashboard-action-grid-single) .dashboard-olx-link{
+    min-height:34px;
+    padding:0 9px;
+    border-radius:12px;
+    font-size:20px;
+  }
 
   .grid{grid-template-columns:1fr !important;gap:10px}
   .field{border-radius:16px;padding:12px}

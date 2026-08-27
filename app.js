@@ -26,7 +26,7 @@ let quickLocationSavingId = null;
 let pendingLocationStateUndo = null;
 let locationStateToastTimer = null;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.64';
+const APP_VERSION = '1.11.66';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -616,6 +616,14 @@ async function saveDashboardDeliveryNote(){
   clearBanner();
 }
 
+function updateDashboardActionGridLayout(){
+  const grid = document.getElementById('dashboardActionGrid');
+  if(!grid) return;
+  const visibleCards = [...grid.querySelectorAll('.dashboard-note-card')].filter((card) => !card.hidden);
+  grid.hidden = visibleCards.length === 0;
+  grid.classList.toggle('dashboard-action-grid-single', visibleCards.length === 1);
+}
+
 function updateDashboardDeliveryNoteValue(value){
   const valueEl = document.getElementById('dashboardDeliveryNoteValue');
   if(!valueEl) return;
@@ -625,6 +633,7 @@ function updateDashboardDeliveryNoteValue(value){
   valueEl.innerHTML = list.length
     ? list.map((number) => `<button class="dashboard-note-link" type="button" data-laptop-number="${safe(number)}" title="Відкрити ноутбук №${safe(number)} в Активних">${safe(number)}</button>`).join('')
     : '-';
+  updateDashboardActionGridLayout();
 
   updateDashboardDeliveryTotal();
 }
@@ -649,6 +658,7 @@ function updateDashboardOlxNoteValue(){
   valueEl.innerHTML = list.length
     ? list.map((number) => `<button class="dashboard-olx-link" type="button" data-laptop-number="${safe(number)}" title="Відкрити ноутбук №${safe(number)} в Активних">${safe(number)}</button>`).join('')
     : '-';
+  updateDashboardActionGridLayout();
 }
 
 function updateDashboardDeliveryTotal(){

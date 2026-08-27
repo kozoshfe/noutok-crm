@@ -6,16 +6,16 @@
   <title>Ноуток СРМ</title>
   <meta name="theme-color" content="#061126" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2212%22 y=%2218%22 width=%2276%22 height=%2248%22 rx=%228%22 fill=%22%234b67ff%22/><rect x=%2218%22 y=%2224%22 width=%2264%22 height=%2236%22 rx=%226%22 fill=%22%2349d17c%22/><rect x=%2218%22 y=%2270%22 width=%2264%22 height=%228%22 rx=%224%22 fill=%22%23dbe3f0%22/><text x=%2250%22 y=%2250%22 text-anchor=%22middle%22 font-size=%2230%22 font-family=%22Arial%22 font-weight=%22700%22 fill=%22white%22>NB</text></svg>">
-  <link rel="manifest" href="manifest.json?v=1.11.64">
+  <link rel="manifest" href="manifest.json?v=1.11.66">
   <link rel="icon" type="image/png" href="icon-512.png?v=20260520-2">
   <link rel="apple-touch-icon" href="icon-192.png?v=20260520-2">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Ноуток СРМ">
-  <link rel="stylesheet" href="styles.css?v=1.11.64">
+  <link rel="stylesheet" href="styles.css?v=1.11.66">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="stock-logic.js?v=1.11.64"></script>
-  <script src="app.js?v=1.11.64" defer></script>
+  <script src="stock-logic.js?v=1.11.66"></script>
+  <script src="app.js?v=1.11.66" defer></script>
 </head>
 <body>
   <div id="authScreen" class="auth-screen" style="display:none">
@@ -103,23 +103,25 @@
             <div id="dashboardDutyTotal" class="v">0 грн</div>
           </div>
         </div>
-        <div id="dashboardDeliveryNoteCard" class="dashboard-note-card">
-          <div class="dashboard-note-copy">
-            <div class="k">Добавити до доставки</div>
+        <div id="dashboardActionGrid" class="dashboard-action-grid" hidden>
+          <div id="dashboardDeliveryNoteCard" class="dashboard-note-card" hidden>
+            <div class="dashboard-note-copy">
+              <div class="k">Добавити до доставки</div>
+            </div>
+            <div class="dashboard-note-display">
+              <div id="dashboardDeliveryNoteValue" class="dashboard-note-value">-</div>
+            </div>
+            <div id="dashboardNoteEditor" class="dashboard-note-controls" hidden>
+              <div id="dashboardDeliveryNote" class="dashboard-note-list" aria-label="Добавити до доставки"></div>
+            </div>
           </div>
-        <div class="dashboard-note-display">
-          <div id="dashboardDeliveryNoteValue" class="dashboard-note-value">-</div>
-        </div>
-          <div id="dashboardNoteEditor" class="dashboard-note-controls" hidden>
-            <div id="dashboardDeliveryNote" class="dashboard-note-list" aria-label="Добавити до доставки"></div>
-          </div>
-        </div>
-        <div id="dashboardOlxNoteCard" class="dashboard-note-card">
-          <div class="dashboard-note-copy">
-            <div class="k">Добавити на олх</div>
-          </div>
-          <div class="dashboard-note-display">
-            <div id="dashboardOlxNoteValue" class="dashboard-note-value" aria-live="polite">-</div>
+          <div id="dashboardOlxNoteCard" class="dashboard-note-card" hidden>
+            <div class="dashboard-note-copy">
+              <div class="k">Добавити на олх</div>
+            </div>
+            <div class="dashboard-note-display">
+              <div id="dashboardOlxNoteValue" class="dashboard-note-value" aria-live="polite">-</div>
+            </div>
           </div>
         </div>
       </div>
