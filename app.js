@@ -22,7 +22,7 @@ let stockPrices = {};
 let isSavingLaptop = false;
 let lockedScrollY = 0;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.55';
+const APP_VERSION = '1.11.60';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -588,6 +588,8 @@ function updateDashboardDeliveryNoteValue(value){
   const valueEl = document.getElementById('dashboardDeliveryNoteValue');
   if(!valueEl) return;
   const list = Array.isArray(value) ? value.filter(Boolean) : parseDashboardDeliverySelection(value);
+  const cardEl = document.getElementById('dashboardDeliveryNoteCard');
+  if(cardEl) cardEl.hidden = list.length === 0;
   valueEl.innerHTML = list.length
     ? list.map((number) => `<button class="dashboard-note-link" type="button" data-laptop-number="${safe(number)}" title="Відкрити ноутбук №${safe(number)} в Активних">${safe(number)}</button>`).join('')
     : '-';
@@ -610,6 +612,8 @@ function updateDashboardOlxNoteValue(){
     )
     .map((item) => String(item.number || '').trim())));
 
+  const cardEl = document.getElementById('dashboardOlxNoteCard');
+  if(cardEl) cardEl.hidden = list.length === 0;
   valueEl.innerHTML = list.length
     ? list.map((number) => `<button class="dashboard-olx-link" type="button" data-laptop-number="${safe(number)}" title="Відкрити ноутбук №${safe(number)} в Активних">${safe(number)}</button>`).join('')
     : '-';
@@ -840,6 +844,16 @@ function monthKey(dateStr){
 function monthName(key){
   const [y, m] = key.split('-').map(Number);
   return new Date(y, m - 1, 1).toLocaleDateString('uk-UA', { month: 'long', year: 'numeric' });
+}
+
+function dashboardSoldMonthLabel(date = new Date()){
+  const month = new Intl.DateTimeFormat('uk-UA', { month: 'long' }).format(date);
+  return `Продано за ${month.charAt(0).toUpperCase()}${month.slice(1)}`;
+}
+
+function dashboardProfitMonthLabel(date = new Date()){
+  const month = new Intl.DateTimeFormat('uk-UA', { month: 'long' }).format(date);
+  return `Прибуток за ${month.charAt(0).toUpperCase()}${month.slice(1)}`;
 }
 
 function diffDaysLabel(startDate, endDate){
@@ -1439,7 +1453,8 @@ function renderStats(){
   const active = laptops.filter((x) => normalizeStatus(x.status) !== 'sold');
   const sold = laptops.filter((x) => normalizeStatus(x.status) === 'sold');
   const totalSoldOverall = HISTORICAL_SOLD_COUNT + sold.length;
-  const currentMonth = monthKey(new Date().toISOString());
+  const now = new Date();
+  const currentMonth = monthKey(now);
   const soldMonth = sold.filter((x) => x.sold_at && monthKey(x.sold_at) === currentMonth);
   const profitMonth = soldMonth.reduce((s, x) => s + calcProfit(x), 0);
   const profitTotal = sold.reduce((s, x) => s + calcProfit(x), 0);
@@ -1449,7 +1464,11 @@ function renderStats(){
   const activeElitebookCount = active.filter((x) => (x.model_type || x.charger_type) === 'Elitebook').length;
 
   document.getElementById('statActiveBig').textContent = active.length;
+  const statSoldMonthLabel = document.getElementById('statSoldMonthLabel');
+  if(statSoldMonthLabel) statSoldMonthLabel.textContent = dashboardSoldMonthLabel(now);
   document.getElementById('statSoldMonthBig').textContent = soldMonth.length;
+  const statProfitMonthLabel = document.getElementById('statProfitMonthLabel');
+  if(statProfitMonthLabel) statProfitMonthLabel.textContent = dashboardProfitMonthLabel(now);
   document.getElementById('statProfitMonthBig').textContent = money(profitMonth);
   document.getElementById('statProfitTotalBig').textContent = `${activeZbookCount} / ${activeElitebookCount}`;
   const statCostTotalBig = document.getElementById('statCostTotalBig');

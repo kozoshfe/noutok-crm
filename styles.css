@@ -275,6 +275,7 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
   background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
   border:1px solid rgba(255,255,255,.06);
 }
+.dashboard-note-card[hidden]{display:none !important}
 .dashboard-note-copy .k{font-size:13px;color:var(--muted)}
 .dashboard-note-copy .k span{
   display:inline;
