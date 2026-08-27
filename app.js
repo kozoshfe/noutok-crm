@@ -22,7 +22,7 @@ let stockPrices = {};
 let isSavingLaptop = false;
 let lockedScrollY = 0;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.52';
+const APP_VERSION = '1.11.55';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -593,6 +593,26 @@ function updateDashboardDeliveryNoteValue(value){
     : '-';
 
   updateDashboardDeliveryTotal();
+}
+
+function updateDashboardOlxNoteValue(){
+  const valueEl = document.getElementById('dashboardOlxNoteValue');
+  if(!valueEl) return;
+
+  const excludedLocationStates = new Set(['Ремонт', 'На чистку', 'Гравіювання', 'На фото']);
+
+  const list = Array.from(new Set(laptops
+    .filter((item) =>
+      normalizeStatus(item.status) === 'received' &&
+      String(item.number || '').trim() &&
+      !String(item.olx_link || '').trim() &&
+      !excludedLocationStates.has(normalizeLocationState(item.location_state))
+    )
+    .map((item) => String(item.number || '').trim())));
+
+  valueEl.innerHTML = list.length
+    ? list.map((number) => `<button class="dashboard-olx-link" type="button" data-laptop-number="${safe(number)}" title="Відкрити ноутбук №${safe(number)} в Активних">${safe(number)}</button>`).join('')
+    : '-';
 }
 
 function updateDashboardDeliveryTotal(){
@@ -1687,6 +1707,7 @@ function renderMonths(){
 function renderAll(){
   renderStats();
   renderDashboardDeliveryOptions();
+  updateDashboardOlxNoteValue();
   renderActive();
   renderSold();
   renderLocation();
@@ -3003,7 +3024,7 @@ function bindUI(){
   });
 
   document.addEventListener('click', (event) => {
-    const laptopLink = event.target.closest?.('.dashboard-note-link');
+    const laptopLink = event.target.closest?.('.dashboard-note-link, .dashboard-olx-link');
     if(laptopLink) openDashboardDeliveryLaptop(laptopLink.dataset.laptopNumber);
   });
 

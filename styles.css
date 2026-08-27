@@ -257,6 +257,13 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
 .stat{background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:16px}
 .stat .k{font-size:13px;color:var(--muted)}
 .stat .v{font-size:28px;font-weight:900;margin-top:10px}
+.dashboard-estimate-grid{
+  margin-top:10px;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.dashboard-estimate-card{min-width:0}
 .dashboard-note-card{
   margin-top:14px;
   display:flex;
@@ -276,8 +283,6 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
   font-size:16px;
   font-weight:900;
 }
-.dashboard-duty-card .k + .k{margin-top:10px}
-.dashboard-duty-card{margin-top:10px}
 .dashboard-note-display{
   display:flex;
   align-items:center;
@@ -295,7 +300,8 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
   letter-spacing:-.03em;
   color:#fff;
 }
-.dashboard-note-link{
+.dashboard-note-link,
+.dashboard-olx-link{
   appearance:none;
   min-height:36px;
   padding:0 11px;
@@ -312,13 +318,16 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
   text-decoration:none;
   transition:transform .15s ease, background .15s ease;
 }
-.dashboard-note-link:hover{
+.dashboard-note-link:hover,
+.dashboard-olx-link:hover{
   background:linear-gradient(180deg,rgba(65,103,178,.96),rgba(37,72,142,.98));
 }
-.dashboard-note-link:active{
+.dashboard-note-link:active,
+.dashboard-olx-link:active{
   transform:translateY(1px);
 }
-.dashboard-note-link:focus-visible{
+.dashboard-note-link:focus-visible,
+.dashboard-olx-link:focus-visible{
   outline:2px solid #60a5fa;
   outline-offset:3px;
 }
@@ -1266,7 +1275,8 @@ body[data-theme="light"] .dashboard-note-copy .k{
 body[data-theme="light"] .dashboard-note-value{
   color:#162444;
 }
-body[data-theme="light"] .dashboard-note-link{
+body[data-theme="light"] .dashboard-note-link,
+body[data-theme="light"] .dashboard-olx-link{
   color:#eff5ff;
 }
 body[data-theme="light"] .field{
