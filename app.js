@@ -26,7 +26,7 @@ let quickLocationSavingId = null;
 let pendingLocationStateUndo = null;
 let locationStateToastTimer = null;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.67';
+const APP_VERSION = '1.11.73';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -1501,6 +1501,7 @@ function renderStats(){
   const profitMonth = soldMonth.reduce((s, x) => s + calcProfit(x), 0);
   const profitTotal = sold.reduce((s, x) => s + calcProfit(x), 0);
   const soldRevenue = sold.reduce((s, x) => s + toNum(x.sold_price), 0);
+  const soldAverageMargin = sold.length ? profitTotal / sold.length : 0;
   const totalCost = active.reduce((s, x) => s + calcCost(x), 0);
   const activeZbookCount = active.filter((x) => (x.model_type || x.charger_type) === 'Zbook').length;
   const activeElitebookCount = active.filter((x) => (x.model_type || x.charger_type) === 'Elitebook').length;
@@ -1523,8 +1524,10 @@ function renderStats(){
 
   const soldRevenueEl = document.getElementById('soldRevenue');
   const soldProfitEl = document.getElementById('soldProfit');
+  const soldAverageMarginEl = document.getElementById('soldAverageMargin');
   if(soldRevenueEl) soldRevenueEl.textContent = money(soldRevenue);
   if(soldProfitEl) soldProfitEl.textContent = money(profitTotal);
+  if(soldAverageMarginEl) soldAverageMarginEl.textContent = money(Math.round(soldAverageMargin));
 }
 
 function cardTemplate(item, soldMode){
@@ -2178,6 +2181,7 @@ function openAddModal(){
   currentEditId = null;
   currentEditMode = 'full';
   document.getElementById('laptopForm')?.classList.remove('completed-fields-collapsed');
+  document.getElementById('completedFieldsToggle')?.remove();
   setModalSaveMessage('');
   document.getElementById('modalTitle').textContent = 'Додати ноутбук';
   const delBtn = document.getElementById('deleteBtn');
@@ -2213,6 +2217,7 @@ function closeAddModal(){
 function resetForm(){
   document.getElementById('laptopForm').reset();
   document.getElementById('laptopForm')?.classList.remove('completed-fields-collapsed');
+  document.getElementById('completedFieldsToggle')?.remove();
   setModalSaveMessage('');
   const baseFields = document.getElementById('baseFields');
   if(baseFields){
@@ -2238,6 +2243,7 @@ function ensureSoldPriceField(){
   if(!wrap){
     wrap = document.createElement('div');
     wrap.id = 'soldPriceWrap';
+    wrap.className = 'form-field sold-price-field';
     wrap.innerHTML = '<label>Ціна продажу, ₴</label><input id="sold_price" type="number" min="0" step="0.01" />';
     grid.appendChild(wrap);
   }
@@ -2378,8 +2384,8 @@ function ensureLocationOnlyFields(){
   wrap.id = 'locationOnlyFields';
   wrap.className = 'span-3';
   wrap.innerHTML = `
-    <div class="form-grid" style="margin-top:12px">
-      <div>
+    <div class="form-grid location-only-grid">
+      <div class="form-field">
         <label>Локація</label>
         <select id="location">
           <option value="Нічого">Нічого</option>
@@ -2390,7 +2396,7 @@ function ensureLocationOnlyFields(){
           <option value="Спальня низ">Спальня низ</option>
         </select>
       </div>
-      <div>
+      <div class="form-field">
         <label>Стан</label>
         <select id="location_state">
           <option value="">Нічого</option>
@@ -2400,7 +2406,7 @@ function ensureLocationOnlyFields(){
           <option value="На фото">На фото</option>
         </select>
       </div>
-      <div id="repairTypeField" style="display:none">
+      <div id="repairTypeField" class="form-field span-2" style="display:none">
         <label>Що ремонтувати</label>
         <div class="repair-type-options">
           ${['Екран', 'ССД', 'ОЗУ', 'Батарея', 'Клавіатура', 'USB', 'Камера'].map((type) => `<label><input type="checkbox" name="repair_type" value="${type}"> ${type}</label>`).join('')}
@@ -2435,12 +2441,45 @@ function setAdditionalCostsVisibility(){
   if(wrap) wrap.hidden = false;
 }
 
+function editFieldHasValue(field){
+  if(!field) return false;
+  if(field.classList.contains('model-type-field')){
+    return Boolean(field.querySelector('.model-type-btn.active'));
+  }
+
+  const controls = [...field.querySelectorAll('input, select, textarea')];
+  return controls.some((control) => {
+    if(control.type === 'checkbox' || control.type === 'radio') return control.checked;
+    return String(control.value ?? '').trim() !== '';
+  });
+}
+
+function updateEditFieldCompletionOrder(){
+  const grid = document.querySelector('#editOnlyFields .edit-fields-grid');
+  if(!grid) return;
+
+  const divider = document.getElementById('incompleteFieldsDivider');
+  const fields = [...grid.children].filter((field) => field !== divider);
+  let visibleIncompleteCount = 0;
+
+  fields.forEach((field) => {
+    const isComplete = editFieldHasValue(field);
+    field.classList.toggle('field-order-complete', isComplete);
+    field.classList.toggle('field-order-incomplete', !isComplete);
+    const participatesInLayout = !field.hidden && field.style.display !== 'none';
+    if(!isComplete && participatesInLayout) visibleIncompleteCount += 1;
+  });
+
+  if(divider) divider.hidden = visibleIncompleteCount === 0;
+}
+
 function setCompletedFieldsCollapsed(collapsed){
   const form = document.getElementById('laptopForm');
   const toggle = document.getElementById('completedFieldsToggle');
   if(!form || !toggle) return;
   form.classList.toggle('completed-fields-collapsed', collapsed);
-  toggle.textContent = collapsed ? 'Заповнено ▾' : 'Заповнено ▴';
+  if(!collapsed) updateEditFieldCompletionOrder();
+  toggle.textContent = collapsed ? 'Заповнені поля ▾' : 'Заповнені поля ▴';
   toggle.setAttribute('aria-expanded', String(!collapsed));
 }
 
@@ -2517,9 +2556,9 @@ function ensureAddModelTypeFields(){
   const extra = document.createElement('div');
   extra.id = 'editOnlyFields';
   extra.dataset.mode = 'add';
-  extra.className = 'span-3';
+  extra.className = 'modal-form-section';
   extra.innerHTML = `
-    <div class="form-grid" style="margin-top:12px">
+    <div class="form-grid modal-model-grid">
       <div class="span-3 model-type-field">
         <label>Модель ноутбука</label>
         <div class="model-type-actions" aria-label="Модель ноутбука">
@@ -2548,6 +2587,7 @@ function openEditModal(id, mode = 'full'){
 
   if(mode === 'location'){
     setBaseFieldsEnabled(false);
+    document.getElementById('completedFieldsToggle')?.remove();
     const extraFields = document.getElementById('editOnlyFields');
     if(extraFields) extraFields.remove();
     ensureLocationOnlyFields();
@@ -2578,51 +2618,57 @@ function openEditModal(id, mode = 'full'){
     const actions = document.querySelector('#laptopForm .row-actions');
     extra = document.createElement('div');
     extra.id = 'editOnlyFields';
-    extra.className = 'span-3';
+    extra.className = 'modal-form-section';
     extra.innerHTML = `
-      <button id="completedFieldsToggle" class="ghost completed-fields-toggle" type="button" aria-expanded="false">Заповнено ▾</button>
-      <div class="form-grid" style="margin-top:12px">
-        <div id="trackingField" class="span-2"><label>Трекінг номер</label><div style="display:flex;gap:8px;align-items:center"><input id="tracking_number" placeholder="Наприклад: 1234567890" /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('tracking_number')">Вставити</button></div></div>
-        <div id="deliveryField"><label>Доставка, ₴</label><input id="delivery_cost" type="number" min="0" step="0.01" /></div>
-        <div id="dutyField"><label>Мито, ₴</label><input id="duty_cost" type="number" min="0" step="0.01" /></div>
-        <div id="serialField"><label>Серійний номер</label><input id="serial_number" /></div>
-        <div id="chargerField" hidden>
+      <button id="completedFieldsToggle" class="ghost completed-fields-toggle" type="button" aria-expanded="false">Заповнені поля ▾</button>
+      <div class="form-grid edit-fields-grid">
+        <div id="incompleteFieldsDivider" class="fields-order-divider span-3" hidden>Ще потрібно заповнити</div>
+        <div id="trackingField" class="form-field span-2"><label>Трекінг номер</label><div class="inline-field"><input id="tracking_number" placeholder="Наприклад: 1234567890" /><button class="ghost inline-field-btn" type="button" onclick="pasteIntoField('tracking_number')">Вставити</button></div></div>
+        <div id="deliveryField" class="form-field"><label>Доставка, ₴</label><input id="delivery_cost" type="number" min="0" step="0.01" /></div>
+        <div id="dutyField" class="form-field"><label>Мито, ₴</label><input id="duty_cost" type="number" min="0" step="0.01" /></div>
+        <div id="serialField" class="form-field"><label>Серійний номер</label><input id="serial_number" /></div>
+        <div id="chargerField" class="form-field" hidden>
           <label id="chargerCostLabel">Зарядний, ₴</label>
           <div id="chargerCostOptions" class="part-cost-options" role="group" aria-label="Вартість зарядного">
             ${chargerCostOptionsTemplate()}
           </div>
           <input id="charger_cost" type="hidden" value="" />
         </div>
-        <div id="ssdField" hidden>
+        <div id="ssdField" class="form-field" hidden>
           <label id="ssdCostLabel">SSD, ₴</label>
           <div id="ssdOptions" class="part-cost-options" role="group" aria-label="Встановлений SSD">
             ${ssdCostOptionsTemplate()}
           </div>
           <input id="ssd" type="hidden" value="" />
         </div>
-        <div id="ramField" hidden>
+        <div id="ramField" class="form-field" hidden>
           <label id="ramCostLabel">RAM, ₴</label>
           <div id="ramOptions" class="part-cost-options" role="group" aria-label="Встановлена оперативна пам’ять">
             ${ramCostOptionsTemplate()}
           </div>
           <input id="ram" type="hidden" value="" />
         </div>
-        <div id="olxLinkField" class="span-2"><label>Посилання OLX</label><div style="display:flex;gap:8px;align-items:center"><input id="olx_link" placeholder="https://www.olx.ua/..." /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('olx_link')">Вставити</button></div></div>
-        <div id="telegramLinkField" class="span-2"><label>Посилання Telegram</label><div style="display:flex;gap:8px;align-items:center"><input id="telegram_link" placeholder="https://t.me/..." /><button class="ghost" type="button" style="min-width:90px" onclick="pasteIntoField('telegram_link')">Вставити</button></div></div>
-        <div id="statusField"><label>Статус</label>
+        <div id="olxLinkField" class="form-field span-2"><label>Посилання OLX</label><div class="inline-field"><input id="olx_link" placeholder="https://www.olx.ua/..." /><button class="ghost inline-field-btn" type="button" onclick="pasteIntoField('olx_link')">Вставити</button></div></div>
+        <div id="telegramLinkField" class="form-field span-2"><label>Посилання Telegram</label><div class="inline-field"><input id="telegram_link" placeholder="https://t.me/..." /><button class="ghost inline-field-btn" type="button" onclick="pasteIntoField('telegram_link')">Вставити</button></div></div>
+        <div id="statusField" class="form-field"><label>Статус</label>
           <select id="status">
             <option value="in_transit">В дорозі</option>
             <option value="received">Отримав</option>
             <option value="sold">Продано</option>
           </select>
         </div>
-        <div class="span-3 model-type-actions completed-field" aria-label="Модель ноутбука">
-          <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Elitebook" onclick="selectModelType('Elitebook')">Elitebook</button>
-          <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Zbook" onclick="selectModelType('Zbook')">Zbook</button>
+        <div class="span-3 model-type-field completed-field">
+          <label>Модель ноутбука</label>
+          <div class="model-type-actions" aria-label="Модель ноутбука">
+            <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Elitebook" onclick="selectModelType('Elitebook')">Elitebook</button>
+            <button class="ghost inline-field-btn model-type-btn" type="button" data-type="Zbook" onclick="selectModelType('Zbook')">Zbook</button>
+          </div>
         </div>
-        <div class="completed-field"><label>Реклама OLX, ₴</label><input id="olx_ad_cost" type="number" min="0" step="0.01" readonly /></div>
-        <div class="completed-field"><label>Гравіювання, ₴</label><input id="engraving_cost" type="number" min="0" step="0.01" readonly /></div>
-        <div class="completed-field"><label>Собівартість, ₴</label><input id="cost_display" disabled /></div>
+        <div class="span-3 costs-grid completed-field">
+          <div class="form-field"><label>Реклама OLX, ₴</label><input id="olx_ad_cost" type="number" min="0" step="0.01" readonly /></div>
+          <div class="form-field"><label>Гравіювання, ₴</label><input id="engraving_cost" type="number" min="0" step="0.01" readonly /></div>
+          <div class="form-field cost-total-field"><label>Собівартість, ₴</label><input id="cost_display" disabled /></div>
+        </div>
       </div>`;
     actions.parentNode.insertBefore(extra, actions);
   }
@@ -2630,6 +2676,10 @@ function openEditModal(id, mode = 'full'){
   const baseFields = document.getElementById('baseFields');
   baseFields?.classList.add('completed-field');
   const completedFieldsToggle = document.getElementById('completedFieldsToggle');
+  const laptopForm = document.getElementById('laptopForm');
+  if(completedFieldsToggle && baseFields && completedFieldsToggle.parentElement !== laptopForm){
+    laptopForm.insertBefore(completedFieldsToggle, baseFields);
+  }
   if(completedFieldsToggle && !completedFieldsToggle.dataset.bound){
     completedFieldsToggle.addEventListener('click', toggleCompletedFields);
     completedFieldsToggle.dataset.bound = '1';
@@ -2709,6 +2759,7 @@ function openEditModal(id, mode = 'full'){
     statusEl.dataset.boundSoldPrice = '1';
   }
 
+  updateEditFieldCompletionOrder();
   showAddModal();
 }
 
