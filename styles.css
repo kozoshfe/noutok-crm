@@ -181,7 +181,7 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
 .stock-prices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .stock-price-card{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid rgba(122,150,212,.18);border-radius:18px;background:rgba(10,24,51,.72)}
 .stock-price-input-wrap{display:flex;align-items:center;gap:7px;flex:0 0 auto;color:var(--muted);font-size:12px;font-weight:800}
-.stock-price-input{width:94px;min-height:44px;padding:6px 8px;text-align:right;font-size:17px;font-weight:900}
+.stock-price-input{width:94px;min-height:44px;padding:6px 8px;text-align:center;font-size:17px;font-weight:900}
 .stock-head h2{margin:4px 0 0}
 .stock-note{margin:0 0 18px;color:var(--muted)}
 .stock-parts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
@@ -252,6 +252,7 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
   min-height:44px;
   padding:0 14px;
   border-radius:16px;
+  text-align:center;
 }
 .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
 .stat{background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:16px}
@@ -1321,10 +1322,13 @@ body[data-theme="light"] .part-cost-option.active small{color:#edf4ff}
 .sold-summary-metric{border-left:1px solid rgba(124,163,218,.18)}
 .sold-summary-metric b{display:block;margin-top:10px;font-size:24px;line-height:1;white-space:nowrap;color:#fff}
 .sold-summary-metric.profit b{color:#fff}
-.sold-summary-average{grid-column:1 / -1;display:flex;align-items:center;justify-content:center;gap:12px;min-width:0;padding:16px 12px 8px;border-top:1px solid rgba(124,163,218,.18);text-align:center}
-.sold-summary-average span{font-size:12px;color:var(--muted);line-height:1.15}
-.sold-summary-average b{font-size:22px;line-height:1;white-space:nowrap;color:#fff}
+.sold-summary-footer{grid-column:1 / -1;display:grid;grid-template-columns:minmax(0,1fr) minmax(140px,220px);align-items:center;gap:16px;padding:16px 12px;border-top:1px solid rgba(124,163,218,.18)}
+.sold-summary-average{border-left:0}
+.tracking-quick-filter.sold-serial-filter{width:100%;min-width:0;margin-left:0}
+.sold-serial-filter input{min-width:0;min-height:48px}
+.sold-serial-filter input:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .floating-add{position:fixed;right:18px;bottom:18px;z-index:60;width:64px;height:64px;border-radius:50%;background:linear-gradient(180deg,var(--blue),var(--blue2));font-size:34px;font-weight:900;box-shadow:0 16px 28px rgba(0,0,0,.35)}
+#appShell:has(#view-sold.active) ~ .floating-add{display:none}
 .cost-badge{
   padding:9px 12px;
   border-radius:12px;
@@ -1723,10 +1727,9 @@ body[data-theme="light"] .location-filter-select select,
 body[data-theme="light"] .location-found b{color:#19345f}
 body[data-theme="light"] .location-filter-footer{background:rgba(94,125,180,.06)}
 body[data-theme="light"] .sold-summary-metric,
-body[data-theme="light"] .sold-summary-average{border-color:rgba(110,136,189,.18)}
+body[data-theme="light"] .sold-summary-footer{border-color:rgba(110,136,189,.18)}
 body[data-theme="light"] .sold-summary-count b,
-body[data-theme="light"] .sold-summary-metric b,
-body[data-theme="light"] .sold-summary-average b{color:#19345f}
+body[data-theme="light"] .sold-summary-metric b{color:#19345f}
 body[data-theme="light"] .sold-summary-count b span{color:#19345f}
 body[data-theme="light"] .st-in_transit{
   background:rgba(79,124,231,.14);
@@ -1940,9 +1943,7 @@ body:not([data-theme="light"]) #authScreen .auth-theme-toggle[aria-pressed="true
   .sold-summary-count b{margin-top:7px;font-size:11px}
   .sold-summary-count b span{font-size:20px}
   .sold-summary-metric b{margin-top:9px;font-size:20px}
-  .sold-summary-average{gap:8px;padding:14px 5px 6px}
-  .sold-summary-average span{font-size:11px}
-  .sold-summary-average b{font-size:20px}
+  .sold-summary-footer{grid-template-columns:minmax(0,1fr) minmax(0,140px);gap:10px;padding:14px 5px 6px}
   .location-filter-panel{padding:18px 14px}
   .location-filter-title{margin-bottom:14px;font-size:21px}
   .location-filter-controls{gap:8px}
@@ -2367,6 +2368,7 @@ body:not([data-theme="light"]) #authScreen .auth-theme-toggle[aria-pressed="true
   .month-card{border-radius:22px;padding:14px}
   .month-title{font-size:18px}
   .floating-add{width:60px;height:60px;right:16px;bottom:16px;border-radius:50%;font-size:34px;box-shadow:0 12px 28px rgba(0,0,0,.28)}
+  #appShell:has(#view-dashboard:not(.active)) ~ .floating-add{display:none}
   .empty{padding:22px 14px;font-size:14px;border-radius:18px}
 
   .edit-mini{

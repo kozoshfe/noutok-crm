@@ -26,7 +26,7 @@ let quickLocationSavingId = null;
 let pendingLocationStateUndo = null;
 let locationStateToastTimer = null;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.73';
+const APP_VERSION = '1.11.80';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -1308,6 +1308,7 @@ function resetFilters(){
   const filterModelType = document.getElementById('filterModelType');
   const filterCostSort = document.getElementById('filterCostSort');
   const filterTracking = document.getElementById('filterTracking');
+  const filterSoldSerial = document.getElementById('filterSoldSerial');
   const filterLocation = document.getElementById('filterLocation');
   const filterLocationState = document.getElementById('filterLocationState');
 
@@ -1316,12 +1317,14 @@ function resetFilters(){
   if(filterModelType) filterModelType.value = '';
   if(filterCostSort) filterCostSort.value = '';
   if(filterTracking) filterTracking.value = '';
+  if(filterSoldSerial) filterSoldSerial.value = '';
   if(filterLocation) filterLocation.value = '';
   if(filterLocationState) filterLocationState.value = '';
   setActiveFiltersOpen(false);
   syncActiveFilterButtons();
   updateActiveFiltersToggle();
   renderActive();
+  renderSold();
   renderLocation();
 }
 
@@ -1631,8 +1634,10 @@ function renderActive(){
 }
 
 function renderSold(){
+  const serialFilter = normalizeSerialNumber(document.getElementById('filterSoldSerial')?.value);
   const data = laptops
     .filter((x) => normalizeStatus(x.status) === 'sold')
+    .filter((x) => !serialFilter || normalizeSerialNumber(x.serial_number).includes(serialFilter))
     .sort((a, b) => {
       const aTime = new Date(a.sold_at || a.created_at || 0).getTime();
       const bTime = new Date(b.sold_at || b.created_at || 0).getTime();
@@ -1640,7 +1645,7 @@ function renderSold(){
     });
   document.getElementById('soldCards').innerHTML = data.length
     ? data.map((item) => cardTemplate(item, true)).join('')
-    : '<div class="empty">Ще немає проданих ноутбуків</div>';
+    : `<div class="empty">${serialFilter ? 'Не знайдено проданих ноутбуків із таким серійним номером' : 'Ще немає проданих ноутбуків'}</div>`;
 }
 
 function locationTriggerTemplate(item){
@@ -3560,6 +3565,7 @@ function bindUI(){
   });
 
   document.getElementById('filterTracking')?.addEventListener('input', renderActive);
+  document.getElementById('filterSoldSerial')?.addEventListener('input', renderSold);
 
   if('serviceWorker' in navigator){
     window.addEventListener('load', () => {
