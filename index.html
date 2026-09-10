@@ -6,16 +6,16 @@
   <title>Ноуток СРМ</title>
   <meta name="theme-color" content="#061126" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2212%22 y=%2218%22 width=%2276%22 height=%2248%22 rx=%228%22 fill=%22%234b67ff%22/><rect x=%2218%22 y=%2224%22 width=%2264%22 height=%2236%22 rx=%226%22 fill=%22%2349d17c%22/><rect x=%2218%22 y=%2270%22 width=%2264%22 height=%228%22 rx=%224%22 fill=%22%23dbe3f0%22/><text x=%2250%22 y=%2250%22 text-anchor=%22middle%22 font-size=%2230%22 font-family=%22Arial%22 font-weight=%22700%22 fill=%22white%22>NB</text></svg>">
-  <link rel="manifest" href="manifest.json?v=1.11.80">
+  <link rel="manifest" href="manifest.json?v=1.11.90">
   <link rel="icon" type="image/png" href="icon-512.png?v=20260520-2">
   <link rel="apple-touch-icon" href="icon-192.png?v=20260520-2">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Ноуток СРМ">
-  <link rel="stylesheet" href="styles.css?v=1.11.80">
+  <link rel="stylesheet" href="styles.css?v=1.11.90">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="stock-logic.js?v=1.11.80"></script>
-  <script src="app.js?v=1.11.80" defer></script>
+  <script src="stock-logic.js?v=1.11.90"></script>
+  <script src="app.js?v=1.11.90" defer></script>
 </head>
 <body>
   <div id="authScreen" class="auth-screen" style="display:none">
@@ -266,15 +266,21 @@
 
     <section id="view-stock" class="view" aria-label="Склад запчастин">
       <div class="panel stock-panel">
-        <div class="stock-tabs" role="tablist" aria-label="Склад і ціни">
+        <div class="stock-tabs" role="tablist" aria-label="Склад, ціни та погані продавці">
           <button id="stockInventoryTab" class="stock-tab active" type="button" role="tab" aria-selected="true" aria-controls="stockInventoryPanel" data-stock-tab="inventory">Склад</button>
           <button id="stockPricesTab" class="stock-tab" type="button" role="tab" aria-selected="false" aria-controls="stockPricesPanel" data-stock-tab="prices">Ціни</button>
+          <button id="stockBadSellersTab" class="stock-tab" type="button" role="tab" aria-selected="false" aria-controls="stockBadSellersPanel" data-stock-tab="bad-sellers">Погані продавці</button>
         </div>
         <div id="stockInventoryPanel" class="stock-tab-panel" role="tabpanel" aria-labelledby="stockInventoryTab">
           <div id="stockParts" class="stock-parts" aria-live="polite"></div>
         </div>
         <div id="stockPricesPanel" class="stock-tab-panel stock-prices-panel" role="tabpanel" aria-labelledby="stockPricesTab" hidden>
           <div id="stockPrices" class="stock-prices" aria-live="polite"></div>
+        </div>
+        <div id="stockBadSellersPanel" class="stock-tab-panel" role="tabpanel" aria-labelledby="stockBadSellersTab" hidden>
+          <button id="badSellerAdd" class="floating-add" type="button" aria-label="Додати продавця" aria-haspopup="dialog" aria-controls="badSellerModal">+</button>
+          <p id="badSellersStatus" class="muted" role="status" aria-live="polite"></p>
+          <div id="badSellersList"></div>
         </div>
       </div>
     </section>
@@ -290,6 +296,24 @@
   </div>
 
   <button class="floating-add" type="button" onclick="openAddModal()" aria-label="Додати ноутбук">+</button>
+
+  <dialog id="badSellerModal" class="modal bad-seller-modal" aria-labelledby="badSellerModalTitle">
+    <div class="toolbar">
+      <h3 id="badSellerModalTitle">Додати продавця</h3>
+      <button id="badSellerClose" class="ghost modal-close" type="button">Закрити</button>
+    </div>
+          <form id="badSellerForm" class="bad-seller-form">
+            <label for="badSellerUrl">Посилання на eBay
+              <input id="badSellerUrl" name="ebay_url" required maxlength="2048" inputmode="url" placeholder="https://ebay.io/m/…" />
+            </label>
+            <label for="badSellerName">Назва продавця
+              <input id="badSellerName" name="name" required maxlength="200" placeholder="Назва продавця" aria-describedby="badSellerLookupStatus" />
+            </label>
+            <p id="badSellerLookupStatus" class="muted" role="status" aria-live="polite"></p>
+            <button id="badSellerSave" class="primary" type="submit">Додати продавця</button>
+          </form>
+    <p id="badSellerSaveStatus" class="muted" role="status" aria-live="polite"></p>
+  </dialog>
 
   <div id="addModal" class="modal-wrap">
     <div class="modal">

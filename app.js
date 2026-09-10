@@ -19,6 +19,12 @@ let versionTapTimer = null;
 let dashboardDeliveryNoteValue = [];
 let stockParts = {};
 let stockPrices = {};
+let badSellersBusy = false;
+let badSellerLookupTimer = null;
+let badSellerLookupController = null;
+let badSellerLookupRevision = 0;
+let badSellerAutoName = '';
+const BAD_SELLERS_SETTING_KEY = 'bad_sellers';
 let isSavingLaptop = false;
 let lockedScrollY = 0;
 let quickLocationStateSavingId = null;
@@ -26,7 +32,7 @@ let quickLocationSavingId = null;
 let pendingLocationStateUndo = null;
 let locationStateToastTimer = null;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.80';
+const APP_VERSION = '1.11.90';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -333,7 +339,7 @@ function renderStockPrices(){
 }
 
 function switchStockTab(name){
-  const selectedName = name === 'prices' ? 'prices' : 'inventory';
+  const selectedName = ['inventory', 'prices', 'bad-sellers'].includes(name) ? name : 'inventory';
   document.querySelectorAll('[data-stock-tab]').forEach((button) => {
     const selected = button.dataset.stockTab === selectedName;
     button.classList.toggle('active', selected);
@@ -343,8 +349,211 @@ function switchStockTab(name){
 
   const inventoryPanel = document.getElementById('stockInventoryPanel');
   const pricesPanel = document.getElementById('stockPricesPanel');
+  const badSellersPanel = document.getElementById('stockBadSellersPanel');
   if(inventoryPanel) inventoryPanel.hidden = selectedName !== 'inventory';
   if(pricesPanel) pricesPanel.hidden = selectedName !== 'prices';
+  if(badSellersPanel) badSellersPanel.hidden = selectedName !== 'bad-sellers';
+  if(selectedName === 'bad-sellers') loadBadSellers();
+}
+
+function normalizeEbaySellerUrl(value){
+  const normalized = sanitizeExternalUrl(value);
+  if(!normalized) return '';
+  const url = new URL(normalized);
+  const domain = /(^|\.)ebay\.(com|co\.uk|de|fr|it|es|ca|com\.au|at|be|ch|ie|nl|pl)$/i;
+  const isEbayHost = domain.test(url.hostname) || url.hostname === 'ebay.io';
+  if(!isEbayHost || url.username || url.password || url.port) return '';
+  url.protocol = 'https:';
+  return url.href;
+}
+
+function setBadSellersBusy(busy){
+  badSellersBusy = busy;
+  document.getElementById('badSellerSave').disabled = busy;
+  document.getElementById('badSellerName').disabled = busy;
+  document.getElementById('badSellerUrl').disabled = busy;
+  document.getElementById('badSellerClose').disabled = busy;
+  document.getElementById('badSellerAdd').disabled = busy;
+  document.getElementById('badSellersList').setAttribute('aria-busy', String(busy));
+}
+
+function openBadSellerModal(){
+  if(badSellersBusy) return;
+  const modal = document.getElementById('badSellerModal');
+  if(modal.open) return;
+  document.getElementById('badSellerSaveStatus').textContent = '';
+  lockBodyScroll();
+  modal.showModal();
+  document.getElementById('badSellerUrl').focus();
+  if(!document.getElementById('badSellerName').value.trim()) scheduleBadSellerLookup();
+}
+
+function closeBadSellerModal(){
+  if(badSellersBusy) return;
+  document.getElementById('badSellerModal').close();
+}
+
+function setBadSellerSaveStatus(message){
+  document.getElementById('badSellersStatus').textContent = message;
+  document.getElementById('badSellerSaveStatus').textContent = message;
+}
+
+function cancelBadSellerLookup(){
+  clearTimeout(badSellerLookupTimer);
+  badSellerLookupController?.abort();
+  badSellerLookupController = null;
+  badSellerLookupRevision += 1;
+}
+
+function scheduleBadSellerLookup(){
+  cancelBadSellerLookup();
+  const nameInput = document.getElementById('badSellerName');
+  if(badSellerAutoName && nameInput.value === badSellerAutoName) nameInput.value = '';
+  badSellerAutoName = '';
+  document.getElementById('badSellerLookupStatus').textContent = '';
+  const url = normalizeEbaySellerUrl(document.getElementById('badSellerUrl').value);
+  if(!url || nameInput.value.trim()) return;
+  const revision = badSellerLookupRevision;
+  badSellerLookupTimer = setTimeout(() => lookupBadSeller(url, revision), 450);
+}
+
+async function lookupBadSeller(url, revision){
+  const nameInput = document.getElementById('badSellerName');
+  const status = document.getElementById('badSellerLookupStatus');
+  if(revision !== badSellerLookupRevision || badSellersBusy) return;
+  const controller = new AbortController();
+  badSellerLookupController = controller;
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  status.textContent = 'Шукаємо назву продавця…';
+  try {
+    const parsed = new URL(url);
+    const profile = parsed.hostname !== 'ebay.io' && parsed.pathname.match(/^\/usr\/([^/]+)\/?$/i);
+    let name = profile ? decodeURIComponent(profile[1]).trim() : '';
+    if(!name){
+      const { data: sessionData, error } = await supabaseClient.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if(error || !token) throw new Error('Sign in required');
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/ebay-seller`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ url }), signal: controller.signal,
+      });
+      if(!response.ok) throw new Error('Lookup unavailable');
+      name = (await response.json()).name;
+    }
+    if(typeof name !== 'string' || !name.trim() || name.length > 200 || /[\x00-\x1f]/.test(name)) throw new Error('Invalid name');
+    if(profile && /[\s/\\]/.test(name)) throw new Error('Invalid profile');
+    if(revision !== badSellerLookupRevision || nameInput.value.trim()) return;
+    badSellerAutoName = name.trim();
+    nameInput.value = badSellerAutoName;
+    nameInput.setCustomValidity('');
+    status.textContent = 'Назву визначено. Перевірте її перед додаванням.';
+  } catch(error){
+    if(revision === badSellerLookupRevision){
+      status.textContent = 'Не вдалося визначити продавця. Введіть назву вручну.';
+    }
+  } finally {
+    clearTimeout(timeout);
+    if(badSellerLookupController === controller) badSellerLookupController = null;
+  }
+}
+
+async function readBadSellers(){
+  if(!supabaseClient) throw new Error('Немає підключення до бази. Спробуйте ще раз.');
+  const { data, error } = await supabaseClient.from(SETTINGS_TABLE)
+    .select('value').eq('key', BAD_SELLERS_SETTING_KEY)
+    .abortSignal(AbortSignal.timeout(REQUEST_TIMEOUT_MS)).maybeSingle();
+  if(error) throw new Error('Не вдалося завантажити список. Перевірте підключення та доступ до бази.');
+  let sellers;
+  try { sellers = JSON.parse(data?.value ?? '[]'); }
+  catch(error){ throw new Error('Список у базі має некоректний формат. Дані не змінено.'); }
+  if(!Array.isArray(sellers) || sellers.some(seller => !seller || typeof seller.name !== 'string' || typeof seller.ebay_url !== 'string')){
+    throw new Error('Список у базі має некоректний формат. Дані не змінено.');
+  }
+  return { sellers, row: data };
+}
+
+function renderBadSellers(sellers){
+  const list = document.getElementById('badSellersList');
+  if(!sellers.length){
+    list.innerHTML = '<div class="empty">Список поганих продавців поки порожній.</div>';
+    return;
+  }
+  list.innerHTML = `<ul class="cards bad-seller-cards" aria-label="Погані продавці">
+    ${sellers.map(seller => {
+      const url = normalizeEbaySellerUrl(seller.ebay_url);
+      return `<li class="item bad-seller-card"><span class="bad-seller-name">${safe(seller.name)}</span>${url
+        ? `<a class="bad-seller-ebay-link" href="${safe(url)}" target="_blank" rel="noopener noreferrer" aria-label="Відкрити ${safe(seller.name)} на eBay">🔗 eBay</a>`
+        : `<span class="bad-seller-invalid-link">${safe(seller.ebay_url)}</span>`}</li>`;
+    }).join('')}</ul>`;
+}
+
+async function loadBadSellers(){
+  if(badSellersBusy) return;
+  setBadSellersBusy(true);
+  const status = document.getElementById('badSellersStatus');
+  status.textContent = 'Завантаження…';
+  document.getElementById('badSellersList').replaceChildren();
+  try {
+    const { sellers } = await readBadSellers();
+    renderBadSellers(sellers);
+    status.textContent = '';
+  } catch(error){
+    status.textContent = error.message || 'Не вдалося завантажити список. Спробуйте ще раз.';
+  } finally {
+    setBadSellersBusy(false);
+  }
+}
+
+async function saveBadSeller(event){
+  event.preventDefault();
+  if(badSellersBusy) return;
+  const form = document.getElementById('badSellerForm');
+  const nameInput = document.getElementById('badSellerName');
+  const urlInput = document.getElementById('badSellerUrl');
+  const name = nameInput.value.trim();
+  const ebayUrl = normalizeEbaySellerUrl(urlInput.value);
+  nameInput.setCustomValidity(name ? '' : 'Вкажіть назву продавця.');
+  urlInput.setCustomValidity(ebayUrl ? '' : 'Вкажіть коректне посилання на eBay.');
+  if(!form.reportValidity()) return;
+  cancelBadSellerLookup();
+  document.getElementById('badSellerLookupStatus').textContent = '';
+  setBadSellersBusy(true);
+  setBadSellerSaveStatus('Збереження…');
+  let saved = false;
+  try {
+    const { sellers, row } = await readBadSellers();
+    const urlKey = value => {
+      const normalized = normalizeEbaySellerUrl(value);
+      if(!normalized) return '';
+      // Short-link identifiers are case-sensitive.
+      if(new URL(normalized).hostname === 'ebay.io') return normalized;
+      return normalized.replace(/\/$/, '').toLowerCase();
+    };
+    if(sellers.some(seller => urlKey(seller.ebay_url) === urlKey(ebayUrl))){
+      renderBadSellers(sellers);
+      throw new Error('Продавець із цим посиланням уже є у списку.');
+    }
+    const updated = [...sellers, { name, ebay_url: ebayUrl }];
+    const value = JSON.stringify(updated);
+    // Compare the previous value so a concurrent edit cannot be overwritten.
+    const query = row
+      ? supabaseClient.from(SETTINGS_TABLE).update({ value }).eq('key', BAD_SELLERS_SETTING_KEY).eq('value', row.value)
+      : supabaseClient.from(SETTINGS_TABLE).insert({ key: BAD_SELLERS_SETTING_KEY, value });
+    const { data, error } = await query.select('key').abortSignal(AbortSignal.timeout(REQUEST_TIMEOUT_MS));
+    if(error) throw new Error('Не вдалося зберегти продавця. Перевірте підключення та доступ до бази й повторіть спробу.');
+    if(!data?.length) throw new Error('Список змінився або немає доступу до запису. Повторіть спробу збереження.');
+    renderBadSellers(updated);
+    form.reset();
+    badSellerAutoName = '';
+    setBadSellerSaveStatus('Продавця збережено.');
+    saved = true;
+  } catch(error){
+    setBadSellerSaveStatus(error.message || 'Не вдалося зберегти продавця. Повторіть спробу.');
+  } finally {
+    setBadSellersBusy(false);
+    if(saved) closeBadSellerModal();
+  }
 }
 
 async function loadStockParts(){
@@ -3320,6 +3529,35 @@ function bindUI(){
   }
 
   const stockTabs = document.querySelector('.stock-tabs');
+  const badSellerForm = document.getElementById('badSellerForm');
+  if(badSellerForm && !badSellerForm.dataset.bound){
+    document.getElementById('badSellerAdd').addEventListener('click', openBadSellerModal);
+    document.getElementById('badSellerClose').addEventListener('click', closeBadSellerModal);
+    const sellerModal = document.getElementById('badSellerModal');
+    sellerModal.addEventListener('cancel', event => {
+      event.preventDefault();
+      closeBadSellerModal();
+    });
+    sellerModal.addEventListener('click', event => {
+      const rect = sellerModal.getBoundingClientRect();
+      if(event.target === sellerModal && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) closeBadSellerModal();
+    });
+    sellerModal.addEventListener('close', () => {
+      cancelBadSellerLookup();
+      document.getElementById('badSellerLookupStatus').textContent = '';
+      unlockBodyScroll();
+      document.getElementById('badSellerAdd').focus({ preventScroll: true });
+    });
+    badSellerForm.addEventListener('submit', saveBadSeller);
+    badSellerForm.addEventListener('input', event => event.target.setCustomValidity?.(''));
+    document.getElementById('badSellerUrl').addEventListener('input', scheduleBadSellerLookup);
+    document.getElementById('badSellerName').addEventListener('input', () => {
+      cancelBadSellerLookup();
+      badSellerAutoName = '';
+      document.getElementById('badSellerLookupStatus').textContent = '';
+    });
+    badSellerForm.dataset.bound = '1';
+  }
   if(stockTabs && !stockTabs.dataset.bound){
     stockTabs.addEventListener('click', (event) => {
       const button = event.target.closest('[data-stock-tab]');
