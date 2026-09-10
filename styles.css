@@ -216,6 +216,9 @@ body[data-theme="light"] .bad-seller-ebay-link{color:#1d4ed8}
   .stock-parts{grid-template-columns:1fr}
   .stock-prices{grid-template-columns:1fr}
   .stock-panel{padding:16px}
+  .stock-tabs{gap:6px;margin-bottom:14px;padding:5px;border-radius:20px}
+  .stock-tab{min-height:42px;padding:8px 4px;border-radius:14px;font-size:14px}
+  .bad-seller-name{font-size:17px}
   .view.active.view-slide-next{will-change:transform,opacity;animation:view-slide-in-next 180ms cubic-bezier(.22,.8,.28,1) both}
   .view.active.view-slide-prev{will-change:transform,opacity;animation:view-slide-in-prev 180ms cubic-bezier(.22,.8,.28,1) both}
 
