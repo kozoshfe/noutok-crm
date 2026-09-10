@@ -32,7 +32,7 @@ let quickLocationSavingId = null;
 let pendingLocationStateUndo = null;
 let locationStateToastTimer = null;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.90';
+const APP_VERSION = '1.11.91';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -447,7 +447,7 @@ async function lookupBadSeller(url, revision){
     badSellerAutoName = name.trim();
     nameInput.value = badSellerAutoName;
     nameInput.setCustomValidity('');
-    status.textContent = 'Назву визначено. Перевірте її перед додаванням.';
+    status.textContent = '';
   } catch(error){
     if(revision === badSellerLookupRevision){
       status.textContent = 'Не вдалося визначити продавця. Введіть назву вручну.';
