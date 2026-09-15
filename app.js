@@ -34,7 +34,7 @@ let quickLocationSavingId = null;
 let pendingLocationStateUndo = null;
 let locationStateToastTimer = null;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.93';
+const APP_VERSION = '1.11.94';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -848,6 +848,7 @@ function showAppShell(){
 }
 
 function showAuthScreen(){
+  resetCatalogAdmin();
   const auth = document.getElementById('authScreen');
   const app = document.getElementById('appShell');
   if(auth) auth.style.display = 'flex';
@@ -1765,6 +1766,7 @@ function switchView(name, direction = ''){
   document.querySelectorAll('.nav-btn').forEach((btn) => btn.classList.remove('active'));
   document.querySelector(`.nav-btn[data-view="${name}"]`)?.classList.add('active');
   if(name === 'stock') switchStockTab('inventory');
+  if(name === 'catalog-admin') loadCatalogAdmin();
   updateAppFooterVisibility(name);
   // A swipe should move only the tab content. Resetting the page scroll here
   // makes the whole mobile viewport jump while the transition is running.
@@ -2461,6 +2463,7 @@ function renderMonths(){
 }
 
 function renderAll(){
+  renderCatalogAdmin();
   renderStats();
   renderDashboardDeliveryOptions();
   updateDashboardOlxNoteValue();

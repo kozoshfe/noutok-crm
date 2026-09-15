@@ -2513,3 +2513,22 @@ body[data-theme="light"] dialog.bad-seller-modal{background:#f5f8ff;color:#17284
 @keyframes seller-sheet-in{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @media(max-width:480px){dialog.bad-seller-modal{padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px))}.bad-seller-modal h3{font-size:20px}}
 @media(prefers-reduced-motion:reduce){dialog.bad-seller-modal[open]{animation:none}}
+
+/* Authenticated controls for the buyer catalog. */
+.catalog-admin-open{width:100%;margin:0 0 16px;min-height:46px}
+.catalog-admin-title{margin-top:20px}
+.catalog-admin-title span{color:var(--muted);font-size:18px}
+.catalog-admin-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:18px 0}
+.catalog-admin-actions a{padding:10px 0;margin-right:8px}
+.catalog-admin-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
+.catalog-admin-card{min-width:0;padding:22px;border:1px solid var(--line);border-radius:22px;background:var(--panel)}
+.catalog-admin-card h3{overflow-wrap:anywhere;margin:16px 0;font-size:19px;line-height:1.4}
+.catalog-admin-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.catalog-available{color:#60cfa4;font-size:12px;font-weight:700}
+.catalog-admin-specs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0}
+.catalog-admin-specs dt{color:var(--muted);font-size:12px}
+.catalog-admin-specs dd{margin:6px 0 0;font-weight:800}
+.catalog-condition-label{display:grid;gap:8px;margin-bottom:14px}
+.catalog-row-status:empty{display:none}
+#catalogAdminStatus{overflow-wrap:anywhere}
+#appShell:has(#view-catalog-admin.active) ~ .floating-add{display:none}
