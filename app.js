@@ -25,6 +25,8 @@ let badSellerLookupController = null;
 let badSellerLookupRevision = 0;
 let badSellerAutoName = '';
 const BAD_SELLERS_SETTING_KEY = 'bad_sellers';
+let sparePartsBusy = false;
+const SPARE_PARTS_SETTING_KEY = 'spare_parts';
 let isSavingLaptop = false;
 let lockedScrollY = 0;
 let quickLocationStateSavingId = null;
@@ -32,7 +34,7 @@ let quickLocationSavingId = null;
 let pendingLocationStateUndo = null;
 let locationStateToastTimer = null;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.92';
+const APP_VERSION = '1.11.93';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -339,7 +341,7 @@ function renderStockPrices(){
 }
 
 function switchStockTab(name){
-  const selectedName = ['inventory', 'prices', 'bad-sellers'].includes(name) ? name : 'inventory';
+  const selectedName = ['inventory', 'prices', 'bad-sellers', 'spare-parts'].includes(name) ? name : 'inventory';
   document.querySelectorAll('[data-stock-tab]').forEach((button) => {
     const selected = button.dataset.stockTab === selectedName;
     button.classList.toggle('active', selected);
@@ -353,7 +355,9 @@ function switchStockTab(name){
   if(inventoryPanel) inventoryPanel.hidden = selectedName !== 'inventory';
   if(pricesPanel) pricesPanel.hidden = selectedName !== 'prices';
   if(badSellersPanel) badSellersPanel.hidden = selectedName !== 'bad-sellers';
+  document.getElementById('stockSparePartsPanel').hidden = selectedName !== 'spare-parts';
   if(selectedName === 'bad-sellers') loadBadSellers();
+  if(selectedName === 'spare-parts') loadSpareParts();
 }
 
 function normalizeEbaySellerUrl(value){
@@ -553,6 +557,135 @@ async function saveBadSeller(event){
   } finally {
     setBadSellersBusy(false);
     if(saved) closeBadSellerModal();
+  }
+}
+
+function normalizePurchaseUrl(value){
+  const raw = String(value || '').trim();
+  if(!raw || /[\s\\]/.test(raw) || (/^[a-z][a-z0-9+.-]*:/i.test(raw) && !/^https?:\/\//i.test(raw))) return '';
+  const normalized = sanitizeExternalUrl(raw);
+  if(!normalized) return '';
+  const url = new URL(normalized);
+  if(url.username || url.password || !url.hostname.includes('.')) return '';
+  return url.href;
+}
+
+function setSparePartsBusy(busy){
+  sparePartsBusy = busy;
+  document.getElementById('sparePartSave').disabled = busy;
+  document.getElementById('sparePartName').disabled = busy;
+  document.getElementById('sparePartUrl').disabled = busy;
+  document.getElementById('sparePartClose').disabled = busy;
+  document.getElementById('sparePartAdd').disabled = busy;
+  document.getElementById('sparePartsList').setAttribute('aria-busy', String(busy));
+}
+
+function openSparePartModal(){
+  if(sparePartsBusy) return;
+  const modal = document.getElementById('sparePartModal');
+  if(modal.open) return;
+  document.getElementById('sparePartSaveStatus').textContent = '';
+  lockBodyScroll();
+  modal.showModal();
+  document.getElementById('sparePartName').focus();
+}
+
+function closeSparePartModal(){
+  if(sparePartsBusy) return;
+  document.getElementById('sparePartModal').close();
+}
+
+function setSparePartSaveStatus(message){
+  document.getElementById('sparePartsStatus').textContent = message;
+  document.getElementById('sparePartSaveStatus').textContent = message;
+}
+
+async function readSpareParts(){
+  if(!supabaseClient) throw new Error('Немає підключення до бази. Спробуйте ще раз.');
+  const { data, error } = await supabaseClient.from(SETTINGS_TABLE)
+    .select('value').eq('key', SPARE_PARTS_SETTING_KEY)
+    .abortSignal(AbortSignal.timeout(REQUEST_TIMEOUT_MS)).maybeSingle();
+  if(error) throw new Error('Не вдалося завантажити список. Перевірте підключення та доступ до бази.');
+  let parts;
+  try { parts = JSON.parse(data?.value ?? '[]'); }
+  catch(error){ throw new Error('Список у базі має некоректний формат. Дані не змінено.'); }
+  if(!Array.isArray(parts) || parts.some(part => !part || typeof part.name !== 'string' || typeof part.purchase_url !== 'string')){
+    throw new Error('Список у базі має некоректний формат. Дані не змінено.');
+  }
+  return { parts, row: data };
+}
+
+function renderSpareParts(parts){
+  const list = document.getElementById('sparePartsList');
+  if(!parts.length){
+    list.innerHTML = '<div class="empty">Список запчастин поки порожній.</div>';
+    return;
+  }
+  list.innerHTML = `<ul class="cards bad-seller-cards" aria-label="Запчастини">
+    ${parts.map(part => {
+      const url = normalizePurchaseUrl(part.purchase_url);
+      return `<li class="item bad-seller-card"><span class="bad-seller-name">${safe(part.name)}</span>${url
+        ? `<a class="bad-seller-ebay-link" href="${safe(url)}" target="_blank" rel="noopener noreferrer" aria-label="Відкрити ${safe(part.name)} для покупки">🔗 Купити</a>`
+        : `<span class="bad-seller-invalid-link">${safe(part.purchase_url)}</span>`}</li>`;
+    }).join('')}</ul>`;
+}
+
+async function loadSpareParts(){
+  if(sparePartsBusy) return;
+  setSparePartsBusy(true);
+  const status = document.getElementById('sparePartsStatus');
+  status.textContent = 'Завантаження…';
+  document.getElementById('sparePartsList').replaceChildren();
+  try {
+    const { parts } = await readSpareParts();
+    renderSpareParts(parts);
+    status.textContent = '';
+  } catch(error){
+    status.textContent = error.message || 'Не вдалося завантажити список. Спробуйте ще раз.';
+  } finally {
+    setSparePartsBusy(false);
+  }
+}
+
+async function saveSparePart(event){
+  event.preventDefault();
+  if(sparePartsBusy) return;
+  const form = document.getElementById('sparePartForm');
+  const nameInput = document.getElementById('sparePartName');
+  const urlInput = document.getElementById('sparePartUrl');
+  const name = nameInput.value.trim();
+  const purchaseUrl = normalizePurchaseUrl(urlInput.value);
+  nameInput.setCustomValidity(name ? '' : 'Вкажіть назву запчастини.');
+  urlInput.setCustomValidity(purchaseUrl ? '' : 'Вкажіть коректне посилання на покупку.');
+  if(!form.reportValidity()) return;
+  setSparePartsBusy(true);
+  setSparePartSaveStatus('Збереження…');
+  let saved = false;
+  try {
+    const { parts, row } = await readSpareParts();
+    const urlKey = value => normalizePurchaseUrl(value);
+    if(parts.some(part => urlKey(part.purchase_url) === urlKey(purchaseUrl))){
+      renderSpareParts(parts);
+      throw new Error('Запчастина з цим посиланням уже є у списку.');
+    }
+    const updated = [...parts, { name, purchase_url: purchaseUrl }];
+    const value = JSON.stringify(updated);
+    // Compare the previous value so a concurrent edit cannot be overwritten.
+    const query = row
+      ? supabaseClient.from(SETTINGS_TABLE).update({ value }).eq('key', SPARE_PARTS_SETTING_KEY).eq('value', row.value)
+      : supabaseClient.from(SETTINGS_TABLE).insert({ key: SPARE_PARTS_SETTING_KEY, value });
+    const { data, error } = await query.select('key').abortSignal(AbortSignal.timeout(REQUEST_TIMEOUT_MS));
+    if(error) throw new Error('Не вдалося зберегти запчастину. Перевірте підключення та доступ до бази й повторіть спробу.');
+    if(!data?.length) throw new Error('Список змінився або немає доступу до запису. Повторіть спробу збереження.');
+    renderSpareParts(updated);
+    form.reset();
+    setSparePartSaveStatus('Запчастину збережено.');
+    saved = true;
+  } catch(error){
+    setSparePartSaveStatus(error.message || 'Не вдалося зберегти запчастину. Повторіть спробу.');
+  } finally {
+    setSparePartsBusy(false);
+    if(saved) closeSparePartModal();
   }
 }
 
@@ -3557,6 +3690,27 @@ function bindUI(){
       document.getElementById('badSellerLookupStatus').textContent = '';
     });
     badSellerForm.dataset.bound = '1';
+  }
+  const sparePartForm = document.getElementById('sparePartForm');
+  if(sparePartForm && !sparePartForm.dataset.bound){
+    document.getElementById('sparePartAdd').addEventListener('click', openSparePartModal);
+    document.getElementById('sparePartClose').addEventListener('click', closeSparePartModal);
+    const partModal = document.getElementById('sparePartModal');
+    partModal.addEventListener('cancel', event => {
+      event.preventDefault();
+      closeSparePartModal();
+    });
+    partModal.addEventListener('click', event => {
+      const rect = partModal.getBoundingClientRect();
+      if(event.target === partModal && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) closeSparePartModal();
+    });
+    partModal.addEventListener('close', () => {
+      unlockBodyScroll();
+      document.getElementById('sparePartAdd').focus({ preventScroll: true });
+    });
+    sparePartForm.addEventListener('submit', saveSparePart);
+    sparePartForm.addEventListener('input', event => event.target.setCustomValidity?.(''));
+    sparePartForm.dataset.bound = '1';
   }
   if(stockTabs && !stockTabs.dataset.bound){
     stockTabs.addEventListener('click', (event) => {
