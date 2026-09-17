@@ -12,10 +12,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Ноуток СРМ">
-  <link rel="stylesheet" href="styles.css?v=1.11.96">
+  <link rel="stylesheet" href="styles.css?v=1.11.111">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="stock-logic.js?v=1.11.96"></script>
-  <script src="catalog-admin.js?v=1.11.96" defer></script>
+  <script src="catalog-admin.js?v=1.11.111" defer></script>
   <script src="app.js?v=1.11.96" defer></script>
 </head>
 <body>
@@ -76,8 +76,9 @@
 
     <section id="view-dashboard" class="view active">
       <div class="panel">
-        <div class="section-head">
+        <div class="section-head dashboard-stats-heading">
           <h2>Швидка статистика</h2>
+          <button class="ghost dashboard-catalog-button" type="button" onclick="switchView('catalog-admin')" aria-label="Сайт для покупців">Сайт</button>
         </div>
         <div id="testTools" class="test-tools" hidden>
           <div class="test-tools-copy">
@@ -175,18 +176,17 @@
           <button id="clearActiveFilters" class="active-filters-clear" type="button">Очистити</button>
         </div>
       </div>
-      <button id="catalogAdminOpen" class="ghost catalog-admin-open" type="button">Каталог для покупців ↗</button>
       <div id="activeCards" class="cards"></div>
     </section>
 
     <section id="view-catalog-admin" class="view" aria-label="Керування каталогом для покупців">
       <div class="panel">
-        <button id="catalogAdminBack" class="ghost" type="button">← Активні</button>
         <div class="catalog-admin-actions">
-          <a id="catalogPublicLink" href="catalog.html" target="_blank" rel="noopener noreferrer">Відкрити каталог ↗</a>
+          <a id="catalogPublicLink" class="ghost" href="catalog.html" target="_blank" rel="noopener noreferrer">Відкрити каталог</a>
         </div>
         <p id="catalogAdminStatus" hidden class="muted" role="status" aria-live="polite"></p>
       </div>
+      <div id="catalogMissingNumbers" class="catalog-missing-numbers" hidden></div>
       <div id="catalogAdminList" class="catalog-admin-list"></div>
     </section>
 

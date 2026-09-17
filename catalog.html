@@ -7,22 +7,17 @@
   <meta name="description" content="Ноуток — ноутбуки в наявності. Оберіть модель, оперативну пам’ять, SSD і стан.">
   <title>Ноутбуки в наявності · Ноуток</title>
   <link rel="icon" href="icon-192.png">
-  <link rel="stylesheet" href="catalog.css?v=1.11.97">
-  <script src="catalog.js?v=1.11.96" defer></script>
+  <link rel="stylesheet" href="catalog.css?v=1.11.109">
+  <script src="catalog.js?v=1.11.109" defer></script>
 </head>
 <body>
-  <header class="catalog-header"><a href="catalog.html" class="catalog-brand" aria-label="Ноуток — каталог"><img src="icon-192.png" width="40" height="40" alt=""><span>ноуток<span class="brand-dot">.</span></span></a><span class="header-note">Ноутбуки для ваших справ</span></header>
+  <header class="catalog-header"><a href="catalog.html" class="catalog-brand" aria-label="Ноуток — каталог"><img src="icon-192.png" width="40" height="40" alt=""><span>ноуток<span class="brand-dot">.</span></span></a><span class="header-note">Ноутбуки для ваших справ</span><div class="catalog-total"><strong id="catalogTotal">—</strong><span>ноутбуків<br>у каталозі</span></div></header>
   <main>
-    <section class="catalog-intro" aria-labelledby="catalogTitle">
-      <div><p class="eyebrow"><span></span> В НАЯВНОСТІ</p><h1 id="catalogTitle">Ваш наступний<br>ноутбук — тут<span>.</span></h1><p class="intro-copy">Моделі, характеристики та стан.<br>Усе необхідне, щоб обрати свій.</p></div>
-      <div class="catalog-total"><strong id="catalogTotal">—</strong><span>ноутбуків<br>у каталозі</span></div>
-    </section>
     <section class="catalog-results" aria-label="Ноутбуки">
-      <div class="catalog-toolbar"><label class="search"><span aria-hidden="true">⌕</span><input id="catalogSearch" type="search" placeholder="Знайти модель…" aria-label="Пошук ноутбука"></label><button id="catalogReload" type="button">Оновити <span aria-hidden="true">↻</span></button></div>
-      <div class="catalog-info"><p id="catalogStatus" role="status" aria-live="polite">Завантаження ноутбуків…</p><span id="catalogUpdated"></span></div>
+      <p id="catalogStatus" role="status" aria-live="polite">Завантаження ноутбуків…</p>
+      <div class="catalog-sort-buttons" role="group" aria-label="Сортування за колонками"><button type="button" data-sort-field="title" aria-pressed="false">Модель <span aria-hidden="true">↕</span></button><div class="catalog-sort-specs"><button type="button" data-sort-field="ram" aria-pressed="false">ОЗУ <span aria-hidden="true">↕</span></button><button type="button" data-sort-field="ssd" aria-pressed="false">SSD <span aria-hidden="true">↕</span></button><button type="button" data-sort-field="condition" aria-pressed="false">Стан <span aria-hidden="true">↕</span></button><span class="catalog-photo-heading">Фото</span><button type="button" data-sort-field="price" aria-pressed="false">Ціна <span aria-hidden="true">↕</span></button></div></div>
       <div id="catalogList" aria-busy="true"></div>
     </section>
   </main>
-  <footer><span>ноуток.</span><span>Знайдіть ноутбук під свої задачі.</span></footer>
 </body>
 </html>
