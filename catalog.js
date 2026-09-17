@@ -16,7 +16,7 @@
     const shown = rows.filter(row => row.title.toLocaleLowerCase('uk').includes(query));
     status.textContent = query ? `Знайдено: ${shown.length}` : `Доступні ноутбуки · ${rows.length}`;
     const field = value => value ? safe(value) : '<span class="unspecified">Уточнюється</span>';
-    list.innerHTML = shown.length ? shown.map(row => `<article class="buyer-card"><div class="buyer-model">${icon}<h2>${safe(row.title || 'Назва уточнюється')}</h2></div><dl><div><dt>Пам’ять</dt><dd>${field(row.ram)}</dd></div><div><dt>SSD</dt><dd>${field(row.ssd)}</dd></div><div><dt>Стан</dt><dd>${row.condition ? `<span class="condition">${safe(row.condition)}</span>` : '<span class="unspecified">Уточнюється</span>'}</dd></div></dl></article>`).join('')
+    list.innerHTML = shown.length ? shown.map(row => `<article class="buyer-card"><div class="buyer-model">${icon}<div><p class="buyer-number">Ноутбук № ${safe(row.number || '—')}</p><h2>${safe(row.title || 'Назва уточнюється')}</h2><p class="buyer-processor">Процесор · ${field(row.processor)}</p></div></div><dl><div><dt>Пам’ять</dt><dd>${field(row.ram)}</dd></div><div><dt>SSD</dt><dd>${field(row.ssd)}</dd></div><div><dt>Стан</dt><dd>${row.condition ? `<span class="condition">${safe(row.condition)}</span>` : '<span class="unspecified">Уточнюється</span>'}</dd></div><div><dt>Ціна</dt><dd>${field(row.price)}</dd></div></dl></article>`).join('')
       : `<div class="catalog-empty">${query ? 'За цим запитом ноутбуків не знайдено.' : 'Зараз немає доступних ноутбуків. Завітайте трохи пізніше.'}</div>`;
   }
   async function load(){
@@ -30,7 +30,7 @@
       if(!response.ok) throw new Error('Unavailable');
       const result = await response.json();
       if(!Array.isArray(result) || result.some(row => !row || typeof row !== 'object')) throw new Error('Invalid catalog');
-      rows = result.map(row => ({ title:text(row.title,500), ram:text(row.ram,50), ssd:text(row.ssd,50), condition:['7/10','8/10','9/10','Як новий'].includes(row.condition) ? row.condition : '' }));
+      rows = result.map(row => ({ number:text(row.number,100), title:text(row.title,500), ram:text(row.ram,50), ssd:text(row.ssd,50), processor:text(row.processor,50), price:text(row.price,50), condition:['7/10','8/10','9/10','Як новий'].includes(row.condition) ? row.condition : '' }));
       loaded = true;
       document.getElementById('catalogTotal').textContent = String(rows.length);
       document.getElementById('catalogUpdated').textContent = `Оновлено ${new Date().toLocaleTimeString('uk-UA', { hour:'2-digit', minute:'2-digit' })}`;

@@ -6,17 +6,17 @@
   <title>Ноуток СРМ</title>
   <meta name="theme-color" content="#061126" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2212%22 y=%2218%22 width=%2276%22 height=%2248%22 rx=%228%22 fill=%22%234b67ff%22/><rect x=%2218%22 y=%2224%22 width=%2264%22 height=%2236%22 rx=%226%22 fill=%22%2349d17c%22/><rect x=%2218%22 y=%2270%22 width=%2264%22 height=%228%22 rx=%224%22 fill=%22%23dbe3f0%22/><text x=%2250%22 y=%2250%22 text-anchor=%22middle%22 font-size=%2230%22 font-family=%22Arial%22 font-weight=%22700%22 fill=%22white%22>NB</text></svg>">
-  <link rel="manifest" href="manifest.json?v=1.11.94">
+  <link rel="manifest" href="manifest.json?v=1.11.96">
   <link rel="icon" type="image/png" href="icon-512.png?v=20260520-2">
   <link rel="apple-touch-icon" href="icon-192.png?v=20260520-2">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Ноуток СРМ">
-  <link rel="stylesheet" href="styles.css?v=1.11.94">
+  <link rel="stylesheet" href="styles.css?v=1.11.96">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="stock-logic.js?v=1.11.94"></script>
-  <script src="catalog-admin.js?v=1.11.94" defer></script>
-  <script src="app.js?v=1.11.94" defer></script>
+  <script src="stock-logic.js?v=1.11.96"></script>
+  <script src="catalog-admin.js?v=1.11.96" defer></script>
+  <script src="app.js?v=1.11.96" defer></script>
 </head>
 <body>
   <div id="authScreen" class="auth-screen" style="display:none">
@@ -182,14 +182,10 @@
     <section id="view-catalog-admin" class="view" aria-label="Керування каталогом для покупців">
       <div class="panel">
         <button id="catalogAdminBack" class="ghost" type="button">← Активні</button>
-        <h2 class="catalog-admin-title">Каталог для покупців <span id="catalogAdminCount">0</span></h2>
-        <p class="muted">Отримані ноутбуки без ремонту. Назва, RAM і SSD — з оголошення eBay.</p>
         <div class="catalog-admin-actions">
           <a id="catalogPublicLink" href="catalog.html" target="_blank" rel="noopener noreferrer">Відкрити каталог ↗</a>
-          <button id="catalogCopyLink" class="ghost" type="button">Копіювати посилання</button>
-          <button id="catalogRefreshAll" class="primary" type="button">Оновити всі з eBay</button>
         </div>
-        <p id="catalogAdminStatus" class="muted" role="status" aria-live="polite"></p>
+        <p id="catalogAdminStatus" hidden class="muted" role="status" aria-live="polite"></p>
       </div>
       <div id="catalogAdminList" class="catalog-admin-list"></div>
     </section>
@@ -319,6 +315,22 @@
   </div>
 
   <button class="floating-add" type="button" onclick="openAddModal()" aria-label="Додати ноутбук">+</button>
+
+  <dialog id="catalogManualModal" class="modal bad-seller-modal" aria-labelledby="catalogManualTitle">
+    <div class="toolbar"><h3 id="catalogManualTitle">Дані для покупця</h3><button id="catalogManualClose" class="ghost" type="button">Закрити</button></div>
+    <p class="muted">Заповни назву, ОЗУ, SSD, стан і ціну. Усі зміни збережуться разом.</p>
+    <form id="catalogManualForm" class="bad-seller-form">
+      <label>Серія ноутбука<select id="catalogManual-brand" required><option value="">Оберіть серію</option><option value="HP Elitebook">HP Elitebook</option><option value="HP Probook">HP Probook</option><option value="HP Zbook">HP Zbook</option></select></label>
+      <label>Покоління<select id="catalogManual-generation" required><option value="">Оберіть покоління</option><option>G3</option><option>G4</option><option>G5</option><option>G6</option><option>G7</option><option>G8</option></select></label>
+      <label>Процесор<select id="catalogManual-processor"><option value="">Не вказано</option><option>i7-6 покоління</option><option>i7-7 покоління</option><option>i7-8 покоління</option><option>i7-9 покоління</option><option>i7-10 покоління</option><option>i7-11 покоління</option><option>i5-8 покоління</option><option>i5-9 покоління</option><option>i5-10 покоління</option><option>i5-11 покоління</option></select></label>
+      <label>Оперативна пам’ять<select id="catalogManual-ram"><option value="">Не вказано</option><option value="16 ГБ">16 ГБ</option><option value="32 ГБ">32 ГБ</option></select></label>
+      <label>SSD<select id="catalogManual-ssd"><option value="">Не вказано</option><option value="256 ГБ">256 ГБ</option><option value="512 ГБ">512 ГБ</option><option value="1024 ГБ">1024 ГБ</option></select></label>
+      <label>Стан<select id="catalogManual-condition"><option value="">Не вказано</option><option>7/10</option><option>8/10</option><option>9/10</option><option>Як новий</option></select></label>
+      <label>Ціна<input id="catalogManual-price" maxlength="50" placeholder="25 000 грн" /></label>
+      <button class="primary" type="submit">Зберегти</button>
+    </form>
+    <p id="catalogManualStatus" class="muted" role="status" aria-live="polite"></p>
+  </dialog>
 
   <dialog id="badSellerModal" class="modal bad-seller-modal" aria-labelledby="badSellerModalTitle">
     <div class="toolbar">
