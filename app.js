@@ -963,6 +963,9 @@ function updateDashboardActionGridLayout(){
   const grid = document.getElementById('dashboardActionGrid');
   if(!grid) return;
   const visibleCards = [...grid.querySelectorAll('.dashboard-note-card')].filter((card) => !card.hidden);
+  for(const card of visibleCards){
+    card.classList.toggle('dashboard-note-card-wide', card.querySelectorAll('.dashboard-note-value button').length > 2);
+  }
   grid.hidden = visibleCards.length === 0;
   grid.classList.toggle('dashboard-action-grid-single', visibleCards.length === 1);
 }
@@ -3060,6 +3063,34 @@ function openEditModal(id, mode = 'full'){
   document.getElementById('dutyField')?.classList.toggle('completed-field', dutyValue !== '');
   document.getElementById('olx_ad_cost').value = item.olx_ad_cost ?? getStockPrice('olxAd');
   document.getElementById('engraving_cost').value = item.engraving_cost ?? getStockPrice('engraving');
+  for(const id of ['olx_ad_cost', 'engraving_cost']){
+    const input = document.getElementById(id);
+    let taps = 0, lastTap = 0;
+    input.readOnly = true;
+    input.inputMode = 'decimal';
+    input.style.touchAction = 'manipulation';
+    input.title = 'Натисни тричі для редагування';
+    input.setAttribute('aria-label', `${id === 'olx_ad_cost' ? 'Реклама OLX' : 'Гравіювання'}, ₴. Натисни тричі для редагування`);
+    input.onclick = () => {
+      if(!input.readOnly) return;
+      const now = Date.now();
+      taps = now - lastTap <= 550 ? taps + 1 : 1;
+      lastTap = now;
+      if(taps < 3) return;
+      input.readOnly = false;
+      input.title = 'Введи суму, зокрема 0';
+      input.setAttribute('aria-label', `${id === 'olx_ad_cost' ? 'Реклама OLX' : 'Гравіювання'}, ₴`);
+      input.focus();
+      input.select();
+    };
+    input.onblur = () => { taps = 0; lastTap = 0; };
+    input.oninput = () => {
+      const costs = Object.fromEntries(['ebay_price', 'delivery_cost', 'charger_cost', 'duty_cost', 'olx_ad_cost', 'engraving_cost', 'ssd', 'ram']
+        .map(key => [key, document.getElementById(key)?.value]));
+      document.getElementById('cost_display').value = calcCost(costs);
+    };
+  }
+
   document.getElementById('ssd').value = ssdValue;
   document.getElementById('ram').value = ramValue;
   syncPartCostOptions('ssd');

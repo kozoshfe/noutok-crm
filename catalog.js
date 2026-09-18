@@ -19,7 +19,7 @@
     const match = String(value ?? '').trim().match(/^(\d+(?:[.,]\d+)?)\s*(ГБ|GB|ТБ|TB)$/i);
     return match ? Number(match[1].replace(',', '.')) * (/^(ТБ|TB)$/i.test(match[2]) ? 1024 : 1) : null;
   }
-  const sortLabels = { title:'Модель', ram:'Оперативна пам’ять', ssd:'SSD', condition:'Стан', price:'Ціна' };
+  const sortLabels = { title:'Модель', ram:'Оперативна пам’ять', ssd:'SSD', condition:'Стан', photo:'Фото', price:'Ціна' };
   let rows = [], loaded = false, busy = false;
   const safe = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[char]);
   const text = (value, limit) => typeof value === 'string' && value.trim() && value.length <= limit ? value.trim() : '';
@@ -31,6 +31,10 @@
       button.setAttribute('aria-pressed', String(active));
       button.querySelector('span').textContent = active ? (descending ? '↓' : '↑') : '↕';
       const label = sortLabels[button.dataset.sortField];
+      if(button.dataset.sortField === 'photo'){
+        button.setAttribute('aria-label', active ? `Фото: спочатку ${descending ? 'з фото' : 'без фото'}. Змінити напрямок` : 'Сортувати: Фото');
+        return;
+      }
       button.setAttribute('aria-label', active ? `${label}: ${descending ? 'за спаданням' : 'за зростанням'}. Змінити напрямок` : `Сортувати: ${label}`);
     });
     if(!loaded) return;
@@ -38,7 +42,7 @@
     if(sortOrder){
       const [field, direction] = sortOrder.split('-');
       const ranks = { '7/10':7, '8/10':8, '9/10':9, 'Як новий':10 };
-      const value = row => field === 'title' ? (row.title || null) : field === 'price' ? priceValue(row.price) : field === 'condition' ? (ranks[row.condition] ?? null) : capacityValue(row[field]);
+      const value = row => field === 'photo' ? Number(Boolean(row.telegram_link)) : field === 'title' ? (row.title || null) : field === 'price' ? priceValue(row.price) : field === 'condition' ? (ranks[row.condition] ?? null) : capacityValue(row[field]);
       shown.sort((a, b) => {
         const left = value(a), right = value(b);
         // Keep unspecified values last in either direction and preserve ties.
@@ -82,7 +86,7 @@
     button.addEventListener('click', () => {
       const field = button.dataset.sortField;
       const active = sortOrder.startsWith(field + '-');
-      const direction = active ? (sortOrder.endsWith('-asc') ? 'desc' : 'asc') : (field === 'condition' ? 'desc' : 'asc');
+      const direction = active ? (sortOrder.endsWith('-asc') ? 'desc' : 'asc') : (['condition', 'photo'].includes(field) ? 'desc' : 'asc');
       sortOrder = `${field}-${direction}`;
       render();
     });
