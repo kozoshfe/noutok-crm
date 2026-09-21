@@ -7,8 +7,8 @@
   <meta name="description" content="Ноуток — ноутбуки в наявності. Оберіть модель, оперативну пам’ять, SSD і стан.">
   <title>Ноутбуки в наявності · Ноуток</title>
   <link rel="icon" href="icon-192.png">
-  <link rel="stylesheet" href="catalog.css?v=1.11.127">
-  <script src="catalog.js?v=1.11.127" defer></script>
+  <link rel="stylesheet" href="catalog.css?v=1.11.129">
+  <script src="catalog.js?v=1.11.129" defer></script>
 </head>
 <body>
   <header class="catalog-header"><a href="catalog.html" class="catalog-brand" aria-label="Ноуток — каталог"><img src="icon-192.png" width="40" height="40" alt=""><span>ноуток<span class="brand-dot">.</span></span></a><span class="header-note">Ноутбуки для ваших справ</span><div class="catalog-total"><strong id="catalogTotal">—</strong><span>ноутбуків<br>у каталозі</span></div></header>
@@ -29,5 +29,19 @@
       <div id="catalogList" aria-busy="true"></div>
     </section>
   </main>
+  <dialog id="purchaseDialog" class="purchase-dialog" aria-labelledby="purchaseTitle" aria-describedby="purchaseProduct">
+    <div class="purchase-heading"><div><p class="purchase-eyebrow">Обраний ноутбук</p><h2 id="purchaseTitle">Купити ноутбук</h2></div><button id="purchaseClose" type="button" aria-label="Закрити форму покупки">×</button></div>
+    <p id="purchaseProduct" class="purchase-product"></p>
+    <form id="purchaseForm">
+      <label for="purchaseName">ПІБ<input id="purchaseName" name="fullName" autocomplete="name" placeholder="Прізвище Ім’я По батькові" maxlength="150" required autofocus></label>
+      <label for="purchasePhone">Номер телефона<input id="purchasePhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+380 XX XXX XX XX" maxlength="25" required></label>
+      <label for="purchaseCity">Місто отримувача<input id="purchaseCity" name="city" autocomplete="address-level2" placeholder="Наприклад, Київ" maxlength="100" required></label>
+      <label for="purchaseBranch">Відділення Нової пошти<input id="purchaseBranch" name="branch" placeholder="Номер або адреса відділення" maxlength="200" required></label>
+      <label for="purchasePrice">Ваша ціна в гривнях<div class="purchase-price-input"><input id="purchasePrice" name="offerPrice" type="number" inputmode="decimal" min="1" step="0.01" placeholder="Введіть вашу ціну" required><span aria-hidden="true">₴</span></div></label>
+      <p class="purchase-hint">Після заповнення відкриється Telegram із готовим повідомленням. Натисніть «Надіслати» в чаті, щоб передати заявку продавцю.</p>
+      <button id="purchaseSubmit" class="purchase-submit" type="submit">Продовжити в Telegram <span aria-hidden="true">↗</span></button>
+      <p id="purchaseFeedback" class="purchase-feedback" role="status" hidden></p>
+    </form>
+  </dialog>
 </body>
 </html>

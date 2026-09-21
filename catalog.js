@@ -8,6 +8,9 @@
   let photoFiles = [];
   const failedPhotos = new Set();
   const expandedSpecs = new Set();
+  let purchaseTrigger = null;
+  let selectedPurchase = null;
+  const purchaseTelegramUsername = 'noutok_help'; // Seller's public Telegram username.
   const cardKey = row => JSON.stringify([row.number, row.title]);
   function priceValue(value){
     const normalized = String(value ?? '').trim().replace(/(?:грн\.?|₴|UAH)$/i, '').replace(/\s/g, '').replace(',', '.');
@@ -88,6 +91,7 @@
     status.hidden = true;
     const field = value => value ? safe(value) : '<span class="unspecified">Уточнюється</span>';
     list.innerHTML = shown.length ? shown.map((row, index) => `<article class="buyer-card product-card${expandedSpecs.has(cardKey(row)) ? ' specs-expanded' : ''}" data-card-key="${safe(cardKey(row))}">
+      <button class="product-buy-button" type="button" title="Купити" aria-label="Купити ${safe(row.title || 'ноутбук')}, №${safe(row.number || '—')}"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 3h2l2.5 12h11L21 7H6M10 3v6m-3-3h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="20" r="1.5" fill="currentColor"/><circle cx="18" cy="20" r="1.5" fill="currentColor"/></svg></button>
       <div class="buyer-model">${productImage(row)}<div class="product-heading"><h2>${safe(row.title || 'Назва уточнюється')}</h2><p class="buyer-number">№${safe(row.number || '—')}</p></div></div>
       <button class="product-specs-toggle" type="button" aria-expanded="${expandedSpecs.has(cardKey(row))}" aria-controls="cpu-${index} ram-${index} ssd-${index}">Характеристики <span aria-hidden="true">${expandedSpecs.has(cardKey(row)) ? '▴' : '▾'}</span></button>
       <div id="cpu-${index}" class="buyer-processor product-spec" ${expandedSpecs.has(cardKey(row)) ? '' : 'hidden'}>${specIcon('cpu')}<strong>${field(row.processor)}</strong><span class="spec-caption">Процесор</span></div>
@@ -152,7 +156,78 @@
     });
   });
   for(const id of ['catalogSearch','filterRam','filterSsd','filterCondition','filterPhoto']) document.getElementById(id).addEventListener('input', render);
+  const purchaseDialog = document.getElementById('purchaseDialog');
+  const purchaseForm = document.getElementById('purchaseForm');
+  document.getElementById('purchaseClose').addEventListener('click', () => purchaseDialog.close());
+  purchaseDialog.addEventListener('click', event => {
+    if(event.target !== purchaseDialog) return;
+    const box = purchaseDialog.getBoundingClientRect();
+    if(event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) purchaseDialog.close();
+  });
+  purchaseDialog.addEventListener('close', () => {
+    document.body.classList.remove('purchase-open');
+    purchaseForm.reset();
+    const key = selectedPurchase ? cardKey(selectedPurchase) : '';
+    selectedPurchase = null;
+    const restoredTrigger = purchaseTrigger?.isConnected ? purchaseTrigger : [...list.querySelectorAll('.product-card')].find(card => card.dataset.cardKey === key)?.querySelector('.product-buy-button');
+    restoredTrigger?.focus();
+  });
+  purchaseForm.addEventListener('input', event => {
+    if(typeof event.target.setCustomValidity === 'function') event.target.setCustomValidity('');
+    document.getElementById('purchaseFeedback').hidden = true;
+  });
+  purchaseForm.addEventListener('submit', event => {
+    event.preventDefault();
+    for(const id of ['purchaseName','purchaseCity','purchaseBranch']){
+      const input = document.getElementById(id);
+      input.value = input.value.trim();
+      input.setCustomValidity(input.value ? '' : 'Заповніть це поле.');
+    }
+    const phone = document.getElementById('purchasePhone');
+    const digits = phone.value.replace(/\D/g, '');
+    phone.setCustomValidity(/^[+\d\s()-]+$/.test(phone.value) && digits.length >= 10 && digits.length <= 15 ? '' : 'Введіть коректний номер телефона, наприклад +380 67 123 45 67.');
+    if(!purchaseForm.reportValidity() || !selectedPurchase) return;
+    const feedback = document.getElementById('purchaseFeedback');
+    if(!purchaseTelegramUsername){
+      feedback.textContent = 'Надсилання заявок ще налаштовується.';
+      feedback.hidden = false;
+      return;
+    }
+    const data = new FormData(purchaseForm);
+    const message = [
+      'Заявка на ноутбук',
+      `Модель: ${selectedPurchase.title || 'Уточнюється'}`,
+      `Номер: ${selectedPurchase.number || '—'}`,
+      `Ціна в каталозі: ${selectedPurchase.price || 'Уточнюється'}`,
+      '',
+      `ПІБ: ${data.get('fullName')}`,
+      `Телефон: ${data.get('phone').trim()}`,
+      `Місто: ${data.get('city')}`,
+      `Відділення Нової пошти: ${data.get('branch')}`,
+      `Пропонована ціна: ${data.get('offerPrice')} грн`
+    ].join('\n');
+    const destination = new URL(`https://t.me/${purchaseTelegramUsername}`);
+    destination.searchParams.set('text', message);
+    window.open(destination.href, '_blank', 'noopener,noreferrer');
+    feedback.textContent = 'Повідомлення підготовлено. Підтвердьте надсилання в Telegram.';
+    feedback.hidden = false;
+  });
   list.addEventListener('click', event => {
+    const buyButton = event.target.closest('.product-buy-button');
+    if(buyButton){
+      const key = buyButton.closest('.product-card').dataset.cardKey;
+      const row = rows.find(item => cardKey(item) === key);
+      if(!row) return;
+      selectedPurchase = {...row};
+      purchaseTrigger = buyButton;
+      purchaseForm.reset();
+      purchaseForm.querySelectorAll('input').forEach(input => input.setCustomValidity(''));
+      document.getElementById('purchaseFeedback').hidden = true;
+      document.getElementById('purchaseProduct').textContent = `${row.title || 'Ноутбук'} · №${row.number || '—'}`;
+      document.body.classList.add('purchase-open');
+      purchaseDialog.showModal();
+      return;
+    }
     const button = event.target.closest('.product-specs-toggle');
     if(!button) return;
     const card = button.closest('.product-card');
