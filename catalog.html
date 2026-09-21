@@ -7,15 +7,25 @@
   <meta name="description" content="Ноуток — ноутбуки в наявності. Оберіть модель, оперативну пам’ять, SSD і стан.">
   <title>Ноутбуки в наявності · Ноуток</title>
   <link rel="icon" href="icon-192.png">
-  <link rel="stylesheet" href="catalog.css?v=1.11.122">
-  <script src="catalog.js?v=1.11.122" defer></script>
+  <link rel="stylesheet" href="catalog.css?v=1.11.126">
+  <script src="catalog.js?v=1.11.126" defer></script>
 </head>
 <body>
   <header class="catalog-header"><a href="catalog.html" class="catalog-brand" aria-label="Ноуток — каталог"><img src="icon-192.png" width="40" height="40" alt=""><span>ноуток<span class="brand-dot">.</span></span></a><span class="header-note">Ноутбуки для ваших справ</span><div class="catalog-total"><strong id="catalogTotal">—</strong><span>ноутбуків<br>у каталозі</span></div></header>
   <main>
     <section class="catalog-results" aria-label="Ноутбуки">
       <p id="catalogStatus" role="status" aria-live="polite">Завантаження ноутбуків…</p>
-      <div class="catalog-sort-buttons" role="group" aria-label="Сортування за колонками"><button type="button" data-sort-field="title" aria-pressed="false">Модель <span aria-hidden="true">↕</span></button><div class="catalog-sort-specs"><button type="button" data-sort-field="ram" aria-pressed="false">ОЗУ <span aria-hidden="true">↕</span></button><button type="button" data-sort-field="ssd" aria-pressed="false">SSD <span aria-hidden="true">↕</span></button><button type="button" data-sort-field="condition" aria-pressed="false">Стан <span aria-hidden="true">↕</span></button><button type="button" data-sort-field="photo" aria-pressed="false">Фото <span aria-hidden="true">↕</span></button><button type="button" data-sort-field="price" aria-pressed="false">Ціна <span aria-hidden="true">↕</span></button></div></div>
+      <div class="catalog-mobile-tools">
+        <label class="catalog-search"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="7" stroke="currentColor" stroke-width="1.6"/><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.6"/></svg><input id="catalogSearch" type="search" placeholder="Пошук моделі…" aria-label="Пошук моделі"></label>
+      </div>
+      <div class="catalog-sort-buttons" role="group" aria-label="Сортування за колонками"><button type="button" data-sort-field="title" aria-pressed="false">Модель <span aria-hidden="true">↕</span></button><div class="catalog-sort-specs"><button type="button" data-sort-field="ram" aria-pressed="false">ОЗУ <span aria-hidden="true">↕</span></button><button type="button" data-sort-field="ssd" aria-pressed="false">SSD <span aria-hidden="true">↕</span></button><button type="button" data-sort-field="condition" aria-pressed="false">Стан <span aria-hidden="true">↕</span></button><button type="button" data-sort-field="photo" aria-pressed="false">Фото <span aria-hidden="true">↕</span></button><button type="button" data-sort-field="price" aria-pressed="false">Ціна <span aria-hidden="true">↕</span></button></div><button id="catalogFiltersToggle" type="button" aria-expanded="false" aria-controls="catalogFilters"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 4h18v3l-7 7v6l-4-2v-4L3 7z"/></svg>Фільтри</button></div>
+      <div id="catalogFilters" class="catalog-mobile-tools" hidden>
+        <label>ОЗУ<select id="filterRam"><option value="">Усі</option></select></label>
+        <label>SSD<select id="filterSsd"><option value="">Усі</option></select></label>
+        <label>Стан<select id="filterCondition"><option value="">Будь-який</option><option>Як новий</option><option>9/10</option><option>8/10</option><option>7/10</option></select></label>
+        <label class="catalog-photo-filter"><input id="filterPhoto" type="checkbox"> Лише з фото</label>
+        <button id="resetCatalogFilters" type="button">Скинути фільтри</button>
+      </div>
       <div id="catalogList" aria-busy="true"></div>
     </section>
   </main>
