@@ -205,7 +205,6 @@ const stockPartDefinitions = [
 
 const stockPriceDefinitions = [
   ...stockPartDefinitions.filter((part) => part.key !== 'powerCables').map((part) => ({ ...part, description: 'ціна, грн', unit: 'грн' })),
-  { key: 'olxAd', label: 'Реклама OLX', icon: '📣', description: 'вартість реклами', unit: 'грн', min: 0 },
   { key: 'engraving', label: 'Гравіювання', icon: '✍️', description: 'вартість гравіювання', unit: 'грн', min: 0 },
   { key: 'euroRate', label: 'Курс євро для мита', icon: '💶', description: 'курс, гривень за €', unit: 'грн/€' }
 ];
@@ -2796,6 +2795,9 @@ function setAdditionalCostsVisibility(){
 
 function editFieldHasValue(field){
   if(!field) return false;
+  if(field.id === 'olxLinkField'){
+    return Boolean(field.querySelector('#olx_link')?.value.trim()) && field.querySelector('#olx_ad_cost')?.value !== '';
+  }
   if(field.classList.contains('model-type-field')){
     return Boolean(field.querySelector('.model-type-btn.active'));
   }
@@ -3001,7 +3003,7 @@ function openEditModal(id, mode = 'full'){
           </div>
           <input id="ram" type="hidden" value="" />
         </div>
-        <div id="olxLinkField" class="form-field span-2"><label>Посилання OLX</label><div class="inline-field"><input id="olx_link" placeholder="https://www.olx.ua/..." /><button class="ghost inline-field-btn" type="button" onclick="pasteIntoField('olx_link')">Вставити</button></div></div>
+        <div id="olxLinkField" class="form-field span-2"><label>Посилання OLX</label><div class="inline-field"><input id="olx_link" placeholder="https://www.olx.ua/..." /><button class="ghost inline-field-btn" type="button" onclick="pasteIntoField('olx_link')">Вставити</button></div><div id="olxPriceField" class="form-field" hidden><label for="olx_ad_cost">Реклама OLX, ₴</label><input id="olx_ad_cost" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Введи суму для цього ноутбука" /></div></div>
         <div id="telegramLinkField" class="form-field span-2"><label>Посилання Telegram</label><div class="inline-field"><input id="telegram_link" placeholder="https://t.me/..." /><button class="ghost inline-field-btn" type="button" onclick="pasteIntoField('telegram_link')">Вставити</button></div></div>
         <div id="statusField" class="form-field"><label>Статус</label>
           <select id="status">
@@ -3018,7 +3020,6 @@ function openEditModal(id, mode = 'full'){
           </div>
         </div>
         <div class="span-3 costs-grid completed-field">
-          <div class="form-field"><label>Реклама OLX, ₴</label><input id="olx_ad_cost" type="number" min="0" step="0.01" readonly /></div>
           <div class="form-field"><label>Гравіювання, ₴</label><input id="engraving_cost" type="number" min="0" step="0.01" readonly /></div>
           <div class="form-field cost-total-field"><label>Собівартість, ₴</label><input id="cost_display" disabled /></div>
         </div>
@@ -3061,16 +3062,16 @@ function openEditModal(id, mode = 'full'){
   const ramValue = !hasSerialNumber && Number(item.ram) === 0 ? '' : item.ram ?? '';
   document.getElementById('duty_cost').value = dutyValue;
   document.getElementById('dutyField')?.classList.toggle('completed-field', dutyValue !== '');
-  document.getElementById('olx_ad_cost').value = item.olx_ad_cost ?? getStockPrice('olxAd');
+  document.getElementById('olx_ad_cost').value = item.olx_ad_cost ?? '';
   document.getElementById('engraving_cost').value = item.engraving_cost ?? getStockPrice('engraving');
-  for(const id of ['olx_ad_cost', 'engraving_cost']){
+  for(const id of ['engraving_cost']){
     const input = document.getElementById(id);
     let taps = 0, lastTap = 0;
     input.readOnly = true;
     input.inputMode = 'decimal';
     input.style.touchAction = 'manipulation';
     input.title = 'Натисни тричі для редагування';
-    input.setAttribute('aria-label', `${id === 'olx_ad_cost' ? 'Реклама OLX' : 'Гравіювання'}, ₴. Натисни тричі для редагування`);
+    input.setAttribute('aria-label', `Гравіювання, ₴. Натисни тричі для редагування`);
     input.onclick = () => {
       if(!input.readOnly) return;
       const now = Date.now();
@@ -3079,7 +3080,7 @@ function openEditModal(id, mode = 'full'){
       if(taps < 3) return;
       input.readOnly = false;
       input.title = 'Введи суму, зокрема 0';
-      input.setAttribute('aria-label', `${id === 'olx_ad_cost' ? 'Реклама OLX' : 'Гравіювання'}, ₴`);
+      input.setAttribute('aria-label', `Гравіювання, ₴`);
       input.focus();
       input.select();
     };
@@ -3101,8 +3102,16 @@ function openEditModal(id, mode = 'full'){
   document.getElementById('tracking_number').value = item.tracking_number || '';
   document.getElementById('trackingField')?.classList.toggle('completed-field', Boolean(item.tracking_number));
   document.getElementById('olx_link').value = item.olx_link || '';
+  const olxPriceField = document.getElementById('olxPriceField');
+  const syncOlxPriceVisibility = () => {
+    olxPriceField.hidden = !document.getElementById('olx_link').value.trim();
+  };
+  document.getElementById('olx_link').oninput = syncOlxPriceVisibility;
+  document.getElementById('olx_link').onchange = syncOlxPriceVisibility;
+  document.getElementById('olx_ad_cost').oninput = document.getElementById('engraving_cost').oninput;
+  syncOlxPriceVisibility();
   document.getElementById('telegram_link').value = item.telegram_link || '';
-  document.getElementById('olxLinkField')?.classList.toggle('completed-field', Boolean(item.olx_link));
+  document.getElementById('olxLinkField')?.classList.toggle('completed-field', Boolean(item.olx_link) && item.olx_ad_cost != null && item.olx_ad_cost !== '');
   document.getElementById('telegramLinkField')?.classList.toggle('completed-field', Boolean(item.telegram_link));
   document.getElementById('cost_display').value = calcCost(item);
 
@@ -3271,7 +3280,7 @@ async function saveLaptop(event){
         : 0,
       olx_ad_cost: document.getElementById('olx_ad_cost')
         ? toNum(document.getElementById('olx_ad_cost').value)
-        : getStockPrice('olxAd'),
+        : 0,
       engraving_cost: document.getElementById('engraving_cost')
         ? toNum(document.getElementById('engraving_cost').value)
         : getStockPrice('engraving'),
@@ -3386,20 +3395,21 @@ async function saveLaptop(event){
       const currentItem = laptops.find((x) => x.id === targetEditId);
       const soldNow = Boolean(currentItem && currentItem.status !== 'sold' && payload.status === 'sold');
       const soldModel = { ...currentItem, ...payload };
-      const shouldDeductZbookStock = soldNow && isZbook(soldModel);
-      const shouldDeductElitebookStock = soldNow && (soldModel.model_type || soldModel.charger_type) === 'Elitebook';
+      const affectsStock = !isTestLaptop(soldModel);
+      const shouldDeductZbookStock = affectsStock && soldNow && isZbook(soldModel);
+      const shouldDeductElitebookStock = affectsStock && soldNow && (soldModel.model_type || soldModel.charger_type) === 'Elitebook';
       const receivedChargerModel = soldModel.model_type || soldModel.charger_type;
       const isFirstSerialEntry = Boolean(currentItem && !String(currentItem.serial_number || '').trim() && payload.serial_number);
       const chargerWasNotFree = currentItem && (currentItem.charger_cost === null || currentItem.charger_cost === undefined || currentItem.charger_cost === '' || Number(currentItem.charger_cost) !== 0);
       const hasExplicitZeroCharger = document.getElementById('charger_cost')?.value.trim() === '0';
       const shouldAddReceivedCharger = Boolean(
-        currentItem
+        affectsStock && currentItem
         && payload.serial_number
         && hasExplicitZeroCharger
         && (isFirstSerialEntry || chargerWasNotFree)
         && (receivedChargerModel === 'Zbook' || receivedChargerModel === 'Elitebook')
       );
-      const shouldDeductReceivedParts = Boolean(currentItem && !String(currentItem.serial_number || '').trim() && payload.serial_number);
+      const shouldDeductReceivedParts = Boolean(affectsStock && currentItem && !String(currentItem.serial_number || '').trim() && payload.serial_number);
       const { response, savedPayload, savedWithoutModelType } = await saveLaptopPatchToDatabase(targetEditId, payload, 'Save laptop direct');
       if(response.error){
         hasSupabaseConnection = false;
@@ -3559,12 +3569,12 @@ async function quickStatus(id, status){
   hasSupabaseConnection = true;
   updateNetwork();
   if(response.data) applyLaptopToState(response.data);
-  if(status === 'sold' && item.status !== 'sold' && isZbook(item)){
+  if(!isTestLaptop(item) && status === 'sold' && item.status !== 'sold' && isZbook(item)){
     const stockBecameEmpty = await deductZbookStock();
     setBanner('Продано. Зі складу списано блок 150W і кабель живлення.');
     if(stockBecameEmpty) showDailyStockReminder(true);
   }
-  if(status === 'sold' && item.status !== 'sold' && (item.model_type || item.charger_type) === 'Elitebook'){
+  if(!isTestLaptop(item) && status === 'sold' && item.status !== 'sold' && (item.model_type || item.charger_type) === 'Elitebook'){
     const stockBecameEmpty = await deductElitebookStock();
     setBanner('Продано. Зі складу списано блок 65W і кабель живлення.');
     if(stockBecameEmpty) showDailyStockReminder(true);

@@ -12,11 +12,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Ноуток СРМ">
-  <link rel="stylesheet" href="styles.css?v=1.11.114">
+  <link rel="stylesheet" href="styles.css?v=1.11.120">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="stock-logic.js?v=1.11.96"></script>
   <script src="catalog-admin.js?v=1.11.112" defer></script>
-  <script src="app.js?v=1.11.117" defer></script>
+  <script src="app.js?v=1.11.119" defer></script>
 </head>
 <body>
   <div id="authScreen" class="auth-screen" style="display:none">
@@ -87,6 +87,7 @@
           </div>
           <button id="purgeTestLaptopsBtn" class="ghost danger-ghost" type="button">Видалити тестові</button>
         </div>
+        <div class="dashboard-card-grid">
         <div class="stats">
           <div class="stat"><div class="k">Активні ноутбуки</div><div id="statActiveBig" class="v">0</div></div>
           <div class="stat"><div id="statSoldMonthLabel" class="k">Продано за місяць</div><div id="statSoldMonthBig" class="v">0</div></div>
@@ -125,6 +126,7 @@
               <div id="dashboardOlxNoteValue" class="dashboard-note-value" aria-live="polite">-</div>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </section>

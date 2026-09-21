@@ -1296,7 +1296,7 @@ body[data-theme="light"] .part-cost-option.active small{color:#edf4ff}
 .modal input:disabled,.modal input[readonly]{color:#c3d1e8;background:rgba(8,18,37,.66)}
 .modal #statusField{grid-column:1 / -1}
 .modal .edit-fields-grid:has(#chargerField[hidden]) #serialField{grid-column:1 / -1}
-.costs-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;min-width:0}
+.costs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-width:0}
 #laptopForm > .row-actions{
   display:flex;
   flex-direction:column;
@@ -2560,3 +2560,32 @@ body[data-theme="light"] .catalog-completion.is-missing{color:#80500d}
 .catalog-admin-details[open] .catalog-show-details{display:none}
 .catalog-admin-details[open] .catalog-hide-details{display:inline}
 .catalog-admin-details[open] .catalog-admin-chevron{transform:rotate(180deg)}
+
+#olxPriceField{margin-top:12px}
+
+/* One shared desktop grid keeps all dashboard cards the same size. */
+.dashboard-card-grid{display:contents}
+@media (min-width:769px){
+  .dashboard-card-grid{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    grid-auto-rows:1fr;
+    gap:14px;
+  }
+  .dashboard-card-grid > .stats,
+  .dashboard-card-grid > .dashboard-estimate-grid,
+  .dashboard-card-grid > .dashboard-action-grid:not([hidden]){display:contents}
+  .dashboard-card-grid .stat,
+  .dashboard-card-grid .dashboard-note-card{
+    min-width:0;
+    min-height:112px;
+    margin:0;
+    padding:16px;
+    border-radius:20px;
+  }
+  .dashboard-card-grid .dashboard-note-card{gap:10px}
+  .dashboard-card-grid .dashboard-note-card-wide{grid-column:auto;order:0}
+}
+@media (min-width:1101px){
+  .dashboard-card-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+}
