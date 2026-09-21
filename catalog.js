@@ -7,6 +7,8 @@
   let sortOrder = '';
   let photoFiles = [];
   const failedPhotos = new Set();
+  const expandedSpecs = new Set();
+  const cardKey = row => JSON.stringify([row.number, row.title]);
   function priceValue(value){
     const normalized = String(value ?? '').trim().replace(/(?:грн\.?|₴|UAH)$/i, '').replace(/\s/g, '').replace(',', '.');
     return /^\d+(?:\.\d{1,2})?$/.test(normalized) && Number.isFinite(Number(normalized)) ? Number(normalized) : null;
@@ -85,12 +87,13 @@
     status.textContent = '';
     status.hidden = true;
     const field = value => value ? safe(value) : '<span class="unspecified">Уточнюється</span>';
-    list.innerHTML = shown.length ? shown.map(row => `<article class="buyer-card product-card">
+    list.innerHTML = shown.length ? shown.map((row, index) => `<article class="buyer-card product-card${expandedSpecs.has(cardKey(row)) ? ' specs-expanded' : ''}" data-card-key="${safe(cardKey(row))}">
       <div class="buyer-model">${productImage(row)}<div class="product-heading"><h2>${safe(row.title || 'Назва уточнюється')}</h2><p class="buyer-number">№${safe(row.number || '—')}</p></div></div>
-      <div class="buyer-processor product-spec">${specIcon('cpu')}<strong>${field(row.processor)}</strong><span class="spec-caption">Процесор</span></div>
+      <button class="product-specs-toggle" type="button" aria-expanded="${expandedSpecs.has(cardKey(row))}" aria-controls="cpu-${index} ram-${index} ssd-${index}">Характеристики <span aria-hidden="true">${expandedSpecs.has(cardKey(row)) ? '▴' : '▾'}</span></button>
+      <div id="cpu-${index}" class="buyer-processor product-spec" ${expandedSpecs.has(cardKey(row)) ? '' : 'hidden'}>${specIcon('cpu')}<strong>${field(row.processor)}</strong><span class="spec-caption">Процесор</span></div>
       <dl>
-        <div class="product-spec product-ram">${specIcon('ram')}<dt>Оперативна пам’ять</dt><dd>${field(row.ram)}</dd></div>
-        <div class="product-spec product-ssd">${specIcon('ssd')}<dt>Накопичувач</dt><dd>SSD ${field(row.ssd)}</dd></div>
+        <div id="ram-${index}" class="product-spec product-ram" ${expandedSpecs.has(cardKey(row)) ? '' : 'hidden'}>${specIcon('ram')}<dt>Оперативна пам’ять</dt><dd>${field(row.ram)}</dd></div>
+        <div id="ssd-${index}" class="product-spec product-ssd" ${expandedSpecs.has(cardKey(row)) ? '' : 'hidden'}>${specIcon('ssd')}<dt>Накопичувач</dt><dd>SSD ${field(row.ssd)}</dd></div>
         <div class="product-condition"><dt>Стан</dt><dd>${row.condition ? `<span class="condition">${safe(row.condition)}</span>` : '<span class="unspecified">Уточнюється</span>'}</dd></div>
         <div class="product-photo"><dt>Фото</dt><dd>${row.telegram_link ? `<a class="catalog-photo-link" href="${safe(row.telegram_link)}" target="_blank" rel="noopener noreferrer" aria-label="Фото ${safe(row.title || 'ноутбука')} у Telegram"><span class="photo-mobile-label"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 5l1-2h6l1 2h4v15H4V5z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/></svg>Фото</span></a>` : '<span class="unspecified">—</span>'}</dd></div>
         <div class="product-price"><dt>Ціна</dt><dd><span class="buyer-mobile-price">${priceValue(row.price) !== null ? safe(new Intl.NumberFormat('uk-UA', {maximumFractionDigits:2}).format(priceValue(row.price))) + ' ₴' : field(row.price)}</span></dd></div>
@@ -149,6 +152,18 @@
     });
   });
   for(const id of ['catalogSearch','filterRam','filterSsd','filterCondition','filterPhoto']) document.getElementById(id).addEventListener('input', render);
+  list.addEventListener('click', event => {
+    const button = event.target.closest('.product-specs-toggle');
+    if(!button) return;
+    const card = button.closest('.product-card');
+    const expanded = button.getAttribute('aria-expanded') !== 'true';
+    if(expanded) expandedSpecs.add(card.dataset.cardKey);
+    else expandedSpecs.delete(card.dataset.cardKey);
+    button.setAttribute('aria-expanded', String(expanded));
+    button.querySelector('span').textContent = expanded ? '▴' : '▾';
+    card.classList.toggle('specs-expanded', expanded);
+    card.querySelectorAll('.product-spec').forEach(spec => { spec.hidden = !expanded; });
+  });
   document.getElementById('catalogFiltersToggle').addEventListener('click', () => {
     const panel = document.getElementById('catalogFilters');
     panel.hidden = !panel.hidden;

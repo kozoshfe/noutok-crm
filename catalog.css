@@ -253,3 +253,20 @@ main{padding-bottom:24px}
 }
 
 .product-photo-image img{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:contain;border-radius:10px;mix-blend-mode:multiply}
+
+/* Specifications are opt-in on each card; keep the title, photo and price visible. */
+#catalogList{align-items:start}
+.buyer-card.product-card{grid-template-rows:auto auto auto}
+.product-card .product-spec[hidden]{display:none!important}
+.product-card .product-illustration{grid-row:1}
+.product-card .product-photo{grid-row:2;margin:0;align-self:center}
+.product-specs-toggle{grid-column:2/-1;grid-row:2;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:42px;padding:8px 12px;border:1px solid #dde6e8;border-radius:12px;background:#f0f5f7;color:#4f626a;text-align:left;font-size:13px;font-weight:600}
+.product-specs-toggle:hover{background:#e7eff2}
+.product-specs-toggle span{font-size:17px}
+.product-card .product-spec{grid-row:3}
+.product-card .product-condition,.product-card .product-price{grid-row:3}
+.product-card.specs-expanded .product-condition,.product-card.specs-expanded .product-price{grid-row:4}
+@media(max-width:600px){
+  .product-specs-toggle{grid-column:1/-1}
+  .product-card .product-photo{grid-row:1;align-self:end}
+}

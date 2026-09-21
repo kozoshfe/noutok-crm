@@ -34,7 +34,7 @@ let quickLocationSavingId = null;
 let pendingLocationStateUndo = null;
 let locationStateToastTimer = null;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.126';
+const APP_VERSION = '1.11.127';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
