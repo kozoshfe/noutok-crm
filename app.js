@@ -34,7 +34,7 @@ let quickLocationSavingId = null;
 let pendingLocationStateUndo = null;
 let locationStateToastTimer = null;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.96';
+const APP_VERSION = '1.11.122';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -1890,7 +1890,8 @@ function cardTemplate(item, soldMode){
   const cost = calcCost(item);
   const sale = toNum(item.sold_price);
   const profit = sale - cost;
-  const soldDays = diffDaysLabel(item.created_at, item.sold_at);
+  const soldDays = diffDaysLabel(item.received_at, item.sold_at);
+  const deliveryDays = diffDaysLabel(item.created_at, item.received_at);
   const soldDate = soldDateLabel(item.sold_at);
   const trackingTail = getTrackingTail(item.tracking_number);
   const hasDelivery = toNum(item.delivery_cost) > 0;
@@ -1919,9 +1920,12 @@ function cardTemplate(item, soldMode){
             <div class="sold-card-side">
               <div class="sold-card-sale-row">
                 ${item.serial_number ? `<div class="sold-serial-badge">🔢 ${safe(item.serial_number)}</div>` : ''}
-                ${soldDays ? `<div class="sold-days-badge">⏱ ${safe(soldDays)}</div>` : ''}
+                <div class="sold-days-badge" title="Від отримання до продажу" aria-label="Від отримання до продажу: ${safe(soldDays || 'дата отримання невідома')}">⏱ ${safe(soldDays || '—')}</div>
               </div>
+              <div class="sold-card-result-row">
+                <div class="sold-days-badge sold-delivery-days-badge" title="Від додавання до отримання (першого введення серійника)" aria-label="Від додавання до отримання: ${safe(deliveryDays || 'дата отримання невідома')}">🚚 ${safe(deliveryDays || '—')}</div>
               <div class="sold-profit ${profit >= 0 ? 'sold-profit-pos' : 'sold-profit-neg'}">📈 ${sale ? money(profit) : '—'}</div>
+              </div>
             </div>
           </div>
         </div>

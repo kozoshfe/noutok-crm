@@ -2589,3 +2589,7 @@ body[data-theme="light"] .catalog-completion.is-missing{color:#80500d}
 @media (min-width:1101px){
   .dashboard-card-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
 }
+
+.sold-card-result-row{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+.sold-delivery-days-badge{background:rgba(138,180,255,.15);border-color:rgba(138,180,255,.18);color:#8ab4ff}
+body[data-theme="light"] .sold-delivery-days-badge{color:#245ca5}
