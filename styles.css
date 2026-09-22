@@ -511,7 +511,10 @@ body[data-theme="light"] .bad-seller-ebay-link{color:#1d4ed8}
 .sold-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .sold-card-header{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-width:0;flex:1 1 auto}
 .sold-card-heading{display:flex;align-items:center;gap:8px;flex:0 0 auto}
-.sold-date-badge-top{margin-left:auto}
+.sold-date-badge-top{margin-left:0}
+.sold-timing-info{width:min(360px,calc(100vw - 32px));padding:20px;border:1px solid var(--line);border-radius:20px;background:var(--panel);color:var(--text);box-shadow:0 16px 48px rgba(0,0,0,.3)}
+.sold-timing-info p{font-size:14px;line-height:1.5;margin:12px 0}
+.sold-timing-info button{width:100%;margin-top:4px}
 .sold-card-links{display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-width:0}
 .sold-card-side{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:0 0 auto}
 .sold-card-sale-row{display:flex;align-items:center;justify-content:flex-end;gap:8px}
@@ -2593,4 +2596,3 @@ body[data-theme="light"] .catalog-completion.is-missing{color:#80500d}
 .sold-card-result-row{display:flex;align-items:center;justify-content:flex-end;gap:8px}
 .sold-delivery-days-badge{background:rgba(138,180,255,.15);border-color:rgba(138,180,255,.18);color:#8ab4ff}
 body[data-theme="light"] .sold-delivery-days-badge{color:#245ca5}
-

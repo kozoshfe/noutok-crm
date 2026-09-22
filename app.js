@@ -1254,13 +1254,7 @@ function diffDaysLabel(startDate, endDate){
   const endUtc = Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate());
   const diffDays = Math.max(0, Math.floor((endUtc - startUtc) / 86400000));
 
-  const mod10 = diffDays % 10;
-  const mod100 = diffDays % 100;
-  let unit = 'днів';
-  if(mod10 === 1 && mod100 !== 11) unit = 'день';
-  else if(mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) unit = 'дні';
-
-  return `${diffDays} ${unit}`;
+  return `${diffDays} дн.`;
 }
 
 function soldDateLabel(dateStr){
@@ -1270,8 +1264,8 @@ function soldDateLabel(dateStr){
   if(Number.isNaN(date.getTime())) return '';
 
   return date.toLocaleDateString('uk-UA', {
-    day: 'numeric',
-    month: 'long'
+    day: '2-digit',
+    month: '2-digit'
   });
 }
 
@@ -1919,11 +1913,11 @@ function cardTemplate(item, soldMode){
             </div>
             <div class="sold-card-side">
               <div class="sold-card-sale-row">
-                ${item.serial_number ? `<div class="sold-serial-badge">🔢 ${safe(item.serial_number)}</div>` : ''}
-                <div class="sold-days-badge" title="Від отримання до продажу" aria-label="Від отримання до продажу: ${safe(soldDays || 'дата отримання невідома')}">⏱ ${safe(soldDays || '—')}</div>
+                <button type="button" class="sold-days-badge sold-delivery-days-badge" popovertarget="soldDeliveryInfo" title="Доставка США → Україна" aria-label="Доставка США → Україна: ${safe(deliveryDays || 'дата отримання невідома')}">✈️ ${safe(deliveryDays || '—')}</button>
+                <button type="button" class="sold-days-badge" popovertarget="soldUkraineInfo" title="Від отримання в Україні до продажу" aria-label="Від отримання в Україні до продажу: ${safe(soldDays || 'дата отримання невідома')}">🇺🇦 ${safe(soldDays || '—')}</button>
               </div>
               <div class="sold-card-result-row">
-                <div class="sold-days-badge sold-delivery-days-badge" title="Від додавання до отримання (першого введення серійника)" aria-label="Від додавання до отримання: ${safe(deliveryDays || 'дата отримання невідома')}">🚚 ${safe(deliveryDays || '—')}</div>
+                ${item.serial_number ? `<div class="sold-serial-badge">🔢 ${safe(item.serial_number)}</div>` : ''}
               <div class="sold-profit ${profit >= 0 ? 'sold-profit-pos' : 'sold-profit-neg'}">📈 ${sale ? money(profit) : '—'}</div>
               </div>
             </div>
