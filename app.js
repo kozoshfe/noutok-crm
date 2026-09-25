@@ -34,7 +34,7 @@ let quickLocationSavingId = null;
 let pendingLocationStateUndo = null;
 let locationStateToastTimer = null;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.11.133';
+const APP_VERSION = '1.12.04';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -1871,6 +1871,18 @@ function renderStats(){
   if(soldRevenueEl) soldRevenueEl.textContent = money(soldRevenue);
   if(soldProfitEl) soldProfitEl.textContent = money(profitTotal);
   if(soldAverageMarginEl) soldAverageMarginEl.textContent = money(Math.round(soldAverageMargin));
+  const monthly = SalesAnalytics.monthlySales(sold, now);
+  document.getElementById('soldMonthlyAverage').textContent = monthly.average === null
+    ? '—' : `${monthly.average.toLocaleString('uk-UA', { maximumFractionDigits: 1 })} шт./міс.`;
+  const timing = SalesAnalytics.summarize(sold);
+  for(const [key, valueId] of [
+    ['delivery', 'soldAverageDelivery'],
+    ['sale', 'soldAverageSale']
+  ]){
+    const metric = timing[key];
+    document.getElementById(valueId).textContent = metric.days === null
+      ? '—' : `${metric.days.toLocaleString('uk-UA', { maximumFractionDigits: 1 })} дн.`;
+  }
 }
 
 function cardTemplate(item, soldMode){

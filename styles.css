@@ -2596,3 +2596,26 @@ body[data-theme="light"] .catalog-completion.is-missing{color:#80500d}
 .sold-card-result-row{display:flex;align-items:center;justify-content:flex-end;gap:8px}
 .sold-delivery-days-badge{background:rgba(138,180,255,.15);border-color:rgba(138,180,255,.18);color:#8ab4ff}
 body[data-theme="light"] .sold-delivery-days-badge{color:#245ca5}
+
+/* Sold analytics: all sold records, independent of the serial-number search. */
+.sold-summary-footer{grid-template-columns:repeat(4,minmax(0,1fr)) minmax(140px,180px)}
+.sold-summary-timing > span{white-space:normal;line-height:1.3}
+.sold-summary-timing small{font-size:11px;color:var(--muted);line-height:1.4;margin-top:8px}
+.sold-summary-timing small + small{margin-top:2px}
+@media(max-width:900px){
+  .sold-summary-footer{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .sold-summary-average{grid-column:1;grid-row:1}
+  .sold-serial-filter{grid-column:2;grid-row:1}
+  .sold-summary-timing{grid-row:2;border-top:1px solid rgba(124,163,218,.18)}
+  .sold-summary-timing:nth-child(2){border-left:0}
+  .sold-summary-monthly{grid-column:1 / -1;grid-row:3;border-left:0}
+}
+
+@media(max-width:768px){
+  .sold-summary-footer .sold-summary-timing{display:none}
+}
+
+@media(min-width:901px){
+  .sold-summary{grid-template-rows:repeat(2,minmax(92px,1fr))}
+  .sold-summary-footer{padding:0 12px}
+}
