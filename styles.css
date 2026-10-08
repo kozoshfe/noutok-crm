@@ -2623,15 +2623,12 @@ body[data-theme="light"] .sold-delivery-days-badge{color:#245ca5}
 /* Capitalization analytics are available in the desktop web layout only. */
 .capitalization-chart-note{margin:4px 2px 12px;font-size:12px;line-height:1.5}
 .capitalization-chart-message{padding:24px 2px}
-.capitalization-chart-line{stroke:#5be0bf}
-.capitalization-chart-point{fill:#5be0bf;stroke:#176553}
+.capitalization-chart-area{fill:url(#capitalizationChartArea)}
 @media(max-width:768px){.capitalization-chart{display:none}}
 
-.capitalization-dot{background:#5be0bf}
+.capitalization-dot{background:#69a0ff}
 .on-hand-dot{background:#f6b94f}
-.on-hand-chart-line{stroke:#f6b94f;stroke-width:2.5;stroke-dasharray:5 4}
-.on-hand-chart-point{fill:#f6b94f;stroke:#77520d;stroke-width:2}
-.on-hand-chart-value{fill:#f6b94f;font-family:inherit;font-size:11px;font-weight:800;text-anchor:middle}
+.on-hand-chart-value{fill:#f6b94f;font-family:inherit;font-size:12px;font-weight:800;text-anchor:middle}
 .on-hand-axis-label{text-anchor:start;fill:#f6b94f}
 body[data-theme="light"] .capitalization-chart-legend{color:#526989}
 body[data-theme="light"] .on-hand-chart-value,

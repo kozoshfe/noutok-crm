@@ -39,7 +39,7 @@ let quickLocationSavingId = null;
 let pendingLocationStateUndo = null;
 let locationStateToastTimer = null;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.12.11';
+const APP_VERSION = '1.12.13';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -2498,7 +2498,7 @@ function capitalizationChartTemplate(){
   if(capitalizationState === 'error' || onHandState === 'error'){
     messageContent += '<button type="button" class="ghost" onclick="loadCapitalization()">Повторити</button>';
   }
-  const width = 720, height = 280, left = 62, right = 54, top = 30, bottom = 58;
+  const width = 720, height = 254, left = 54, right = 54, top = 22, bottom = 48;
   const plotHeight = height - top - bottom;
   const counts = new Map((onHandState === 'ready' ? onHandMonths : []).map((row) => [row.month, row]));
   const months = capitalizationChartMonths().map((row) => {
@@ -2526,22 +2526,42 @@ function capitalizationChartTemplate(){
       return segment;
     }).join(' ');
   };
+  // Fill each known run separately, preserving gaps for months without history.
+  let area = '';
+  let run = [];
+  const finishArea = () => {
+    if(run.length > 1){
+      area += run.map((row, index) => `${index ? 'L' : 'M'} ${row.x.toFixed(1)} ${y(row.value).toFixed(1)}`).join(' ')
+        + ` L ${run.at(-1).x.toFixed(1)} ${y(0).toFixed(1)} L ${run[0].x.toFixed(1)} ${y(0).toFixed(1)} Z `;
+    }
+    run = [];
+  };
+  for(const row of points){
+    if(row.value === null) finishArea();
+    else run.push(row);
+  }
+  finishArea();
   const content = `<svg class="sales-chart-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Максимальна собівартість у гривнях і максимальна кількість ноутбуків на руках за останні 12 місяців">
+    <defs><linearGradient id="capitalizationChartArea" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#4f8cff" stop-opacity=".38" />
+      <stop offset="100%" stop-color="#4f8cff" stop-opacity="0" />
+    </linearGradient></defs>
     ${[0, maximum / 2, maximum].map((value) => `<g><line class="sales-chart-grid" x1="${left}" x2="${width - right}" y1="${y(value)}" y2="${y(value)}" /><text class="sales-chart-y-label" x="${left - 10}" y="${y(value) + 4}">${compactCapitalization(value)}</text></g>`).join('')}
     ${[0, countMaximum / 2, countMaximum].map((value) => `<text class="sales-chart-y-label on-hand-axis-label" x="${width - right + 10}" y="${countY(value) + 4}">${value} шт.</text>`).join('')}
+    <path class="capitalization-chart-area" d="${area}" />
     <path class="sales-chart-line capitalization-chart-line" d="${lineFor('value', y)}" />
-    <path class="sales-chart-line on-hand-chart-line" d="${lineFor('quantity', countY)}" />
-    ${points.map((row) => {
+    <path class="sales-chart-model-line sales-chart-zbook-line on-hand-chart-line" d="${lineFor('quantity', countY)}" />
+    ${points.map((row, index) => {
       const label = new Date(`${row.month}-01T12:00:00Z`).toLocaleDateString('uk-UA', { month: 'short', timeZone: 'Europe/Kyiv' }).replace('.', '');
       const tooltip = `${monthName(row.month)}: ${row.value === null ? (row.finalized ? 'немає історії' : 'очікує завершення місяця') : money(row.value) + (row.partial ? ' (неповний місяць спостереження)' : '')}`;
       const countTooltip = `${monthName(row.month)}: максимум на руках — ${row.quantity === null ? 'немає зафіксованої кількості' : row.quantity + ' шт.' + (row.countPartial ? ' (неповний місяць спостереження)' : '')}`;
       return `<g><title>${safe(tooltip)}</title>${row.value === null
-        ? `<text class="sales-chart-value" x="${row.x}" y="${y(0) - 12}">—</text>`
-        : `<circle class="sales-chart-point capitalization-chart-point" cx="${row.x}" cy="${y(row.value)}" r="5" /><text class="sales-chart-value" x="${row.x}" y="${y(row.value) - 12}">${compactCapitalization(row.value)}${row.partial ? '*' : ''}</text>`}
-        <text class="sales-chart-x-label" x="${row.x}" y="${height - 12}">${safe(label)}</text></g>
+        ? ''
+        : `<circle class="sales-chart-point capitalization-chart-point" cx="${row.x}" cy="${y(row.value)}" r="5" /><text class="sales-chart-value" data-month="${safe(row.month)}" x="${row.x}" y="${y(row.value) - 12}">${compactCapitalization(row.value)}${row.partial ? '*' : ''}</text>`}
+        ${index % 2 === 0 || index === points.length - 1 ? `<text class="sales-chart-x-label" x="${row.x}" y="${height - 16}">${safe(label)}</text>` : ''}</g>
         <g><title>${safe(countTooltip)}</title>${row.quantity === null
-          ? `<text class="on-hand-chart-value" x="${row.x}" y="${y(0) + 20}">—</text>`
-          : `<circle class="on-hand-chart-point" cx="${row.x}" cy="${countY(row.quantity)}" r="4" /><text class="on-hand-chart-value" x="${row.x}" y="${countY(row.quantity) + 20}">${row.quantity} шт.${row.countPartial ? '*' : ''}</text>`}</g>`;
+          ? ''
+          : `<circle class="sales-chart-model-point sales-chart-zbook-point on-hand-chart-point" cx="${row.x}" cy="${countY(row.quantity)}" r="3.5" /><text class="on-hand-chart-value" data-month="${safe(row.month)}" x="${row.x}" y="${countY(row.quantity) + 20}">${row.quantity} шт.${row.countPartial ? '*' : ''}</text>`}</g>`;
     }).join('')}
   </svg>${known.some((row) => row.partial) || knownCounts.some((row) => row.countPartial) ? '<p class="capitalization-chart-note muted">* облік розпочато протягом місяця</p>' : ''}`;
   return `<section class="sales-chart capitalization-chart" aria-labelledby="capitalizationChartTitle">${header}${content}${messageContent}</section>`;
