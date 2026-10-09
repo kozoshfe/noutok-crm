@@ -39,7 +39,7 @@ let quickLocationSavingId = null;
 let pendingLocationStateUndo = null;
 let locationStateToastTimer = null;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.12.13';
+const APP_VERSION = '1.12.14';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -2485,8 +2485,8 @@ function capitalizationChartMonths(){
 }
 
 function capitalizationChartTemplate(){
-  const header = `<div class="sales-chart-header"><h2 id="capitalizationChartTitle">Максимальна капіталізація та кількість</h2>
-    <div class="sales-chart-legend capitalization-chart-legend"><span><i class="sales-chart-legend-dot capitalization-dot"></i>Собівартість, ₴</span><span><i class="sales-chart-legend-dot on-hand-dot"></i>Максимум на руках, шт.</span></div></div>`;
+  const header = `<div class="sales-chart-header"><h2 id="capitalizationChartTitle">Капа та ноутбуки по місяцях</h2>
+    <span class="capitalization-chart-subtitle muted">Максимуми за місяць · останні 12 місяців</span></div>`;
   let messageContent = '';
   for(const [state, label] of [[capitalizationState, 'капіталізації'], [onHandState, 'кількості']]){
     if(state === 'ready') continue;
@@ -2498,10 +2498,8 @@ function capitalizationChartTemplate(){
   if(capitalizationState === 'error' || onHandState === 'error'){
     messageContent += '<button type="button" class="ghost" onclick="loadCapitalization()">Повторити</button>';
   }
-  const width = 720, height = 254, left = 54, right = 54, top = 22, bottom = 48;
-  const plotHeight = height - top - bottom;
   const counts = new Map((onHandState === 'ready' ? onHandMonths : []).map((row) => [row.month, row]));
-  const months = capitalizationChartMonths().map((row) => {
+  const history = capitalizationChartMonths().map((row) => {
     const count = counts.get(row.month);
     const useRecordedCount = count?.quantity == null && row.recordedQuantity !== undefined;
     return { ...row,
@@ -2510,13 +2508,26 @@ function capitalizationChartTemplate(){
       countPartial: !useRecordedCount && Boolean(count?.partial)
     };
   });
+  // Remove empty edges, but retain gaps inside the observed period and real zeroes.
+  const hasValue = (row) => row.value !== null || row.quantity !== null;
+  const first = history.findIndex(hasValue);
+  const last = history.findLastIndex(hasValue);
+  if(first === -1){
+    const empty = capitalizationState === 'ready' && onHandState === 'ready'
+      ? '<p class="capitalization-chart-message muted">Поки немає даних за завершені місяці.</p>' : '';
+    return `<section class="sales-chart capitalization-chart" aria-labelledby="capitalizationChartTitle">${header}${empty}${messageContent}</section>`;
+  }
+  const months = history.slice(first, last + 1);
+  const width = Math.max(360, (document.getElementById('monthsWrap')?.clientWidth || 754) - 34, months.length * 78 + 84);
+  const height = 356, left = 60, right = 24, top = 48, plotHeight = 92, countTop = 212;
   const known = months.filter((row) => row.value !== null);
   const knownCounts = months.filter((row) => row.quantity !== null);
   const maximum = Math.max(1000, ...known.map((row) => row.value));
   const countMaximum = Math.max(2, Math.ceil(Math.max(0, ...knownCounts.map((row) => row.quantity)) / 2) * 2);
   const y = (value) => top + plotHeight - value / maximum * plotHeight;
-  const countY = (value) => top + plotHeight - value / countMaximum * plotHeight;
-  const points = months.map((row, index) => ({ ...row, x: left + (width - left - right) * index / Math.max(1, months.length - 1) }));
+  const countY = (value) => countTop + plotHeight - value / countMaximum * plotHeight;
+  const columnWidth = (width - left - right) / months.length;
+  const points = months.map((row, index) => ({ ...row, x: left + columnWidth * (index + .5) }));
   const lineFor = (key, ordinate) => {
     let connected = false;
     return points.map((row) => {
@@ -2541,29 +2552,32 @@ function capitalizationChartTemplate(){
     else run.push(row);
   }
   finishArea();
-  const content = `<svg class="sales-chart-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Максимальна собівартість у гривнях і максимальна кількість ноутбуків на руках за останні 12 місяців">
+  const content = `<div class="capitalization-chart-scroll" tabindex="0" role="region" aria-label="Графіки капи та кількості за місяцями"><svg class="sales-chart-svg" style="width:${width}px" viewBox="0 0 ${width} ${height}" role="img" aria-label="Максимальна собівартість у гривнях зверху і максимальна кількість ноутбуків на руках знизу; спільні місяці">
     <defs><linearGradient id="capitalizationChartArea" x1="0" x2="0" y1="0" y2="1">
       <stop offset="0%" stop-color="#4f8cff" stop-opacity=".38" />
       <stop offset="100%" stop-color="#4f8cff" stop-opacity="0" />
     </linearGradient></defs>
+    <text class="capitalization-panel-title" x="${left}" y="18">Капа за собівартістю, ₴</text>
+    <text class="capitalization-panel-title" x="${left}" y="182">Ноутів на руках, шт.</text>
+    ${points.map((row) => `<line class="capitalization-month-guide" x1="${row.x}" x2="${row.x}" y1="34" y2="312" />`).join('')}
     ${[0, maximum / 2, maximum].map((value) => `<g><line class="sales-chart-grid" x1="${left}" x2="${width - right}" y1="${y(value)}" y2="${y(value)}" /><text class="sales-chart-y-label" x="${left - 10}" y="${y(value) + 4}">${compactCapitalization(value)}</text></g>`).join('')}
-    ${[0, countMaximum / 2, countMaximum].map((value) => `<text class="sales-chart-y-label on-hand-axis-label" x="${width - right + 10}" y="${countY(value) + 4}">${value} шт.</text>`).join('')}
+    ${[0, countMaximum / 2, countMaximum].map((value) => `<g><line class="sales-chart-grid" x1="${left}" x2="${width - right}" y1="${countY(value)}" y2="${countY(value)}" /><text class="sales-chart-y-label on-hand-axis-label" x="${left - 10}" y="${countY(value) + 4}">${value} шт.</text></g>`).join('')}
     <path class="capitalization-chart-area" d="${area}" />
     <path class="sales-chart-line capitalization-chart-line" d="${lineFor('value', y)}" />
     <path class="sales-chart-model-line sales-chart-zbook-line on-hand-chart-line" d="${lineFor('quantity', countY)}" />
-    ${points.map((row, index) => {
+    ${points.map((row) => {
       const label = new Date(`${row.month}-01T12:00:00Z`).toLocaleDateString('uk-UA', { month: 'short', timeZone: 'Europe/Kyiv' }).replace('.', '');
       const tooltip = `${monthName(row.month)}: ${row.value === null ? (row.finalized ? 'немає історії' : 'очікує завершення місяця') : money(row.value) + (row.partial ? ' (неповний місяць спостереження)' : '')}`;
       const countTooltip = `${monthName(row.month)}: максимум на руках — ${row.quantity === null ? 'немає зафіксованої кількості' : row.quantity + ' шт.' + (row.countPartial ? ' (неповний місяць спостереження)' : '')}`;
       return `<g><title>${safe(tooltip)}</title>${row.value === null
-        ? ''
+        ? `<text class="capitalization-missing" x="${row.x}" y="${y(0) - 12}">немає даних</text>`
         : `<circle class="sales-chart-point capitalization-chart-point" cx="${row.x}" cy="${y(row.value)}" r="5" /><text class="sales-chart-value" data-month="${safe(row.month)}" x="${row.x}" y="${y(row.value) - 12}">${compactCapitalization(row.value)}${row.partial ? '*' : ''}</text>`}
-        ${index % 2 === 0 || index === points.length - 1 ? `<text class="sales-chart-x-label" x="${row.x}" y="${height - 16}">${safe(label)}</text>` : ''}</g>
+        <text class="sales-chart-x-label" data-month="${safe(row.month)}" x="${row.x}" y="330">${safe(label)}<tspan class="capitalization-year-label" x="${row.x}" dy="16">${safe(row.month.slice(0, 4))}</tspan></text></g>
         <g><title>${safe(countTooltip)}</title>${row.quantity === null
-          ? ''
-          : `<circle class="sales-chart-model-point sales-chart-zbook-point on-hand-chart-point" cx="${row.x}" cy="${countY(row.quantity)}" r="3.5" /><text class="on-hand-chart-value" data-month="${safe(row.month)}" x="${row.x}" y="${countY(row.quantity) + 20}">${row.quantity} шт.${row.countPartial ? '*' : ''}</text>`}</g>`;
+          ? `<text class="capitalization-missing" x="${row.x}" y="${countY(0) - 12}">немає даних</text>`
+          : `<circle class="sales-chart-model-point sales-chart-zbook-point on-hand-chart-point" cx="${row.x}" cy="${countY(row.quantity)}" r="4" /><text class="on-hand-chart-value" data-month="${safe(row.month)}" x="${row.x}" y="${countY(row.quantity) - 12}">${row.quantity} шт.${row.countPartial ? '*' : ''}</text>`}</g>`;
     }).join('')}
-  </svg>${known.some((row) => row.partial) || knownCounts.some((row) => row.countPartial) ? '<p class="capitalization-chart-note muted">* облік розпочато протягом місяця</p>' : ''}`;
+  </svg></div>${known.some((row) => row.partial) || knownCounts.some((row) => row.countPartial) ? '<p class="capitalization-chart-note muted">* облік розпочато протягом місяця</p>' : ''}`;
   return `<section class="sales-chart capitalization-chart" aria-labelledby="capitalizationChartTitle">${header}${content}${messageContent}</section>`;
 }
 
@@ -4064,6 +4078,13 @@ function bindUI(){
   });
   window.addEventListener('offline', updateNetwork);
   window.matchMedia('(min-width: 769px)').addEventListener('change', () => loadCapitalization());
+  let chartResizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(chartResizeTimer);
+    chartResizeTimer = setTimeout(() => {
+      if(window.matchMedia('(min-width: 769px)').matches && document.getElementById('view-months')?.classList.contains('active')) renderMonths();
+    }, 100);
+  });
   window.setInterval(() => {
     if(document.visibilityState === 'visible') loadCapitalization();
   }, 60000);

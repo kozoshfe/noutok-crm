@@ -2621,15 +2621,26 @@ body[data-theme="light"] .sold-delivery-days-badge{color:#245ca5}
 }
 
 /* Capitalization analytics are available in the desktop web layout only. */
+.capitalization-chart{min-width:0}
 .capitalization-chart-note{margin:4px 2px 12px;font-size:12px;line-height:1.5}
 .capitalization-chart-message{padding:24px 2px}
 .capitalization-chart-area{fill:url(#capitalizationChartArea)}
+.capitalization-chart-subtitle{font-size:12px}
+.capitalization-chart-scroll{overflow-x:auto;max-width:100%;overscroll-behavior-x:contain}
+.capitalization-chart-scroll .sales-chart-svg{max-width:none;overflow:hidden}
+.capitalization-panel-title{fill:#cfddf7;font-family:inherit;font-weight:700;font-size:13px}
+.capitalization-month-guide{stroke:rgba(165,190,235,.09);stroke-width:1}
+.capitalization-missing{fill:#9db0cf;font-family:inherit;font-size:11px;text-anchor:middle}
+.capitalization-year-label{font-weight:400;font-size:10px}
 @media(max-width:768px){.capitalization-chart{display:none}}
 
 .capitalization-dot{background:#69a0ff}
 .on-hand-dot{background:#f6b94f}
 .on-hand-chart-value{fill:#f6b94f;font-family:inherit;font-size:12px;font-weight:800;text-anchor:middle}
-.on-hand-axis-label{text-anchor:start;fill:#f6b94f}
+.on-hand-axis-label{text-anchor:end;fill:#9db0cf}
+body[data-theme="light"] .capitalization-panel-title{fill:#162444}
+body[data-theme="light"] .capitalization-month-guide{stroke:rgba(75,105,158,.12)}
+body[data-theme="light"] .capitalization-missing{fill:#6d80a4}
 body[data-theme="light"] .capitalization-chart-legend{color:#526989}
 body[data-theme="light"] .on-hand-chart-value,
 body[data-theme="light"] .on-hand-axis-label{fill:#93600a}
