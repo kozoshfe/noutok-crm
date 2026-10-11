@@ -39,7 +39,7 @@ let quickLocationSavingId = null;
 let pendingLocationStateUndo = null;
 let locationStateToastTimer = null;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.12.14';
+const APP_VERSION = '1.12.15';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -1773,7 +1773,7 @@ function switchView(name, direction = ''){
   document.querySelector(`.nav-btn[data-view="${name}"]`)?.classList.add('active');
   if(name === 'stock') switchStockTab('inventory');
   if(name === 'catalog-admin') loadCatalogAdmin();
-  if(name === 'months') loadCapitalization();
+  if(name === 'months' || name === 'goals') loadCapitalization();
   updateAppFooterVisibility(name);
   // A swipe should move only the tab content. Resetting the page scroll here
   // makes the whole mobile viewport jump while the transition is running.
@@ -2462,6 +2462,7 @@ function compactCapitalization(value){
 // Use these only when the server has no value; never include them in live cost.
 const RECORDED_CAPITALIZATION = { '2026-08': 200000, '2026-09': 230000 };
 const RECORDED_ON_HAND = { '2026-08': 20, '2026-09': 23 };
+const GOAL_RECORDED_ON_HAND = { '2026-07': 17 };
 
 function capitalizationChartMonths(){
   const parts = new Intl.DateTimeFormat('en-GB', {
@@ -2582,8 +2583,10 @@ function capitalizationChartTemplate(){
 }
 
 async function loadCapitalization(){
-  if(!supabaseClient || !authBootstrapped || !window.matchMedia('(min-width: 769px)').matches
-    || !document.getElementById('view-months')?.classList.contains('active')) return;
+  const monthsActive = document.getElementById('view-months')?.classList.contains('active');
+  const goalsActive = document.getElementById('view-goals')?.classList.contains('active');
+  if(!supabaseClient || !authBootstrapped || (!window.matchMedia('(min-width: 769px)').matches && !goalsActive)
+    || !(monthsActive || goalsActive)) return;
   const request = ++capitalizationRequest;
   const results = await Promise.allSettled(['get_monthly_capitalization', 'get_monthly_on_hand_count'].map((name) =>
     withRequestTimeout(name, (signal) => attachAbortSignal(supabaseClient.rpc(name), signal))));
@@ -2599,6 +2602,7 @@ async function loadCapitalization(){
   onHandMonths = count.data;
   onHandState = count.state;
   renderMonths();
+  renderGoals();
 }
 
 function renderMonths(){
@@ -2629,6 +2633,65 @@ function renderMonths(){
   `).join('');
 }
 
+function renderGoals(){
+  const wrap = document.getElementById('goalsWrap');
+  if(!wrap) return;
+
+  const soldByMonth = new Map();
+  laptops.filter((item) => normalizeStatus(item.status) === 'sold' && item.sold_at).forEach((item) => {
+    const key = monthKey(item.sold_at);
+    const row = soldByMonth.get(key) || { count: 0, profit: 0 };
+    row.count += 1;
+    row.profit += calcProfit(item);
+    soldByMonth.set(key, row);
+  });
+
+  const currentParts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Kyiv', year: 'numeric', month: '2-digit'
+  }).formatToParts(new Date());
+  const currentYear = Number(currentParts.find((part) => part.type === 'year').value);
+  const currentMonth = Number(currentParts.find((part) => part.type === 'month').value);
+  const start = new Date(Date.UTC(2026, 6, 1));
+  const end = new Date(Date.UTC(currentYear, currentMonth - 1, 1));
+  const months = [];
+  for(let date = start; date <= end; date = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1))){
+    months.push(date.toISOString().slice(0, 7));
+  }
+
+  const costByMonth = new Map(capitalizationChartMonths().map((row) => [row.month, row.amount == null ? null : Number(row.amount)]));
+  const onHandByMonth = new Map((onHandState === 'ready' ? onHandMonths : [])
+    .map((row) => [row.month, row.quantity == null ? null : Number(row.quantity)]));
+  const baseline = costByMonth.get('2026-07')
+    ?? (costByMonth.get('2026-08') == null ? null : costByMonth.get('2026-08') - 30000)
+    ?? (costByMonth.get('2026-09') == null ? null : costByMonth.get('2026-09') - 60000)
+    ?? RECORDED_CAPITALIZATION['2026-09'] - 60000;
+  const cell = (met, actual, target, label) => `<td class="goal-cell ${met ? 'goal-met' : 'goal-missed'}" aria-label="${safe(label)}: ${met ? 'ціль виконано' : 'ціль не виконано'}"><span class="goal-cell-actual">${safe(actual)}</span><span class="goal-cell-target">Ціль: ${safe(target)}</span></td>`;
+  const rows = months.map((key, index) => {
+    const sales = soldByMonth.get(key) || { count: 0, profit: 0 };
+    const averageMargin = sales.count ? sales.profit / sales.count : null;
+    const cost = costByMonth.get(key) ?? null;
+    const costTarget = baseline == null ? null : baseline + index * 30000;
+    const onHand = onHandByMonth.get(key) ?? GOAL_RECORDED_ON_HAND[key] ?? RECORDED_ON_HAND[key] ?? null;
+    const onHandTarget = 17 + index * 3;
+    return `<tr>
+      <th scope="row">${safe(monthName(key))}</th>
+      ${cell(averageMargin !== null && averageMargin >= 3500, averageMargin === null ? '—' : money(averageMargin), money(3500) + '+', 'Середня маржа')}
+      ${cell(sales.count >= 10, `${sales.count} шт.`, '10 шт. +', 'Продано ноутбуків')}
+      ${cell(cost !== null && costTarget !== null && cost >= costTarget, cost === null ? '—' : money(cost), costTarget === null ? '—' : money(costTarget), 'Собівартість ноутбуків')}
+      ${cell(onHand !== null && onHand >= onHandTarget, onHand === null ? '—' : `${onHand} шт.`, `${onHandTarget} шт. +`, 'Ноутбуків на руках')}
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<div class="panel goals-panel">
+    <div class="section-head"><div><h2>Основні КПІ</h2><div class="muted goals-subtitle">Починаючи з липня 2026 · собівартість +30 000 ₴ і ноутбуки на руках +3 щомісяця</div></div></div>
+    <div class="goals-table-scroll" tabindex="0" role="region" aria-label="КПІ за місяцями">
+      <table class="goals-table"><thead><tr><th scope="col">Місяць</th><th scope="col">Середня маржа</th><th scope="col">Продано ноутбуків</th><th scope="col">Собівартість ноутбуків</th><th scope="col">Ноутбуків на руках</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+    </div>
+    <div class="goals-legend"><span><i class="goal-legend-dot goal-met"></i> Ціль виконано</span><span><i class="goal-legend-dot goal-missed"></i> Ціль не виконано</span></div>
+  </div>`;
+}
+
 function renderAll(){
   renderCatalogAdmin();
   renderStats();
@@ -2638,6 +2701,7 @@ function renderAll(){
   renderSold();
   renderLocation();
   renderMonths();
+  renderGoals();
   updateTestTools();
 }
 

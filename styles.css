@@ -133,7 +133,7 @@ button.ghost{background:#0b1427;border:1px solid var(--line)}
 }
 .nav{
   display:grid;
-  grid-template-columns:repeat(5,minmax(0,1fr));
+  grid-template-columns:repeat(6,minmax(0,1fr));
   gap:8px;
   margin-top:18px;
   padding:8px;
@@ -967,6 +967,24 @@ body[data-theme="light"] .bad-seller-ebay-link{color:#1d4ed8}
 .empty{padding:24px;border-radius:18px;border:1px dashed rgba(255,255,255,.1);text-align:center;color:var(--muted)}
 .month-card{background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.06);border-radius:22px;padding:16px}
 .month-title{font-size:18px;font-weight:900;margin-top:8px}
+.goals-panel{padding:18px}
+.goals-subtitle{margin-top:5px;font-size:13px}
+.goals-table-scroll{overflow-x:auto;border:1px solid rgba(255,255,255,.08);border-radius:14px}
+.goals-table{width:100%;min-width:900px;border-collapse:separate;border-spacing:0;text-align:left}
+.goals-table th,.goals-table td{padding:12px;border-bottom:1px solid rgba(255,255,255,.07)}
+.goals-table thead th{position:sticky;top:0;background:#111f38;color:#b9c9e6;font-size:12px;white-space:nowrap}
+.goals-table tbody tr:last-child th,.goals-table tbody tr:last-child td{border-bottom:0}
+.goals-table tbody th{font-size:14px;text-transform:capitalize;white-space:nowrap}
+.goal-cell{min-width:145px;border-right:1px solid rgba(255,255,255,.06);font-variant-numeric:tabular-nums}
+.goal-cell:last-child{border-right:0}
+.goal-cell-actual,.goal-cell-target{display:block}
+.goal-cell-target{margin-top:4px;font-size:11px;opacity:.8;font-weight:700}
+.goal-cell.goal-met{background:rgba(40,177,105,.19);color:#83efae}
+.goal-cell.goal-missed{background:rgba(228,72,82,.18);color:#ff9a9f}
+.goals-legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;color:var(--muted);font-size:12px;font-weight:700}
+.goals-legend span{display:flex;align-items:center;gap:7px}
+.goal-legend-dot{display:inline-block;width:10px;height:10px;border-radius:50%}
+.goal-legend-dot.goal-met{background:#38c77b}.goal-legend-dot.goal-missed{background:#ef5b63}
 .sales-chart{
   padding:18px 16px 12px;
   border:1px solid rgba(255,255,255,.08);
@@ -1500,6 +1518,12 @@ body[data-theme="light"] .sales-chart{
 }
 body[data-theme="light"] .sales-chart-header h2,
 body[data-theme="light"] .sales-chart-value{color:#162444;fill:#162444}
+body[data-theme="light"] .goals-table-scroll{border-color:rgba(110,136,189,.16)}
+body[data-theme="light"] .goals-table th,body[data-theme="light"] .goals-table td{border-bottom-color:rgba(110,136,189,.14)}
+body[data-theme="light"] .goals-table thead th{background:#eaf0fb;color:#405575}
+body[data-theme="light"] .goal-cell{border-right-color:rgba(110,136,189,.12)}
+body[data-theme="light"] .goal-cell.goal-met{background:rgba(38,167,97,.17);color:#146b3d}
+body[data-theme="light"] .goal-cell.goal-missed{background:rgba(220,65,75,.14);color:#a62932}
 body[data-theme="light"] .sales-chart-grid{stroke:rgba(75,105,158,.18)}
 body[data-theme="light"] .sales-chart-y-label,
 body[data-theme="light"] .sales-chart-x-label{fill:#6d80a4}
@@ -1912,7 +1936,7 @@ body:not([data-theme="light"]) #authScreen .auth-theme-toggle[aria-pressed="true
   .nav{
     margin-top:14px;
     display:grid;
-    grid-template-columns:repeat(5,1fr);
+    grid-template-columns:repeat(6,minmax(0,1fr));
     gap:8px;
     background:linear-gradient(180deg,rgba(17,29,56,.92),rgba(12,24,46,.92));
     padding:6px;
