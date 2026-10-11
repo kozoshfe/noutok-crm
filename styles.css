@@ -1936,13 +1936,16 @@ body:not([data-theme="light"]) #authScreen .auth-theme-toggle[aria-pressed="true
   .nav{
     margin-top:14px;
     display:grid;
-    grid-template-columns:repeat(6,minmax(0,1fr));
+    grid-template-columns:repeat(5,minmax(0,1fr));
     gap:8px;
     background:linear-gradient(180deg,rgba(17,29,56,.92),rgba(12,24,46,.92));
     padding:6px;
     border-radius:22px;
     border:1px solid rgba(255,255,255,.06);
   }
+
+  .nav button[data-view="goals"],
+  #view-goals{display:none !important}
 
   .nav button{
     min-width:0;

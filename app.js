@@ -39,7 +39,7 @@ let quickLocationSavingId = null;
 let pendingLocationStateUndo = null;
 let locationStateToastTimer = null;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.12.15';
+const APP_VERSION = '1.12.16';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -1755,6 +1755,7 @@ function updateAppFooterVisibility(viewName){
 }
 
 function switchView(name, direction = ''){
+  if(name === 'goals' && !window.matchMedia('(min-width: 769px)').matches) return;
   const nextView = document.getElementById('view-' + name);
   const currentView = document.querySelector('.view.active');
   if(!nextView || currentView === nextView) return;
@@ -4141,7 +4142,10 @@ function bindUI(){
     await wakeAppConnection();
   });
   window.addEventListener('offline', updateNetwork);
-  window.matchMedia('(min-width: 769px)').addEventListener('change', () => loadCapitalization());
+  window.matchMedia('(min-width: 769px)').addEventListener('change', (event) => {
+    if(!event.matches && document.getElementById('view-goals')?.classList.contains('active')) switchView('months');
+    else loadCapitalization();
+  });
   let chartResizeTimer;
   window.addEventListener('resize', () => {
     clearTimeout(chartResizeTimer);
