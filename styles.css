@@ -968,7 +968,31 @@ body[data-theme="light"] .bad-seller-ebay-link{color:#1d4ed8}
 .month-card{background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.06);border-radius:22px;padding:16px}
 .month-title{font-size:18px;font-weight:900;margin-top:8px}
 .goals-panel{padding:18px}
-.goals-subtitle{margin-top:5px;font-size:13px}
+.goals-settings{margin:0 0 14px;padding:12px 14px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(255,255,255,.025)}
+.goals-settings summary{cursor:pointer;font-weight:800;color:var(--text);user-select:none}
+.goals-settings-form{display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:12px;margin-top:14px}
+.goals-settings-form label{display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:12px;font-weight:700}
+.goals-settings-field{display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:12px;font-weight:700}
+.goals-settings-form input{width:100%;min-width:0;padding:10px 11px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(5,14,31,.55);color:var(--text);font:inherit;font-size:14px}
+.goals-month-picker{position:relative;width:100%;color:var(--text)}
+.goals-month-trigger{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:44px;padding:10px 12px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(5,14,31,.55);color:var(--text);font:inherit;font-size:14px;font-weight:700;text-align:left;cursor:pointer;transition:border-color .16s ease,background .16s ease}
+.goals-month-trigger:hover,.goals-month-trigger[aria-expanded="true"]{border-color:rgba(105,160,255,.65);background:rgba(27,48,83,.82)}
+.goals-month-trigger svg{width:18px;height:18px;flex:0 0 auto;fill:none;stroke:#8fb7ff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.goals-month-popover{position:absolute;top:calc(100% + 8px);left:0;z-index:30;width:min(300px,calc(100vw - 40px));padding:12px;border:1px solid rgba(132,165,221,.22);border-radius:14px;background:#101d35;box-shadow:0 16px 42px rgba(0,0,0,.42);color:#edf3ff}
+.goals-month-popover[hidden]{display:none}
+.goals-month-popover-head{display:grid;grid-template-columns:36px 1fr 36px;align-items:center;gap:8px;margin-bottom:10px;text-align:center}
+.goals-month-popover-head strong{font-size:15px;font-variant-numeric:tabular-nums}
+.goals-month-popover-head button{display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;border-radius:9px;background:transparent;color:#9db8e8;cursor:pointer;transition:background .14s ease,color .14s ease}
+.goals-month-popover-head button svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.goals-month-popover-head button:hover:not(:disabled){background:rgba(105,160,255,.16);color:#fff}
+.goals-month-popover-head button:disabled{opacity:.35;cursor:default}
+.goals-month-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.goals-month-choice{min-height:36px;padding:6px 4px;border:1px solid transparent;border-radius:9px;background:transparent;color:#c5d3eb;font:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:background .14s ease,color .14s ease,border-color .14s ease}
+.goals-month-choice:hover:not(:disabled){background:rgba(105,160,255,.14);color:#fff}
+.goals-month-choice.is-selected{border-color:rgba(105,160,255,.42);background:linear-gradient(135deg,#377af0,#1e5ac8);color:#fff;box-shadow:0 4px 12px rgba(20,85,201,.26)}
+.goals-month-choice:disabled{color:#61718d;cursor:default}
+.goals-settings-actions{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.goals-settings-actions [data-goals-settings-status]{color:var(--muted);font-size:12px;font-weight:700}
 .goals-table-scroll{overflow-x:auto;border:1px solid rgba(255,255,255,.08);border-radius:14px}
 .goals-table{width:100%;min-width:900px;border-collapse:separate;border-spacing:0;text-align:left}
 .goals-table th,.goals-table td{padding:12px;border-bottom:1px solid rgba(255,255,255,.07)}
@@ -981,10 +1005,12 @@ body[data-theme="light"] .bad-seller-ebay-link{color:#1d4ed8}
 .goal-cell-target{margin-top:4px;font-size:11px;opacity:.8;font-weight:700}
 .goal-cell.goal-met{background:rgba(40,177,105,.19);color:#83efae}
 .goal-cell.goal-missed{background:rgba(228,72,82,.18);color:#ff9a9f}
+.goal-cell.goal-unavailable{background:rgba(157,176,207,.08);color:#9db0cf}
 .goals-legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;color:var(--muted);font-size:12px;font-weight:700}
 .goals-legend span{display:flex;align-items:center;gap:7px}
 .goal-legend-dot{display:inline-block;width:10px;height:10px;border-radius:50%}
 .goal-legend-dot.goal-met{background:#38c77b}.goal-legend-dot.goal-missed{background:#ef5b63}
+.goal-legend-dot.goal-unavailable{background:#9db0cf}
 .sales-chart{
   padding:18px 16px 12px;
   border:1px solid rgba(255,255,255,.08);
@@ -1519,11 +1545,22 @@ body[data-theme="light"] .sales-chart{
 body[data-theme="light"] .sales-chart-header h2,
 body[data-theme="light"] .sales-chart-value{color:#162444;fill:#162444}
 body[data-theme="light"] .goals-table-scroll{border-color:rgba(110,136,189,.16)}
+body[data-theme="light"] .goals-settings{border-color:rgba(110,136,189,.16);background:rgba(110,136,189,.035)}
+body[data-theme="light"] .goals-settings-form input{border-color:rgba(110,136,189,.2);background:#fff;color:#17243a}
+body[data-theme="light"] .goals-month-trigger{border-color:rgba(110,136,189,.2);background:#fff;color:#17243a}
+body[data-theme="light"] .goals-month-trigger:hover,body[data-theme="light"] .goals-month-trigger[aria-expanded="true"]{background:#f2f6ff}
+body[data-theme="light"] .goals-month-popover{border-color:rgba(110,136,189,.2);background:#fff;color:#17243a;box-shadow:0 16px 42px rgba(24,42,74,.2)}
+body[data-theme="light"] .goals-month-popover-head button{background:transparent;color:#526989}
+body[data-theme="light"] .goals-month-choice{color:#405575}
+body[data-theme="light"] .goals-month-choice:hover:not(:disabled){background:#edf3ff;color:#1e5ac8}
+body[data-theme="light"] .goals-month-choice.is-selected{background:linear-gradient(135deg,#377af0,#1e5ac8);color:#fff}
+body[data-theme="light"] .goals-month-choice:disabled{color:#aab6c9}
 body[data-theme="light"] .goals-table th,body[data-theme="light"] .goals-table td{border-bottom-color:rgba(110,136,189,.14)}
 body[data-theme="light"] .goals-table thead th{background:#eaf0fb;color:#405575}
 body[data-theme="light"] .goal-cell{border-right-color:rgba(110,136,189,.12)}
 body[data-theme="light"] .goal-cell.goal-met{background:rgba(38,167,97,.17);color:#146b3d}
 body[data-theme="light"] .goal-cell.goal-missed{background:rgba(220,65,75,.14);color:#a62932}
+body[data-theme="light"] .goal-cell.goal-unavailable{background:rgba(82,105,137,.08);color:#526989}
 body[data-theme="light"] .sales-chart-grid{stroke:rgba(75,105,158,.18)}
 body[data-theme="light"] .sales-chart-y-label,
 body[data-theme="light"] .sales-chart-x-label{fill:#6d80a4}
@@ -2647,28 +2684,5 @@ body[data-theme="light"] .sold-delivery-days-badge{color:#245ca5}
   .sold-summary-footer{padding:0 12px}
 }
 
-/* Capitalization analytics are available in the desktop web layout only. */
-.capitalization-chart{min-width:0}
-.capitalization-chart-note{margin:4px 2px 12px;font-size:12px;line-height:1.5}
-.capitalization-chart-message{padding:24px 2px}
-.capitalization-chart-area{fill:url(#capitalizationChartArea)}
-.capitalization-chart-subtitle{font-size:12px}
-.capitalization-chart-scroll{overflow-x:auto;max-width:100%;overscroll-behavior-x:contain}
-.capitalization-chart-scroll .sales-chart-svg{max-width:none;overflow:hidden}
-.capitalization-panel-title{fill:#cfddf7;font-family:inherit;font-weight:700;font-size:13px}
-.capitalization-month-guide{stroke:rgba(165,190,235,.09);stroke-width:1}
-.capitalization-missing{fill:#9db0cf;font-family:inherit;font-size:11px;text-anchor:middle}
-.capitalization-year-label{font-weight:400;font-size:10px}
-@media(max-width:768px){.capitalization-chart{display:none}}
-
 .capitalization-dot{background:#69a0ff}
 .on-hand-dot{background:#f6b94f}
-.on-hand-chart-value{fill:#f6b94f;font-family:inherit;font-size:12px;font-weight:800;text-anchor:middle}
-.on-hand-axis-label{text-anchor:end;fill:#9db0cf}
-body[data-theme="light"] .capitalization-panel-title{fill:#162444}
-body[data-theme="light"] .capitalization-month-guide{stroke:rgba(75,105,158,.12)}
-body[data-theme="light"] .capitalization-missing{fill:#6d80a4}
-body[data-theme="light"] .capitalization-chart-legend{color:#526989}
-body[data-theme="light"] .on-hand-chart-value,
-body[data-theme="light"] .on-hand-axis-label{fill:#93600a}
-body[data-theme="light"] .on-hand-chart-line{stroke:#c68410}

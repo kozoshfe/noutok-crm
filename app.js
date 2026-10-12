@@ -12,6 +12,10 @@ let capitalizationMonths = [];
 let capitalizationState = 'loading';
 let onHandMonths = [];
 let onHandState = 'loading';
+const GOAL_TARGETS_SETTING_KEY = 'goal_targets';
+const DEFAULT_GOAL_TARGETS = Object.freeze({ sales: 10, margin: 3500, costStart: 170000, costStep: 30000, onHandStart: 17, onHandStep: 3 });
+let goalTargetChanges = [{ month: '2026-07', targets: { ...DEFAULT_GOAL_TARGETS } }];
+let goalTargetsBusy = false;
 let capitalizationRequest = 0;
 let currentEditId = null;
 let currentEditMode = 'full';
@@ -39,7 +43,7 @@ let quickLocationSavingId = null;
 let pendingLocationStateUndo = null;
 let locationStateToastTimer = null;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.12.16';
+const APP_VERSION = '1.12.20';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -2455,15 +2459,9 @@ function salesChartTemplate(grouped){
     </section>`;
 }
 
-function compactCapitalization(value){
-  return `${(Number(value) / 1000).toLocaleString('uk-UA', { maximumFractionDigits: 1 })}к`;
-}
-
 // Monthly maxima supplied by the owner before automatic history was installed.
 // Use these only when the server has no value; never include them in live cost.
 const RECORDED_CAPITALIZATION = { '2026-08': 200000, '2026-09': 230000 };
-const RECORDED_ON_HAND = { '2026-08': 20, '2026-09': 23 };
-const GOAL_RECORDED_ON_HAND = { '2026-07': 17 };
 
 function capitalizationChartMonths(){
   const parts = new Intl.DateTimeFormat('en-GB', {
@@ -2482,105 +2480,84 @@ function capitalizationChartMonths(){
     const recorded = RECORDED_CAPITALIZATION[row.month];
     const capital = row.amount == null && recorded !== undefined && row.month < currentKey
       ? { ...row, amount: recorded, finalized: true, partial: false } : row;
-    return { ...capital, recordedQuantity: row.month < currentKey ? RECORDED_ON_HAND[row.month] : undefined };
+    return capital;
   });
 }
 
-function capitalizationChartTemplate(){
-  const header = `<div class="sales-chart-header"><h2 id="capitalizationChartTitle">Капа та ноутбуки по місяцях</h2>
-    <span class="capitalization-chart-subtitle muted">Максимуми за місяць · останні 12 місяців</span></div>`;
-  let messageContent = '';
-  for(const [state, label] of [[capitalizationState, 'капіталізації'], [onHandState, 'кількості']]){
-    if(state === 'ready') continue;
-    const message = state === 'loading' ? `Завантаження історії ${label}…`
-      : state === 'setup' ? `Історію ${label} ще не підключено.`
-      : `Не вдалося завантажити історію ${label}.`;
-    messageContent += `<p class="capitalization-chart-message muted" role="status">${message}</p>`;
-  }
-  if(capitalizationState === 'error' || onHandState === 'error'){
-    messageContent += '<button type="button" class="ghost" onclick="loadCapitalization()">Повторити</button>';
-  }
-  const counts = new Map((onHandState === 'ready' ? onHandMonths : []).map((row) => [row.month, row]));
-  const history = capitalizationChartMonths().map((row) => {
-    const count = counts.get(row.month);
-    const useRecordedCount = count?.quantity == null && row.recordedQuantity !== undefined;
-    return { ...row,
-      value: row.finalized && row.amount != null && Number.isFinite(Number(row.amount)) ? Number(row.amount) : null,
-      quantity: useRecordedCount ? row.recordedQuantity : count?.finalized && count.quantity != null && Number.isInteger(Number(count.quantity)) && Number(count.quantity) >= 0 ? Number(count.quantity) : null,
-      countPartial: !useRecordedCount && Boolean(count?.partial)
-    };
-  });
-  // Remove empty edges, but retain gaps inside the observed period and real zeroes.
-  const hasValue = (row) => row.value !== null || row.quantity !== null;
-  const first = history.findIndex(hasValue);
-  const last = history.findLastIndex(hasValue);
-  if(first === -1){
-    const empty = capitalizationState === 'ready' && onHandState === 'ready'
-      ? '<p class="capitalization-chart-message muted">Поки немає даних за завершені місяці.</p>' : '';
-    return `<section class="sales-chart capitalization-chart" aria-labelledby="capitalizationChartTitle">${header}${empty}${messageContent}</section>`;
-  }
-  const months = history.slice(first, last + 1);
-  const width = Math.max(360, (document.getElementById('monthsWrap')?.clientWidth || 754) - 34, months.length * 78 + 84);
-  const height = 356, left = 60, right = 24, top = 48, plotHeight = 92, countTop = 212;
-  const known = months.filter((row) => row.value !== null);
-  const knownCounts = months.filter((row) => row.quantity !== null);
-  const maximum = Math.max(1000, ...known.map((row) => row.value));
-  const countMaximum = Math.max(2, Math.ceil(Math.max(0, ...knownCounts.map((row) => row.quantity)) / 2) * 2);
-  const y = (value) => top + plotHeight - value / maximum * plotHeight;
-  const countY = (value) => countTop + plotHeight - value / countMaximum * plotHeight;
-  const columnWidth = (width - left - right) / months.length;
-  const points = months.map((row, index) => ({ ...row, x: left + columnWidth * (index + .5) }));
-  const lineFor = (key, ordinate) => {
-    let connected = false;
-    return points.map((row) => {
-      if(row[key] === null){ connected = false; return ''; }
-      const segment = `${connected ? 'L' : 'M'} ${row.x.toFixed(1)} ${ordinate(row[key]).toFixed(1)}`;
-      connected = true;
-      return segment;
-    }).join(' ');
+function monthDistance(from, to){
+  return (Number(to.slice(0, 4)) - Number(from.slice(0, 4))) * 12
+    + Number(to.slice(5, 7)) - Number(from.slice(5, 7));
+}
+
+function getGoalTargetsForMonth(month){
+  const change = [...goalTargetChanges].reverse().find((item) => item.month <= month);
+  const selected = change || { month: '2026-07', targets: DEFAULT_GOAL_TARGETS };
+  const distance = Math.max(0, monthDistance(selected.month, month));
+  return {
+    ...selected.targets,
+    costStart: selected.targets.costStart + distance * selected.targets.costStep,
+    onHandStart: selected.targets.onHandStart + distance * selected.targets.onHandStep
   };
-  // Fill each known run separately, preserving gaps for months without history.
-  let area = '';
-  let run = [];
-  const finishArea = () => {
-    if(run.length > 1){
-      area += run.map((row, index) => `${index ? 'L' : 'M'} ${row.x.toFixed(1)} ${y(row.value).toFixed(1)}`).join(' ')
-        + ` L ${run.at(-1).x.toFixed(1)} ${y(0).toFixed(1)} L ${run[0].x.toFixed(1)} ${y(0).toFixed(1)} Z `;
-    }
-    run = [];
-  };
-  for(const row of points){
-    if(row.value === null) finishArea();
-    else run.push(row);
+}
+
+const GOAL_MONTH_LABELS = ['Січень', 'Лютий', 'Березень', 'Квітень', 'Травень', 'Червень', 'Липень', 'Серпень', 'Вересень', 'Жовтень', 'Листопад', 'Грудень'];
+
+function renderGoalMonthChoices(year, selectedMonth){
+  return GOAL_MONTH_LABELS.map((label, index) => {
+    const value = `${year}-${String(index + 1).padStart(2, '0')}`;
+    const disabled = value < '2026-07';
+    return `<button type="button" class="goals-month-choice${selectedMonth === value ? ' is-selected' : ''}" data-goal-month-value="${value}" ${disabled ? 'disabled' : ''} aria-pressed="${selectedMonth === value}">${label}</button>`;
+  }).join('');
+}
+
+function goalsMonthPickerMarkup(value){
+  const year = Number(value.slice(0, 4));
+  return `<div class="goals-month-picker" data-goals-month-picker data-year="${year}">
+    <input type="hidden" name="effectiveMonth" value="${safe(value)}">
+    <button type="button" class="goals-month-trigger" data-goal-month-toggle aria-haspopup="dialog" aria-expanded="false">
+      <span data-goal-month-label>${safe(monthName(value))}</span>
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3.5" y="5" width="17" height="16" rx="3"></rect><path d="M7.5 3v4M16.5 3v4M3.5 9h17"></path></svg>
+    </button>
+    <div class="goals-month-popover" role="dialog" aria-label="Вибір місяця" hidden>
+      <div class="goals-month-popover-head">
+        <button type="button" data-goal-month-year-step="-1" aria-label="Попередній рік"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12 4-6 6 6 6"></path></svg></button>
+        <strong data-goal-month-year>${year}</strong>
+        <button type="button" data-goal-month-year-step="1" aria-label="Наступний рік"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m8 4 6 6-6 6"></path></svg></button>
+      </div>
+      <div class="goals-month-grid" data-goal-month-grid>${renderGoalMonthChoices(year, value)}</div>
+    </div>
+  </div>`;
+}
+
+function updateGoalsMonthPickerYear(picker, year){
+  const selectedMonth = picker.querySelector('input[name="effectiveMonth"]')?.value;
+  const safeYear = Math.max(2026, Number(year) || 2026);
+  picker.dataset.year = String(safeYear);
+  picker.querySelector('[data-goal-month-year]').textContent = String(safeYear);
+  picker.querySelector('[data-goal-month-grid]').innerHTML = renderGoalMonthChoices(safeYear, selectedMonth);
+  const previous = picker.querySelector('[data-goal-month-year-step="-1"]');
+  if(previous) previous.disabled = safeYear <= 2026;
+}
+
+function normalizeGoalTargets(saved){
+  const cleanTargets = (targets) => Object.fromEntries(Object.keys(DEFAULT_GOAL_TARGETS).map((key) => {
+    const value = Number(targets?.[key]);
+    return [key, Number.isFinite(value) && value >= 0 ? value : DEFAULT_GOAL_TARGETS[key]];
+  }));
+  if(Array.isArray(saved?.changes)){
+    const changes = saved.changes.filter((item) => /^\d{4}-(0[1-9]|1[0-2])$/.test(item?.month))
+      .map((item) => ({ month: item.month, targets: cleanTargets(item.targets) }))
+      .sort((a, b) => a.month.localeCompare(b.month));
+    if(changes.length) return changes;
   }
-  finishArea();
-  const content = `<div class="capitalization-chart-scroll" tabindex="0" role="region" aria-label="Графіки капи та кількості за місяцями"><svg class="sales-chart-svg" style="width:${width}px" viewBox="0 0 ${width} ${height}" role="img" aria-label="Максимальна собівартість у гривнях зверху і максимальна кількість ноутбуків на руках знизу; спільні місяці">
-    <defs><linearGradient id="capitalizationChartArea" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0%" stop-color="#4f8cff" stop-opacity=".38" />
-      <stop offset="100%" stop-color="#4f8cff" stop-opacity="0" />
-    </linearGradient></defs>
-    <text class="capitalization-panel-title" x="${left}" y="18">Капа за собівартістю, ₴</text>
-    <text class="capitalization-panel-title" x="${left}" y="182">Ноутів на руках, шт.</text>
-    ${points.map((row) => `<line class="capitalization-month-guide" x1="${row.x}" x2="${row.x}" y1="34" y2="312" />`).join('')}
-    ${[0, maximum / 2, maximum].map((value) => `<g><line class="sales-chart-grid" x1="${left}" x2="${width - right}" y1="${y(value)}" y2="${y(value)}" /><text class="sales-chart-y-label" x="${left - 10}" y="${y(value) + 4}">${compactCapitalization(value)}</text></g>`).join('')}
-    ${[0, countMaximum / 2, countMaximum].map((value) => `<g><line class="sales-chart-grid" x1="${left}" x2="${width - right}" y1="${countY(value)}" y2="${countY(value)}" /><text class="sales-chart-y-label on-hand-axis-label" x="${left - 10}" y="${countY(value) + 4}">${value} шт.</text></g>`).join('')}
-    <path class="capitalization-chart-area" d="${area}" />
-    <path class="sales-chart-line capitalization-chart-line" d="${lineFor('value', y)}" />
-    <path class="sales-chart-model-line sales-chart-zbook-line on-hand-chart-line" d="${lineFor('quantity', countY)}" />
-    ${points.map((row) => {
-      const label = new Date(`${row.month}-01T12:00:00Z`).toLocaleDateString('uk-UA', { month: 'short', timeZone: 'Europe/Kyiv' }).replace('.', '');
-      const tooltip = `${monthName(row.month)}: ${row.value === null ? (row.finalized ? 'немає історії' : 'очікує завершення місяця') : money(row.value) + (row.partial ? ' (неповний місяць спостереження)' : '')}`;
-      const countTooltip = `${monthName(row.month)}: максимум на руках — ${row.quantity === null ? 'немає зафіксованої кількості' : row.quantity + ' шт.' + (row.countPartial ? ' (неповний місяць спостереження)' : '')}`;
-      return `<g><title>${safe(tooltip)}</title>${row.value === null
-        ? `<text class="capitalization-missing" x="${row.x}" y="${y(0) - 12}">немає даних</text>`
-        : `<circle class="sales-chart-point capitalization-chart-point" cx="${row.x}" cy="${y(row.value)}" r="5" /><text class="sales-chart-value" data-month="${safe(row.month)}" x="${row.x}" y="${y(row.value) - 12}">${compactCapitalization(row.value)}${row.partial ? '*' : ''}</text>`}
-        <text class="sales-chart-x-label" data-month="${safe(row.month)}" x="${row.x}" y="330">${safe(label)}<tspan class="capitalization-year-label" x="${row.x}" dy="16">${safe(row.month.slice(0, 4))}</tspan></text></g>
-        <g><title>${safe(countTooltip)}</title>${row.quantity === null
-          ? `<text class="capitalization-missing" x="${row.x}" y="${countY(0) - 12}">немає даних</text>`
-          : `<circle class="sales-chart-model-point sales-chart-zbook-point on-hand-chart-point" cx="${row.x}" cy="${countY(row.quantity)}" r="4" /><text class="on-hand-chart-value" data-month="${safe(row.month)}" x="${row.x}" y="${countY(row.quantity) - 12}">${row.quantity} шт.${row.countPartial ? '*' : ''}</text>`}</g>`;
-    }).join('')}
-  </svg></div>${known.some((row) => row.partial) || knownCounts.some((row) => row.countPartial) ? '<p class="capitalization-chart-note muted">* облік розпочато протягом місяця</p>' : ''}`;
-  return `<section class="sales-chart capitalization-chart" aria-labelledby="capitalizationChartTitle">${header}${content}${messageContent}</section>`;
+  // Migrate settings saved by the previous version from this month forward.
+  if(saved && typeof saved === 'object' && !Array.isArray(saved)){
+    const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Kyiv', year: 'numeric', month: '2-digit' }).formatToParts(new Date());
+    const year = parts.find((part) => part.type === 'year')?.value;
+    const month = parts.find((part) => part.type === 'month')?.value;
+    return [{ month: year && month ? `${year}-${month}` : '2026-10', targets: cleanTargets(saved) }];
+  }
+  return [{ month: '2026-07', targets: { ...DEFAULT_GOAL_TARGETS } }];
 }
 
 async function loadCapitalization(){
@@ -2589,8 +2566,12 @@ async function loadCapitalization(){
   if(!supabaseClient || !authBootstrapped || (!window.matchMedia('(min-width: 769px)').matches && !goalsActive)
     || !(monthsActive || goalsActive)) return;
   const request = ++capitalizationRequest;
-  const results = await Promise.allSettled(['get_monthly_capitalization', 'get_monthly_on_hand_count'].map((name) =>
-    withRequestTimeout(name, (signal) => attachAbortSignal(supabaseClient.rpc(name), signal))));
+  const results = await Promise.allSettled([
+    ...['get_monthly_capitalization', 'get_monthly_on_hand_count'].map((name) =>
+      withRequestTimeout(name, (signal) => attachAbortSignal(supabaseClient.rpc(name), signal))),
+    withRequestTimeout('load goal targets', (signal) => attachAbortSignal(
+      supabaseClient.from(SETTINGS_TABLE).select('value').eq('key', GOAL_TARGETS_SETTING_KEY).maybeSingle(), signal))
+  ]);
   if(request !== capitalizationRequest) return;
   const readResult = (result) => {
     const error = result.status === 'rejected' ? result.reason : result.value.error;
@@ -2602,8 +2583,71 @@ async function loadCapitalization(){
   capitalizationState = capital.state;
   onHandMonths = count.data;
   onHandState = count.state;
+  if(results[2].status === 'fulfilled' && !results[2].value.error && results[2].value.data?.value){
+    try {
+      const saved = JSON.parse(results[2].value.data.value);
+      goalTargetChanges = normalizeGoalTargets(saved);
+    } catch(error){ console.warn('Не вдалося прочитати цілі KPI', error); }
+  }
   renderMonths();
-  renderGoals();
+  if(!document.querySelector('.goals-settings')?.open) renderGoals();
+}
+
+async function saveGoalTargets(form){
+  if(goalTargetsBusy) return;
+  const status = form.querySelector('[data-goals-settings-status]');
+  if(!supabaseClient){
+    if(status) status.textContent = 'Немає підключення до бази.';
+    return;
+  }
+  const effectiveMonth = String(form.elements.namedItem('effectiveMonth')?.value || '');
+  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(effectiveMonth)){
+    const input = form.elements.namedItem('effectiveMonth');
+    input?.focus();
+    input?.reportValidity();
+    return;
+  }
+  const values = {};
+  for(const key of Object.keys(DEFAULT_GOAL_TARGETS)){
+    const input = form.elements.namedItem(key);
+    const value = Number(input?.value);
+    if(!Number.isFinite(value) || value < 0 || value > 1000000000){
+      input?.focus();
+      input?.setCustomValidity('Вкажіть число від 0 до 1 000 000 000.');
+      input?.reportValidity();
+      return;
+    }
+    input.setCustomValidity('');
+    values[key] = value;
+  }
+  goalTargetsBusy = true;
+  const button = form.querySelector('button[type="submit"]');
+  if(button) button.disabled = true;
+  if(status) status.textContent = 'Зберігаю…';
+  try {
+    const { error } = await supabaseClient.from(SETTINGS_TABLE)
+      .upsert({ key: GOAL_TARGETS_SETTING_KEY, value: JSON.stringify({ changes: [
+        ...goalTargetChanges.filter((change) => change.month !== effectiveMonth),
+        { month: effectiveMonth, targets: values }
+      ].sort((a, b) => a.month.localeCompare(b.month)) }) }, { onConflict: 'key' });
+    if(error) throw error;
+    goalTargetChanges = normalizeGoalTargets({ changes: [
+      ...goalTargetChanges.filter((change) => change.month !== effectiveMonth),
+      { month: effectiveMonth, targets: values }
+    ] });
+    renderGoals();
+    const nextDetails = document.querySelector('.goals-settings');
+    if(nextDetails) nextDetails.open = true;
+    const nextStatus = document.querySelector('[data-goals-settings-status]');
+    if(nextStatus) nextStatus.textContent = 'Цілі збережено.';
+  } catch(error){
+    if(status) status.textContent = 'Не вдалося зберегти. Перевірте підключення та спробуйте ще раз.';
+    console.error('Не вдалося зберегти цілі KPI', error);
+  } finally {
+    goalTargetsBusy = false;
+    const nextButton = document.querySelector('#goalsSettingsForm button[type="submit"]');
+    if(nextButton) nextButton.disabled = false;
+  }
 }
 
 function renderMonths(){
@@ -2623,7 +2667,7 @@ function renderMonths(){
 
   const keys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
   wrap.innerHTML = (sold.length ? salesChartTemplate(grouped) : '<div class="empty">Ще немає статистики продажів по місяцях</div>')
-    + capitalizationChartTemplate() + keys.map((key) => `
+    + keys.map((key) => `
     <div class="month-card">
       <div class="muted">Місяць</div>
       <div class="month-title">${safe(monthName(key))}</div>
@@ -2652,6 +2696,7 @@ function renderGoals(){
   }).formatToParts(new Date());
   const currentYear = Number(currentParts.find((part) => part.type === 'year').value);
   const currentMonth = Number(currentParts.find((part) => part.type === 'month').value);
+  const currentKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
   const start = new Date(Date.UTC(2026, 6, 1));
   const end = new Date(Date.UTC(currentYear, currentMonth - 1, 1));
   const months = [];
@@ -2662,34 +2707,49 @@ function renderGoals(){
   const costByMonth = new Map(capitalizationChartMonths().map((row) => [row.month, row.amount == null ? null : Number(row.amount)]));
   const onHandByMonth = new Map((onHandState === 'ready' ? onHandMonths : [])
     .map((row) => [row.month, row.quantity == null ? null : Number(row.quantity)]));
-  const baseline = costByMonth.get('2026-07')
-    ?? (costByMonth.get('2026-08') == null ? null : costByMonth.get('2026-08') - 30000)
-    ?? (costByMonth.get('2026-09') == null ? null : costByMonth.get('2026-09') - 60000)
-    ?? RECORDED_CAPITALIZATION['2026-09'] - 60000;
-  const cell = (met, actual, target, label) => `<td class="goal-cell ${met ? 'goal-met' : 'goal-missed'}" aria-label="${safe(label)}: ${met ? 'ціль виконано' : 'ціль не виконано'}"><span class="goal-cell-actual">${safe(actual)}</span><span class="goal-cell-target">Ціль: ${safe(target)}</span></td>`;
-  const rows = months.map((key, index) => {
+  const cell = (met, actual, target, label) => {
+    const state = met === null ? 'goal-unavailable' : met ? 'goal-met' : 'goal-missed';
+    const status = met === null ? 'немає даних' : met ? 'ціль виконано' : 'ціль не виконано';
+    return `<td class="goal-cell ${state}" aria-label="${safe(label)}: ${status}"><span class="goal-cell-actual">${safe(actual)}</span><span class="goal-cell-target">Ціль: ${safe(target)}</span></td>`;
+  };
+  const rows = months.map((key) => {
     const sales = soldByMonth.get(key) || { count: 0, profit: 0 };
     const averageMargin = sales.count ? sales.profit / sales.count : null;
     const cost = costByMonth.get(key) ?? null;
-    const costTarget = baseline == null ? null : baseline + index * 30000;
-    const onHand = onHandByMonth.get(key) ?? GOAL_RECORDED_ON_HAND[key] ?? RECORDED_ON_HAND[key] ?? null;
-    const onHandTarget = 17 + index * 3;
+    const targets = getGoalTargetsForMonth(key);
+    const costTarget = targets.costStart;
+    const onHand = onHandByMonth.get(key) ?? null;
+    const onHandTarget = targets.onHandStart;
     return `<tr>
       <th scope="row">${safe(monthName(key))}</th>
-      ${cell(averageMargin !== null && averageMargin >= 3500, averageMargin === null ? '—' : money(averageMargin), money(3500) + '+', 'Середня маржа')}
-      ${cell(sales.count >= 10, `${sales.count} шт.`, '10 шт. +', 'Продано ноутбуків')}
-      ${cell(cost !== null && costTarget !== null && cost >= costTarget, cost === null ? '—' : money(cost), costTarget === null ? '—' : money(costTarget), 'Собівартість ноутбуків')}
-      ${cell(onHand !== null && onHand >= onHandTarget, onHand === null ? '—' : `${onHand} шт.`, `${onHandTarget} шт. +`, 'Ноутбуків на руках')}
+      ${cell(averageMargin !== null && averageMargin >= targets.margin, averageMargin === null ? '—' : money(averageMargin), money(targets.margin) + '+', 'Середня маржа')}
+      ${cell(sales.count >= targets.sales, `${sales.count} шт.`, `${targets.sales} шт. +`, 'Продано ноутбуків')}
+      ${cell(cost !== null && cost >= costTarget, cost === null ? '—' : money(cost), money(costTarget), 'Собівартість ноутбуків')}
+      ${cell(onHand === null ? null : onHand >= onHandTarget, onHand === null ? '—' : `${onHand} шт.`, `${onHandTarget} шт. +`, 'Ноутбуків на руках')}
     </tr>`;
   }).join('');
+  const formTargets = getGoalTargetsForMonth(currentKey);
 
   wrap.innerHTML = `<div class="panel goals-panel">
-    <div class="section-head"><div><h2>Основні КПІ</h2><div class="muted goals-subtitle">Починаючи з липня 2026 · собівартість +30 000 ₴ і ноутбуки на руках +3 щомісяця</div></div></div>
+    <div class="section-head"><div><h2>Основні КПІ</h2></div></div>
+    <details class="goals-settings">
+      <summary>Налаштувати цілі</summary>
+      <form id="goalsSettingsForm" class="goals-settings-form">
+        <div class="goals-settings-field"><span>Застосувати з місяця</span>${goalsMonthPickerMarkup(currentKey)}</div>
+        <label>Продажі за місяць, шт.<input name="sales" type="number" min="0" max="1000000000" step="1" value="${safe(formTargets.sales)}" required></label>
+        <label>Середня маржа, ₴<input name="margin" type="number" min="0" max="1000000000" step="0.01" value="${safe(formTargets.margin)}" required></label>
+        <label>Ціль собівартості в обраному місяці, ₴<input name="costStart" type="number" min="0" max="1000000000" step="1" value="${safe(formTargets.costStart)}" required></label>
+        <label>Збільшення собівартості щомісяця, ₴<input name="costStep" type="number" min="0" max="1000000000" step="1" value="${safe(formTargets.costStep)}" required></label>
+        <label>Ноутбуків на руках у вибраному місяці, шт.<input name="onHandStart" type="number" min="0" max="1000000000" step="1" value="${safe(formTargets.onHandStart)}" required></label>
+        <label>Збільшення цілі щомісяця, шт.<input name="onHandStep" type="number" min="0" max="1000000000" step="1" value="${safe(formTargets.onHandStep)}" required></label>
+        <div class="goals-settings-actions"><button class="primary" type="submit" ${goalTargetsBusy ? 'disabled' : ''}>Зберегти цілі</button><span data-goals-settings-status role="status" aria-live="polite"></span></div>
+      </form>
+    </details>
     <div class="goals-table-scroll" tabindex="0" role="region" aria-label="КПІ за місяцями">
-      <table class="goals-table"><thead><tr><th scope="col">Місяць</th><th scope="col">Середня маржа</th><th scope="col">Продано ноутбуків</th><th scope="col">Собівартість ноутбуків</th><th scope="col">Ноутбуків на руках</th></tr></thead>
+      <table class="goals-table"><thead><tr><th scope="col">Місяць</th><th scope="col">Середня маржа</th><th scope="col">Продано ноутбуків</th><th scope="col">Собівартість ноутбуків</th><th scope="col">Ноутбуків на руках за місяць</th></tr></thead>
       <tbody>${rows}</tbody></table>
     </div>
-    <div class="goals-legend"><span><i class="goal-legend-dot goal-met"></i> Ціль виконано</span><span><i class="goal-legend-dot goal-missed"></i> Ціль не виконано</span></div>
+    <div class="goals-legend"><span><i class="goal-legend-dot goal-met"></i> Ціль виконано</span><span><i class="goal-legend-dot goal-missed"></i> Ціль не виконано</span><span><i class="goal-legend-dot goal-unavailable"></i> Немає даних</span></div>
   </div>`;
 }
 
@@ -4166,6 +4226,41 @@ function bindUI(){
   });
 
   document.addEventListener('click', (event) => {
+    const toggle = event.target.closest?.('[data-goal-month-toggle]');
+    const yearStep = event.target.closest?.('[data-goal-month-year-step]');
+    const monthChoice = event.target.closest?.('[data-goal-month-value]');
+    const picker = event.target.closest?.('[data-goals-month-picker]');
+
+    if(toggle && picker){
+      const popover = picker.querySelector('.goals-month-popover');
+      const open = popover.hidden;
+      document.querySelectorAll('.goals-month-popover').forEach((item) => { item.hidden = true; });
+      document.querySelectorAll('[data-goal-month-toggle]').forEach((item) => item.setAttribute('aria-expanded', 'false'));
+      popover.hidden = !open;
+      toggle.setAttribute('aria-expanded', String(open));
+      return;
+    }
+    if(yearStep && picker){
+      updateGoalsMonthPickerYear(picker, Number(picker.dataset.year) + Number(yearStep.dataset.goalMonthYearStep));
+      return;
+    }
+    if(monthChoice && picker){
+      const input = picker.querySelector('input[name="effectiveMonth"]');
+      input.value = monthChoice.dataset.goalMonthValue;
+      picker.dataset.year = input.value.slice(0, 4);
+      picker.querySelector('[data-goal-month-label]').textContent = monthName(input.value);
+      picker.querySelector('.goals-month-popover').hidden = true;
+      picker.querySelector('[data-goal-month-toggle]').setAttribute('aria-expanded', 'false');
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      return;
+    }
+    if(!picker){
+      document.querySelectorAll('.goals-month-popover').forEach((item) => { item.hidden = true; });
+      document.querySelectorAll('[data-goal-month-toggle]').forEach((item) => item.setAttribute('aria-expanded', 'false'));
+    }
+  });
+
+  document.addEventListener('click', (event) => {
     const filterButton = event.target.closest?.('.filter-option');
     if(filterButton) handleActiveFilterButtonClick(filterButton);
   });
@@ -4234,15 +4329,32 @@ function bindUI(){
   document.addEventListener('keydown', (event) => {
     if(event.key === 'Escape' && document.getElementById('locationStatePickerOverlay')) closeLocationStatePicker();
     if(event.key === 'Escape' && document.getElementById('quickLocationPickerOverlay')) closeQuickLocationPicker();
+    if(event.key === 'Escape'){
+      document.querySelectorAll('.goals-month-popover').forEach((item) => { item.hidden = true; });
+      document.querySelectorAll('[data-goal-month-toggle]').forEach((item) => item.setAttribute('aria-expanded', 'false'));
+    }
   });
 
   document.addEventListener('change', (event) => {
+    if(event.target.name === 'effectiveMonth' && event.target.form?.id === 'goalsSettingsForm'){
+      const targets = getGoalTargetsForMonth(event.target.value);
+      Object.keys(DEFAULT_GOAL_TARGETS).forEach((key) => {
+        const input = event.target.form.elements.namedItem(key);
+        if(input) input.value = targets[key];
+      });
+    }
     if(event.target.id === 'filterStatus' || event.target.id === 'filterMarket' || event.target.id === 'filterModelType' || event.target.id === 'filterCostSort' || event.target.id === 'filterTracking'){
       renderActive();
     }
     if(event.target.id === 'filterLocation' || event.target.id === 'filterLocationState'){
       renderLocation();
     }
+  });
+
+  document.addEventListener('submit', (event) => {
+    if(event.target.id !== 'goalsSettingsForm') return;
+    event.preventDefault();
+    saveGoalTargets(event.target);
   });
 
   document.getElementById('filterTracking')?.addEventListener('input', renderActive);
