@@ -1,7 +1,24 @@
 // Manual-only customer catalog controls. Data is stored in Supabase.
 let catalogMetadata = new Map(), catalogBusyIds = new Set(), catalogLoaded = false, catalogLoadBusy = false, catalogManualId = null, catalogManualBusy = false;
 const catalogConditions = ['7/10', '8/10', '9/10', 'Як новий'];
-function catalogEligibleLaptops(){ return laptops.filter(item => normalizeStatus(item.status) === 'received' && normalizeLocationState(item.location_state) !== 'Ремонт' && !isTestLaptop(item)); }
+let catalogActiveTab = 'received';
+function catalogEligibleLaptops(){
+  return laptops.filter(item => !isTestLaptop(item) && (catalogActiveTab === 'in_transit'
+    ? ['in_transit', 'В дорозі'].includes(String(item.status || '').trim())
+    : normalizeStatus(item.status) === 'received' && normalizeLocationState(item.location_state) !== 'Ремонт'));
+}
+function switchCatalogTab(tab){
+  if(!['received', 'in_transit'].includes(tab)) return;
+  catalogActiveTab = tab;
+  document.querySelectorAll('[data-catalog-tab]').forEach(button => {
+    const selected = button.dataset.catalogTab === tab;
+    button.classList.toggle('active', selected);
+    button.setAttribute('aria-selected', String(selected));
+    button.tabIndex = selected ? 0 : -1;
+    if(selected) document.getElementById('catalogAdminPanel').setAttribute('aria-labelledby', button.id);
+  });
+  renderCatalogAdmin();
+}
 function catalogMessage(message){ const status = document.getElementById('catalogAdminStatus'); status.textContent = message; status.hidden = !message; }
 function catalogMissingFields(meta = {}){
   return Object.entries({title:'назва',processor:'процесор',ram:'ОЗУ',ssd:'SSD',condition:'стан',price:'ціна'})
@@ -19,10 +36,11 @@ function renderCatalogAdmin(){
     const meta = catalogMetadata.get(String(item.id)) || {};
     const busy = catalogBusyIds.has(String(item.id));
     const missing = catalogMissingFields(meta);
-    const heading = `<div class="catalog-admin-heading"><span class="muted">Ноутбук № ${safe(item.number)}</span><span class="catalog-available">Отримано</span></div><h3>${safe(meta.title || 'Назва не вказана')}</h3>`;
+    const incoming = catalogActiveTab === 'in_transit';
+    const heading = `<div class="catalog-admin-heading"><span class="muted">Ноутбук № ${safe(item.number)}</span><span class="catalog-available${incoming ? ' catalog-incoming' : ''}">${incoming ? 'В дорозі' : 'Отримано'}</span></div><h3>${safe(meta.title || 'Назва не вказана')}</h3>`;
     const content = `<p class="muted catalog-admin-processor">Процесор: ${safe(meta.processor || 'Не вказано')}</p><dl class="catalog-admin-specs"><div><dt>GPU</dt><dd>${safe(meta.gpu || 'Не вказано')}</dd></div><div><dt>Оперативна пам’ять</dt><dd>${safe(meta.ram || 'Не вказано')}</dd></div><div><dt>SSD</dt><dd>${safe(meta.ssd || 'Не вказано')}</dd></div><div><dt>Стан</dt><dd>${safe(meta.condition || 'Не вказано')}</dd></div><div><dt>Ціна</dt><dd>${safe(meta.price || 'Не вказано')}</dd></div></dl>${missing.length ? `<p class="catalog-completion is-missing">Не заповнено: ${safe(missing.join(', '))}</p>` : ''}<button class="ghost" type="button" data-catalog-manual ${busy ? 'disabled' : ''}>Редагувати</button>`;
     return `<article class="catalog-admin-card" data-catalog-id="${safe(item.id)}">${missing.length ? heading + content : `<details class="catalog-admin-details"><summary>${heading}<span class="catalog-admin-toggle"><span class="catalog-show-details">Показати деталі</span><span class="catalog-hide-details">Згорнути</span><span class="catalog-admin-chevron" aria-hidden="true">⌄</span></span></summary>${content}</details>`}</article>`;
-  }).join('') : '<div class="empty">Немає отриманих ноутбуків без ремонту.</div>';
+  }).join('') : `<div class="empty">${catalogActiveTab === 'in_transit' ? 'Немає ноутбуків, що очікуються в поставці.' : 'Немає отриманих ноутбуків без ремонту.'}</div>`;
 }
 async function loadCatalogAdmin(){
   if(catalogLoadBusy) return; catalogLoadBusy = true; catalogLoaded = false; renderCatalogAdmin(); catalogMessage('Завантаження каталогу…');
@@ -46,5 +64,23 @@ function setCatalogGpuValue(value){
 }
 function closeCatalogManual(){ if(catalogManualBusy) return; document.getElementById('catalogManualModal').close(); catalogManualId = null; }
 async function saveCatalogManual(event){ event.preventDefault(); if(catalogManualBusy || !catalogManualId) return; const item = catalogEligibleLaptops().find(item => String(item.id) === catalogManualId); const status = document.getElementById('catalogManualStatus'); if(!item){ status.textContent = 'Ноутбук більше не доступний у каталозі.'; return; } const brand = document.getElementById('catalogManual-brand'); const generation = document.getElementById('catalogManual-generation'); generation.setCustomValidity(generation.value.trim() ? '' : 'Обери покоління.'); if(!document.getElementById('catalogManualForm').reportValidity()) return; catalogManualBusy = true; const savingId = catalogManualId; const submit = document.querySelector('#catalogManualForm button[type=submit]'); submit.disabled = true; catalogBusyIds.add(savingId); status.textContent = 'Збереження…'; try { await saveCatalogMetadata(catalogManualId, { title:[brand.value, document.getElementById('catalogManual-prefix').value.trim(), generation.value.trim()].filter(Boolean).join(' '), ram:document.getElementById('catalogManual-ram').value.trim() || null, ssd:document.getElementById('catalogManual-ssd').value.trim() || null, price:document.getElementById('catalogManual-price').value.trim() || null, condition:document.getElementById('catalogManual-condition').value || null, processor:document.getElementById('catalogManual-processor').value || null, gpu:document.getElementById('catalogManual-gpu').value || null }); catalogMessage(''); catalogManualBusy = false; closeCatalogManual(); } catch(error){ status.textContent = error.message; } finally { catalogBusyIds.delete(savingId); catalogManualBusy = false; submit.disabled = false; renderCatalogAdmin(); } }
-function resetCatalogAdmin(){ catalogLoaded = false; catalogMetadata.clear(); }
+function resetCatalogAdmin(){ catalogLoaded = false; catalogMetadata.clear(); switchCatalogTab('received'); }
+document.addEventListener('DOMContentLoaded', () => {
+  const tabs = document.getElementById('catalogAdminTabs');
+  tabs.addEventListener('click', event => {
+    const button = event.target.closest('[data-catalog-tab]');
+    if(button) switchCatalogTab(button.dataset.catalogTab);
+  });
+  tabs.addEventListener('keydown', event => {
+    if(!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    const buttons = [...tabs.querySelectorAll('[data-catalog-tab]')];
+    const current = buttons.indexOf(document.activeElement);
+    if(current < 0) return;
+    event.preventDefault();
+    const index = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1
+      : (current + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length;
+    switchCatalogTab(buttons[index].dataset.catalogTab);
+    buttons[index].focus();
+  });
+});
 document.addEventListener('DOMContentLoaded', () => { document.getElementById('catalogMissingNumbers').addEventListener('click', event => { const button = event.target.closest('[data-catalog-missing-id]'); if(button) openCatalogManual(button.dataset.catalogMissingId); }); document.getElementById('catalogManualForm').addEventListener('submit', saveCatalogManual); document.getElementById('catalogManual-generation').addEventListener('input', event => event.target.setCustomValidity('')); document.getElementById('catalogManualClose').addEventListener('click', closeCatalogManual); document.getElementById('catalogManualModal').addEventListener('cancel', event => { event.preventDefault(); closeCatalogManual(); }); document.getElementById('catalogAdminList').addEventListener('click', event => { const button = event.target.closest('[data-catalog-manual]'); if(button) openCatalogManual(button.closest('[data-catalog-id]').dataset.catalogId); }); });
