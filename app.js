@@ -2737,7 +2737,6 @@ function renderGoals(){
 
   wrap.innerHTML = `<div class="panel goals-panel">
     <div class="section-head"><div><h2>Основні КПІ</h2></div></div>
-    <p class="muted">Активні ноутбуки — найбільша кількість одночасно непроданих ноутбуків, включно з тими, що в дорозі. Підсумок — о 18:00 останнього дня місяця за Києвом. До підсумку або без повної історії місяця — «—».</p>
     <details class="goals-settings">
       <summary>Налаштувати цілі</summary>
       <form id="goalsSettingsForm" class="goals-settings-form">
