@@ -10,8 +10,8 @@ let supabaseClient = null;
 let laptops = [];
 let capitalizationMonths = [];
 let capitalizationState = 'loading';
-let onHandMonths = [];
-let onHandState = 'loading';
+let activeMonths = [];
+let activeState = 'loading';
 const GOAL_TARGETS_SETTING_KEY = 'goal_targets';
 const DEFAULT_GOAL_TARGETS = Object.freeze({ sales: 10, margin: 3500, costStart: 170000, costStep: 30000, onHandStart: 17, onHandStep: 3 });
 let goalTargetChanges = [{ month: '2026-07', targets: { ...DEFAULT_GOAL_TARGETS } }];
@@ -43,7 +43,7 @@ let quickLocationSavingId = null;
 let pendingLocationStateUndo = null;
 let locationStateToastTimer = null;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.12.22';
+const APP_VERSION = '1.12.24';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -1200,8 +1200,8 @@ async function handleAuthSession(session){
     capitalizationRequest += 1;
     capitalizationMonths = [];
     capitalizationState = 'loading';
-    onHandMonths = [];
-    onHandState = 'loading';
+    activeMonths = [];
+    activeState = 'loading';
     showAuthScreen();
   }
 }
@@ -2567,7 +2567,7 @@ async function loadCapitalization(){
     || !(monthsActive || goalsActive)) return;
   const request = ++capitalizationRequest;
   const results = await Promise.allSettled([
-    ...['get_monthly_capitalization', 'get_monthly_on_hand_count'].map((name) =>
+    ...['get_monthly_capitalization', 'get_monthly_active_count'].map((name) =>
       withRequestTimeout(name, (signal) => attachAbortSignal(supabaseClient.rpc(name), signal))),
     withRequestTimeout('load goal targets', (signal) => attachAbortSignal(
       supabaseClient.from(SETTINGS_TABLE).select('value').eq('key', GOAL_TARGETS_SETTING_KEY).maybeSingle(), signal))
@@ -2581,8 +2581,8 @@ async function loadCapitalization(){
   const capital = readResult(results[0]), count = readResult(results[1]);
   capitalizationMonths = capital.data;
   capitalizationState = capital.state;
-  onHandMonths = count.data;
-  onHandState = count.state;
+  activeMonths = count.data;
+  activeState = count.state;
   if(results[2].status === 'fulfilled' && !results[2].value.error && results[2].value.data?.value){
     try {
       const saved = JSON.parse(results[2].value.data.value);
@@ -2705,8 +2705,13 @@ function renderGoals(){
   }
 
   const costByMonth = new Map(capitalizationChartMonths().map((row) => [row.month, row.amount == null ? null : Number(row.amount)]));
-  const onHandByMonth = new Map((onHandState === 'ready' ? onHandMonths : [])
-    .map((row) => [row.month, row.quantity == null ? null : Number(row.quantity)]));
+  const activeByMonth = new Map((activeState === 'ready' ? activeMonths : [])
+    .map((row) => [row.month, row.finalized && !row.partial && row.quantity != null ? Number(row.quantity) : null]));
+  // User-confirmed historical peaks also work before the server migration is installed.
+  const recordedActivePeaks = { '2026-07': 20, '2026-08': 21, '2026-09': 22, '2026-10': 26 };
+  for(const [month, quantity] of Object.entries(recordedActivePeaks)){
+    if(month < currentKey && activeByMonth.get(month) == null) activeByMonth.set(month, quantity);
+  }
   const cell = (met, actual, target, label) => {
     const state = met === null ? 'goal-unavailable' : met ? 'goal-met' : 'goal-missed';
     const status = met === null ? 'немає даних' : met ? 'ціль виконано' : 'ціль не виконано';
@@ -2718,20 +2723,21 @@ function renderGoals(){
     const cost = costByMonth.get(key) ?? null;
     const targets = getGoalTargetsForMonth(key);
     const costTarget = targets.costStart;
-    const onHand = onHandByMonth.get(key) ?? null;
-    const onHandTarget = targets.onHandStart;
+    const active = activeByMonth.get(key) ?? null;
+    const activeTarget = targets.onHandStart;
     return `<tr>
       <th scope="row">${safe(monthName(key))}</th>
       ${cell(averageMargin !== null && averageMargin >= targets.margin, averageMargin === null ? '—' : money(averageMargin), money(targets.margin) + '+', 'Середня маржа')}
       ${cell(sales.count >= targets.sales, `${sales.count} шт.`, `${targets.sales} шт. +`, 'Продано ноутбуків')}
       ${cell(cost !== null && cost >= costTarget, cost === null ? '—' : money(cost), money(costTarget), 'Собівартість ноутбуків')}
-      ${cell(onHand === null ? null : onHand >= onHandTarget, onHand === null ? '—' : `${onHand} шт.`, `${onHandTarget} шт. +`, 'Ноутбуків на руках')}
+      ${cell(active === null ? null : active >= activeTarget, active === null ? '—' : `${active} шт.`, `${activeTarget} шт. +`, 'Активні ноутбуки')}
     </tr>`;
   }).join('');
   const formTargets = getGoalTargetsForMonth(currentKey);
 
   wrap.innerHTML = `<div class="panel goals-panel">
     <div class="section-head"><div><h2>Основні КПІ</h2></div></div>
+    <p class="muted">Активні ноутбуки — найбільша кількість одночасно непроданих ноутбуків, включно з тими, що в дорозі. Підсумок — о 18:00 останнього дня місяця за Києвом. До підсумку або без повної історії місяця — «—».</p>
     <details class="goals-settings">
       <summary>Налаштувати цілі</summary>
       <form id="goalsSettingsForm" class="goals-settings-form">
@@ -2740,13 +2746,13 @@ function renderGoals(){
         <label>Середня маржа, ₴<input name="margin" type="number" min="0" max="1000000000" step="0.01" value="${safe(formTargets.margin)}" required></label>
         <label>Ціль собівартості в обраному місяці, ₴<input name="costStart" type="number" min="0" max="1000000000" step="1" value="${safe(formTargets.costStart)}" required></label>
         <label>Збільшення собівартості щомісяця, ₴<input name="costStep" type="number" min="0" max="1000000000" step="1" value="${safe(formTargets.costStep)}" required></label>
-        <label>Ноутбуків на руках у вибраному місяці, шт.<input name="onHandStart" type="number" min="0" max="1000000000" step="1" value="${safe(formTargets.onHandStart)}" required></label>
+        <label>Максимум активних ноутбуків у вибраному місяці, шт.<input name="onHandStart" type="number" min="0" max="1000000000" step="1" value="${safe(formTargets.onHandStart)}" required></label>
         <label>Збільшення цілі щомісяця, шт.<input name="onHandStep" type="number" min="0" max="1000000000" step="1" value="${safe(formTargets.onHandStep)}" required></label>
         <div class="goals-settings-actions"><button class="primary" type="submit" ${goalTargetsBusy ? 'disabled' : ''}>Зберегти цілі</button><span data-goals-settings-status role="status" aria-live="polite"></span></div>
       </form>
     </details>
     <div class="goals-table-scroll" tabindex="0" role="region" aria-label="КПІ за місяцями">
-      <table class="goals-table"><thead><tr><th scope="col">Місяць</th><th scope="col">Середня маржа</th><th scope="col">Продано ноутбуків</th><th scope="col">Собівартість ноутбуків</th><th scope="col">Ноутбуків на руках за місяць</th></tr></thead>
+      <table class="goals-table"><thead><tr><th scope="col">Місяць</th><th scope="col">Середня маржа</th><th scope="col">Продано ноутбуків</th><th scope="col">Собівартість ноутбуків</th><th scope="col">Активні ноутбуки</th></tr></thead>
       <tbody>${rows}</tbody></table>
     </div>
     <div class="goals-legend"><span><i class="goal-legend-dot goal-met"></i> Ціль виконано</span><span><i class="goal-legend-dot goal-missed"></i> Ціль не виконано</span><span><i class="goal-legend-dot goal-unavailable"></i> Немає даних</span></div>
