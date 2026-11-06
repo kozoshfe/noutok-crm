@@ -6,18 +6,18 @@
   <title>Ноуток СРМ</title>
   <meta name="theme-color" content="#061126" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2212%22 y=%2218%22 width=%2276%22 height=%2248%22 rx=%228%22 fill=%22%234b67ff%22/><rect x=%2218%22 y=%2224%22 width=%2264%22 height=%2236%22 rx=%226%22 fill=%22%2349d17c%22/><rect x=%2218%22 y=%2270%22 width=%2264%22 height=%228%22 rx=%224%22 fill=%22%23dbe3f0%22/><text x=%2250%22 y=%2250%22 text-anchor=%22middle%22 font-size=%2230%22 font-family=%22Arial%22 font-weight=%22700%22 fill=%22white%22>NB</text></svg>">
-  <link rel="manifest" href="manifest.json?v=1.12.24">
+  <link rel="manifest" href="manifest.json?v=1.12.31">
   <link rel="icon" type="image/png" href="icon-512.png?v=20260520-2">
   <link rel="apple-touch-icon" href="icon-192.png?v=20260520-2">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Ноуток СРМ">
-  <link rel="stylesheet" href="styles.css?v=1.12.24">
+  <link rel="stylesheet" href="styles.css?v=1.12.31">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="sales-analytics.js?v=1.12.24"></script>
-  <script src="stock-logic.js?v=1.12.24"></script>
-  <script src="catalog-admin.js?v=1.12.24" defer></script>
-  <script src="app.js?v=1.12.24" defer></script>
+  <script src="sales-analytics.js?v=1.12.31"></script>
+  <script src="stock-logic.js?v=1.12.31"></script>
+  <script src="catalog-admin.js?v=1.12.31" defer></script>
+  <script src="app.js?v=1.12.31" defer></script>
 </head>
 <body>
   <div id="authScreen" class="auth-screen" style="display:none">
@@ -81,13 +81,6 @@
         <div class="section-head dashboard-stats-heading">
           <h2>Швидка статистика</h2>
           <button class="ghost dashboard-catalog-button" type="button" onclick="switchView('catalog-admin')" aria-label="Каталог для Google Таблиці">Каталог</button>
-        </div>
-        <div id="testTools" class="test-tools" hidden>
-          <div class="test-tools-copy">
-            <div class="k">Тестові записи</div>
-            <div class="v"><span id="testLaptopCount">0</span> шт.</div>
-          </div>
-          <button id="purgeTestLaptopsBtn" class="ghost danger-ghost" type="button">Видалити тестові</button>
         </div>
         <div class="dashboard-card-grid">
         <div class="stats">
@@ -294,6 +287,59 @@
           <br>2. переконайся, що для таблиці <b>laptops</b> правильно налаштований доступ,
           <br>3. перевір назву таблиці та структуру полів.
         </div>
+      </div>
+    </section>
+
+    <section id="view-tools" class="view" aria-label="Калькулятор ціни">
+      <div class="panel duty-estimate-panel">
+        <div class="duty-estimate-grid">
+          <div class="duty-estimate-inputs">
+            <label class="duty-estimate-label" for="dutyEstimatePrice">Ціна ноутбука, $</label>
+            <input id="dutyEstimatePrice" class="duty-estimate-price" type="text" inputmode="decimal" autocomplete="off" placeholder="Наприклад, 200" aria-describedby="dutyEstimateError" />
+            <div id="dutyEstimateExtras" class="duty-estimate-extras">
+              <fieldset class="duty-estimate-extra-options">
+                <legend>Додаткові витрати</legend>
+                <label class="duty-estimate-extra-option" for="dutyEstimateDelivery">
+                  <input id="dutyEstimateDelivery" type="checkbox" />
+                  <span>Доставка</span><b>+900 грн</b>
+                </label>
+                <label class="duty-estimate-extra-option" for="dutyEstimateSsd">
+                  <input id="dutyEstimateSsd" type="checkbox" />
+                  <span>SSD</span><b>+1300 грн</b>
+                </label>
+                <label class="duty-estimate-extra-option" for="dutyEstimateRam">
+                  <input id="dutyEstimateRam" type="checkbox" />
+                  <span>Оперативка</span><b>+800 грн</b>
+                </label>
+              </fieldset>
+              <fieldset class="duty-estimate-charger-options">
+                <legend>Зарядка</legend>
+                <div class="duty-estimate-charger-choices">
+                  <label><input type="radio" name="dutyEstimateCharger" value="0" checked /><span>Не додавати</span></label>
+                  <label><input type="radio" name="dutyEstimateCharger" value="400" /><span>+400 грн</span></label>
+                  <label><input type="radio" name="dutyEstimateCharger" value="900" /><span>+900 грн</span></label>
+                </div>
+              </fieldset>
+            </div>
+            <div id="dutyEstimateRateNotice" hidden>
+              <p id="dutyEstimateRateStatus" class="duty-estimate-note" role="alert"></p>
+              <button id="dutyEstimateRefresh" class="ghost" type="button">Спробувати ще раз</button>
+            </div>
+            <p id="dutyEstimateError" class="duty-estimate-error" role="status"></p>
+          </div>
+          <div class="duty-estimate-result" aria-live="polite" aria-atomic="true">
+            <div class="duty-estimate-label">Прогнозована ціна, грн</div>
+            <div id="dutyEstimateTotalUah" class="duty-estimate-total">—</div>
+            <div id="dutyEstimateTotalEur" class="duty-estimate-total-eur">—</div>
+          </div>
+        </div>
+      </div>
+      <div id="testTools" class="test-tools">
+        <div class="test-tools-copy">
+          <div class="k">Тестові записи</div>
+          <div class="v"><span id="testLaptopCount">0</span> шт.</div>
+        </div>
+        <button id="purgeTestLaptopsBtn" class="ghost danger-ghost" type="button">Видалити тестові</button>
       </div>
     </section>
 

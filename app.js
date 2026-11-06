@@ -23,6 +23,10 @@ let realtimeChannel = null;
 let hasSupabaseConnection = false;
 let logoTapCount = 0;
 let logoTapTimer = null;
+let dutyEstimateRate = null;
+let dutyEstimateUsdRate = null;
+let dutyEstimateRateRequest = 0;
+let dutyEstimateRateController = null;
 let versionTapCount = 0;
 let versionTapTimer = null;
 let dashboardDeliveryNoteValue = [];
@@ -43,7 +47,7 @@ let quickLocationSavingId = null;
 let pendingLocationStateUndo = null;
 let locationStateToastTimer = null;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.12.24';
+const APP_VERSION = '1.12.31';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -179,10 +183,107 @@ function updateTestTools(){
 }
 
 function toggleTestTools(){
-  const wrap = document.getElementById('testTools');
-  if(!wrap) return;
-  wrap.hidden = !wrap.hidden;
+  const isOpen = document.getElementById('view-tools')?.classList.contains('active');
+  switchView(isOpen ? 'dashboard' : 'tools');
   updateTestTools();
+}
+
+function parseEstimateNumber(value){
+  const normalized = String(value).trim().replace(',', '.');
+  if(!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized)) return null;
+  const number = Number(normalized);
+  return Number.isFinite(number) ? number : null;
+}
+
+function renderDutyEstimate(){
+  const priceInput = document.getElementById('dutyEstimatePrice');
+  const price = parseEstimateNumber(priceInput.value);
+  const rate = dutyEstimateRate;
+  const usdRate = dutyEstimateUsdRate;
+  const invalidPrice = priceInput.value.trim() !== '' && (price === null || price > 1000000000);
+  priceInput.setAttribute('aria-invalid', String(invalidPrice));
+  document.getElementById('dutyEstimateError').textContent = invalidPrice
+    ? 'Введи ціну від 0 до 1 000 000 000 доларів.' : '';
+
+  const chargerValue = Number(document.querySelector('input[name="dutyEstimateCharger"]:checked')?.value);
+  const extras = {
+    Delivery: document.getElementById('dutyEstimateDelivery').checked ? 900 : 0,
+    Ssd: document.getElementById('dutyEstimateSsd').checked ? 1300 : 0,
+    Ram: document.getElementById('dutyEstimateRam').checked ? 800 : 0,
+    Charger: [400, 900].includes(chargerValue) ? chargerValue : 0
+  };
+  const extrasTotal = Object.values(extras).reduce((sum, cost) => sum + cost, 0);
+  const values = { dutyEstimateTotalUah: null, dutyEstimateTotalEur: null };
+  if(price !== null && rate > 0 && usdRate > 0 && !invalidPrice){
+    const priceEur = price * rate;
+    const taxableEur = Math.max(0, priceEur - DUTY_FREE_LIMIT_EUR);
+    const dutyEur = taxableEur * DUTY_RATE;
+    const dutyUsd = dutyEur / rate;
+    const totalUah = (price + dutyUsd) * usdRate + extrasTotal;
+    Object.assign(values, {
+      dutyEstimateTotalUah: totalUah, dutyEstimateTotalEur: totalUah / usdRate * rate
+    });
+  }
+  for(const [id, value] of Object.entries(values)){
+    const currency = id.endsWith('Uah') ? 'UAH' : 'EUR';
+    document.getElementById(id).textContent = value === null ? '—' : new Intl.NumberFormat('uk-UA', {
+      style: 'currency', currency, currencyDisplay: 'narrowSymbol', minimumFractionDigits: 2, maximumFractionDigits: 2
+    }).format(value);
+  }
+}
+
+async function loadDutyEstimateRate(){
+  dutyEstimateRateController?.abort();
+  const controller = new AbortController();
+  dutyEstimateRateController = controller;
+  const request = ++dutyEstimateRateRequest;
+  const notice = document.getElementById('dutyEstimateRateNotice');
+  const status = document.getElementById('dutyEstimateRateStatus');
+  const refresh = document.getElementById('dutyEstimateRefresh');
+  dutyEstimateRate = null;
+  dutyEstimateUsdRate = null;
+  notice.hidden = true;
+  refresh.disabled = true;
+  status.textContent = '';
+  document.getElementById('dutyEstimateTotalUah').setAttribute('aria-busy', 'true');
+  renderDutyEstimate();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Kyiv', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).formatToParts(new Date());
+    const part = type => parts.find(item => item.type === type).value;
+    const date = `${part('year')}${part('month')}${part('day')}`;
+    const expectedDate = `${part('day')}.${part('month')}.${part('year')}`;
+    const response = await fetch(`https://bank.gov.ua/NBUStatService/v1/statdirectory/exchangenew?json&date=${date}`, {
+      signal: controller.signal, credentials: 'omit'
+    });
+    if(!response.ok) throw new Error('Exchange rate request failed');
+    const data = await response.json();
+    const usd = Array.isArray(data) && data.find(item => item.cc === 'USD');
+    const eur = Array.isArray(data) && data.find(item => item.cc === 'EUR');
+    if(!Number.isFinite(usd?.rate) || usd.rate <= 0 || !Number.isFinite(eur?.rate) || eur.rate <= 0
+      || usd.exchangedate !== expectedDate || eur.exchangedate !== expectedDate){
+      throw new Error('Invalid exchange rate data');
+    }
+    const rate = usd.rate / eur.rate;
+    if(!Number.isFinite(rate) || rate <= 0 || rate > 1000 || usd.rate > 1000) throw new Error('Invalid exchange rate');
+    if(request !== dutyEstimateRateRequest) return;
+    dutyEstimateRate = rate;
+    dutyEstimateUsdRate = usd.rate;
+  } catch(error){
+    if(request !== dutyEstimateRateRequest) return;
+    status.textContent = 'Не вдалося завантажити курс НБУ. Спробуй ще раз.';
+    notice.hidden = false;
+  } finally {
+    clearTimeout(timeout);
+    if(request === dutyEstimateRateRequest){
+      dutyEstimateRateController = null;
+      refresh.disabled = false;
+      document.getElementById('dutyEstimateTotalUah').setAttribute('aria-busy', 'false');
+      renderDutyEstimate();
+    }
+  }
 }
 
 function handleLogoTap(){
@@ -1777,6 +1878,10 @@ function switchView(name, direction = ''){
   document.querySelectorAll('.nav-btn').forEach((btn) => btn.classList.remove('active'));
   document.querySelector(`.nav-btn[data-view="${name}"]`)?.classList.add('active');
   if(name === 'stock') switchStockTab('inventory');
+  if(name === 'tools'){
+    updateTestTools();
+    loadDutyEstimateRate();
+  }
   if(name === 'catalog-admin') loadCatalogAdmin();
   if(name === 'months' || name === 'goals') loadCapitalization();
   updateAppFooterVisibility(name);
@@ -3980,6 +4085,13 @@ async function init(){
 }
 
 function bindUI(){
+  const estimate = document.getElementById('dutyEstimatePrice');
+  if(estimate && !estimate.dataset.bound){
+    estimate.addEventListener('input', renderDutyEstimate);
+    document.getElementById('dutyEstimateRefresh').addEventListener('click', loadDutyEstimateRate);
+    document.getElementById('dutyEstimateExtras').addEventListener('change', renderDutyEstimate);
+    estimate.dataset.bound = '1';
+  }
   const logo = document.querySelector('.logo');
   if(logo && !logo.dataset.boundTestTools){
     logo.addEventListener('click', handleLogoTap);

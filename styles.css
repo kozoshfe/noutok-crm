@@ -255,6 +255,40 @@ body[data-theme="light"] .bad-seller-ebay-link{color:#1d4ed8}
 }
 .test-tools-copy .k{font-size:12px;color:var(--muted)}
 .test-tools-copy .v{margin-top:4px;font-size:20px;font-weight:900}
+#view-tools{width:100%;max-width:960px;align-self:center}
+#appShell:has(#view-tools.active) ~ .floating-add{display:none}
+.duty-estimate-panel{padding:16px}
+.duty-estimate-note{margin:12px 0;color:var(--muted);font-size:13px;line-height:1.6}
+.duty-estimate-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+.duty-estimate-inputs{min-width:0}
+.duty-estimate-label{display:block;margin-bottom:8px;font-size:13px;font-weight:800}
+.duty-estimate-price{height:48px;min-height:48px;font-size:20px;font-weight:700;padding:10px 12px;border-radius:12px}
+.duty-estimate-extras{display:grid;gap:12px;margin:14px 0 0}
+.duty-estimate-extras fieldset{min-width:0;margin:0;padding:0;border:0}
+.duty-estimate-extras legend{padding:0;margin-bottom:6px;font-size:12px;font-weight:800}
+.duty-estimate-extra-option{display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 10px;margin-top:6px;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:13px}
+.duty-estimate-extra-option b{margin-left:auto;white-space:nowrap;font-size:12px}
+.duty-estimate-extras input{flex:0 0 auto;width:18px;height:18px;min-height:0;margin:0;padding:0;accent-color:var(--blue);box-shadow:none}
+.duty-estimate-extra-option:has(input:checked),.duty-estimate-charger-choices label:has(input:checked){background:rgba(63,124,255,.12);border-color:var(--blue)}
+.duty-estimate-charger-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.duty-estimate-charger-choices label{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:6px 5px;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:12px;line-height:1.2;font-weight:700;text-align:center}
+.duty-estimate-charger-choices input{width:14px;height:14px}
+.duty-estimate-inputs input:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+.duty-estimate-inputs input[aria-invalid="true"]{border-color:var(--red)}
+.duty-estimate-error{color:var(--red);font-size:13px;line-height:1.5;margin:12px 0 0}
+.duty-estimate-error:empty{display:none}
+.duty-estimate-result{min-width:0;align-self:start;padding:16px;border:1px solid rgba(63,124,255,.25);border-radius:16px;background:linear-gradient(145deg,rgba(63,124,255,.15),rgba(63,124,255,.03))}
+.duty-estimate-total{font-size:30px;font-weight:900;letter-spacing:-.035em;overflow-wrap:anywhere}
+.duty-estimate-total-eur{margin-top:4px;font-size:14px;color:var(--muted)}
+body[data-theme="light"] #view-tools .duty-estimate-note,
+body[data-theme="light"] #view-tools .duty-estimate-total-eur{color:#617394}
+body[data-theme="light"] .duty-estimate-error{color:#b13a3a}
+@media(max-width:600px){
+  .duty-estimate-grid{grid-template-columns:minmax(0,1fr);gap:14px}
+  .duty-estimate-panel{padding:14px}
+  .duty-estimate-result{padding:14px}
+  .duty-estimate-total{font-size:28px}
+}
 .danger-ghost{
   border-color:rgba(255,93,93,.22) !important;
   color:#ffb5b5 !important;
