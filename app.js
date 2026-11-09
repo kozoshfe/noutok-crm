@@ -47,7 +47,7 @@ let quickLocationSavingId = null;
 let pendingLocationStateUndo = null;
 let locationStateToastTimer = null;
 // Змінюй номер тут під час кожного оновлення застосунку.
-const APP_VERSION = '1.12.31';
+const APP_VERSION = '1.12.32';
 const APP_VERSION_KEY = 'notebook-crm-app-version';
 const THEME_KEY = 'notebook-crm-theme';
 const DASHBOARD_DELIVERY_NOTE_KEY = 'notebook-crm-dashboard-delivery-note';
@@ -2811,7 +2811,8 @@ function renderGoals(){
 
   const costByMonth = new Map(capitalizationChartMonths().map((row) => [row.month, row.amount == null ? null : Number(row.amount)]));
   const activeByMonth = new Map((activeState === 'ready' ? activeMonths : [])
-    .map((row) => [row.month, row.finalized && !row.partial && row.quantity != null ? Number(row.quantity) : null]));
+    .map((row) => [row.month, row.quantity != null && (row.month === currentKey || (row.finalized && !row.partial))
+      ? Number(row.quantity) : null]));
   // User-confirmed historical peaks also work before the server migration is installed.
   const recordedActivePeaks = { '2026-07': 20, '2026-08': 21, '2026-09': 22, '2026-10': 26 };
   for(const [month, quantity] of Object.entries(recordedActivePeaks)){
@@ -2834,7 +2835,7 @@ function renderGoals(){
       <th scope="row">${safe(monthName(key))}</th>
       ${cell(averageMargin !== null && averageMargin >= targets.margin, averageMargin === null ? '—' : money(averageMargin), money(targets.margin) + '+', 'Середня маржа')}
       ${cell(sales.count >= targets.sales, `${sales.count} шт.`, `${targets.sales} шт. +`, 'Продано ноутбуків')}
-      ${cell(cost !== null && cost >= costTarget, cost === null ? '—' : money(cost), money(costTarget), 'Собівартість ноутбуків')}
+      ${cell(cost === null ? null : cost >= costTarget, cost === null ? '—' : money(cost), money(costTarget), 'Собівартість ноутбуків')}
       ${cell(active === null ? null : active >= activeTarget, active === null ? '—' : `${active} шт.`, `${activeTarget} шт. +`, 'Активні ноутбуки')}
     </tr>`;
   }).join('');
